@@ -1,0 +1,82 @@
+# .deb and .rpm packages (nfpm: https://nfpm.goreleaser.com). Run by package.sh, which stages
+# the file tree, substitutes its path for ${STAGE} (nfpm doesn't expand env vars in `src`) and
+# exports VERSION and NFPM_ARCH.
+#
+#   nfpm package -f packaging/linux/nfpm.yaml -p deb -t dist/release/
+name: downloadcraft
+arch: ${NFPM_ARCH}
+platform: linux
+version: ${VERSION}
+# semver: 0.2.0-rc.1 becomes 0.2.0~rc.1 in deb/rpm, so pre-releases sort before the release.
+version_schema: semver
+release: 1
+section: net
+priority: optional
+maintainer: ${DOWNLOADCRAFT_MAINTAINER}
+vendor: Learning Machines LLC
+homepage: https://github.com/ZIDAN44/downloadcraft
+license: MIT OR Apache-2.0
+description: |-
+  Open-source download manager: paste a link and watch it fill, pause it,
+  close the app and carry on later with an HTTP byte range. A queue, the
+  server's file names made safe, no ads and no telemetry.
+  Includes downloadcraft-cli, a command-line downloader and command runner.
+
+# The binaries link only glibc and libgcc_s directly. Windowing (X11/Wayland, xkbcommon) and the
+# GPU (Vulkan, EGL/GL) are loaded at runtime, so they are dependencies/recommendations here
+# rather than ELF NEEDED entries.
+overrides:
+  deb:
+    depends:
+      - libc6 (>= ${GLIBC_FLOOR})
+      - libgcc-s1
+      - libxkbcommon0
+      - libvulkan1 | libegl1
+    recommends:
+      - libwayland-client0
+      - libx11-6
+      - libx11-xcb1
+      - libxcursor1
+      - libxi6
+      - libxrandr2
+      - mesa-vulkan-drivers
+      - xdg-desktop-portal
+      - xdg-utils
+  rpm:
+    # Library sonames rather than package names, so the same requirements resolve on Fedora/RHEL
+    # and openSUSE (which has no libxkbcommon, vulkan-loader or libglvnd-egl package, so zypper
+    # refused the package). Every rpm built is 64-bit (x86_64, aarch64, riscv64). The glibc floor
+    # is the deb's: a symbol version libc.so.6 provides from that glibc on. libm is named as well:
+    # the binaries' newest symbols are libm's hypot and hypotf (GLIBC_2.35), and RHEL 9's glibc 2.34
+    # provides libc.so.6(GLIBC_2.35) through backports but not those, so without it the package
+    # installed there and DownloadCraft didn't start (pdfcraft found this).
+    depends:
+      - libc.so.6(GLIBC_${GLIBC_FLOOR})(64bit)
+      - libm.so.6(GLIBC_2.35)(64bit)
+      - libgcc_s.so.1()(64bit)
+      - libxkbcommon.so.0()(64bit)
+      - (libvulkan.so.1()(64bit) or libEGL.so.1()(64bit))
+    recommends:
+      - libwayland-client.so.0()(64bit)
+      - libX11.so.6()(64bit)
+      - libXcursor.so.1()(64bit)
+      - libXi.so.6()(64bit)
+      - libXrandr.so.2()(64bit)
+      - mesa-vulkan-drivers
+      - xdg-desktop-portal
+      - xdg-utils
+
+contents:
+  - src: ${STAGE}/usr/bin/downloadcraft
+    dst: /usr/bin/downloadcraft
+    file_info: { mode: 0755 }
+  - src: ${STAGE}/usr/bin/downloadcraft-cli
+    dst: /usr/bin/downloadcraft-cli
+    file_info: { mode: 0755 }
+  - src: ${STAGE}/usr/share/
+    dst: /usr/share/
+    type: tree
+
+scripts:
+  postinstall: packaging/linux/postinst.sh
+  postremove: packaging/linux/postinst.sh

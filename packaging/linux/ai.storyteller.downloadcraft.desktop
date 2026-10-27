@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=DownloadCraft
+GenericName=Download Manager
+Comment=Download files, pause them and carry on later
+Exec=downloadcraft %U
+TryExec=downloadcraft
+Icon=ai.storyteller.downloadcraft
+Terminal=false
+StartupNotify=true
+StartupWMClass=ai.storyteller.downloadcraft
+Categories=Network;FileTransfer;
+Keywords=download;downloader;download manager;resume;http;
+# Links passed with %U open the Add link dialog (apps/downloadcraft/src/main.rs). No MimeType
+# yet: torrents and magnet links are registered when DownloadCraft can download them (v0.3).

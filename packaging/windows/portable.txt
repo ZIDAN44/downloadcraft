@@ -1,0 +1,7 @@
+DownloadCraft portable mode
+
+While this file sits next to downloadcraft.exe, DownloadCraft keeps its download list and
+settings in the DownloadCraftData folder beside it, not in %APPDATA%. Copy the whole folder to
+move DownloadCraft with its list. Where the files you download go is still your choice (Settings).
+
+Delete this file to use the normal per-user folder (%APPDATA%\DownloadCraft) instead.

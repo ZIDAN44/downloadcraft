@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DownloadCraft MSI (WiX Toolset v5: `dotnet tool install -g wix`). Built by package.ps1:
+
+    wix build downloadcraft.wxs -arch x64 -d Version=1.2.3 -d BinDir=... -d IconPath=... -o out.msi
+
+  Per-user install, no administrator needed: into %LOCALAPPDATA%\Programs\DownloadCraft (as
+  VS Code's user installer, Discord and Chrome's per-user install do), a Start Menu shortcut, and
+  downloadcraft.exe on this user's App Paths list (so Win+R `downloadcraft` starts it). Because
+  the folder is the user's own, the updater replaces it without asking (docs/updates.md).
+
+  Everything is under HKCU and the user's profile: WiX's per-user rules (ICE38, ICE64, ICE91)
+  want each component's key path in HKCU and the folders it makes removed on uninstall.
+
+  UpgradeCode is fixed for DownloadCraft forever; never change it. Changing Scope later would
+  need it changed too (a per-machine and a per-user install of one product don't upgrade each
+  other), so this stays per-user.
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+      Name="DownloadCraft"
+      Manufacturer="Learning Machines LLC"
+      Version="$(var.Version)"
+      UpgradeCode="6A1F8E52-3C7B-4D19-9E2A-5B84C0D3F716"
+      Scope="perUser"
+      Compressed="yes"
+      Language="1033">
+    <SummaryInformation Description="DownloadCraft download manager" Manufacturer="Learning Machines LLC" />
+    <!-- Same-version upgrades let successive pre-releases of one X.Y.Z replace each other
+         (MSI versions are numeric, so 1.2.3-rc.1 and 1.2.3-rc.2 are both 1.2.3). -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes"
+        DowngradeErrorMessage="A newer version of DownloadCraft is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <!-- Windows 10 or later: the Rust standard library has needed it since 1.78, and DownloadCraft
+         draws with DirectX 12. `CurrentMajorVersionNumber` exists only from Windows 10 on.
+         `Installed` keeps repair and uninstall working on any Windows. -->
+    <Property Id="WINDOWS10ORLATER" Secure="yes">
+      <RegistrySearch Id="WindowsMajorVersion" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+          Name="CurrentMajorVersionNumber" Type="raw" />
+    </Property>
+    <Launch Condition="Installed OR WINDOWS10ORLATER" Message="DownloadCraft needs Windows 10 or later." />
+
+    <Icon Id="DownloadcraftIcon.ico" SourceFile="$(var.IconPath)" />
+    <Property Id="ARPPRODUCTICON" Value="DownloadcraftIcon.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://github.com/ZIDAN44/downloadcraft" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://github.com/ZIDAN44/downloadcraft/releases" />
+    <Property Id="ARPHELPLINK" Value="https://discord.gg/artcraft" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsFolder" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="DownloadCraft" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="Main" Title="DownloadCraft" Level="1">
+      <ComponentGroupRef Id="DownloadcraftFiles" />
+    </Feature>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="DownloadcraftFiles" Directory="INSTALLFOLDER">
+      <Component Id="DownloadcraftApp" Guid="3E9B7C21-48A6-4F0D-A5C3-9D17E2B860F4">
+        <File Id="DownloadcraftExe" Source="$(var.BinDir)\downloadcraft.exe" />
+        <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="DownloadCraft"
+            Description="DownloadCraft download manager" Target="[#DownloadcraftExe]" WorkingDirectory="INSTALLFOLDER"
+            Icon="DownloadcraftIcon.ico" IconIndex="0">
+          <ShortcutProperty Key="System.AppUserModel.ID" Value="ai.storyteller.downloadcraft" />
+        </Shortcut>
+        <RemoveFolder Id="RemoveInstallFolder" Directory="INSTALLFOLDER" On="uninstall" />
+        <RemoveFolder Id="RemoveProgramsFolder" Directory="ProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\DownloadCraft" Name="InstallFolder" Value="[INSTALLFOLDER]" Type="string" KeyPath="yes" />
+        <RegistryValue Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\App Paths\downloadcraft.exe" Value="[#DownloadcraftExe]" Type="string" />
+      </Component>
+
+      <Component Id="DownloadcraftCli" Guid="8C4D2A97-1B5E-4E73-9F06-C2A8B5E1D349">
+        <File Id="DownloadcraftCliExe" Source="$(var.BinDir)\downloadcraft-cli.exe" />
+        <RegistryValue Root="HKCU" Key="Software\DownloadCraft" Name="Cli" Value="[#DownloadcraftCliExe]" Type="string" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+</Wix>

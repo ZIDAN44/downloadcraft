@@ -12,14 +12,38 @@ pub struct Store {
     dir: PathBuf,
 }
 
-/// `%APPDATA%\DownloadCraft`, `~/Library/Application Support/DownloadCraft`, `~/.local/share/DownloadCraft`.
+/// The file beside the exe that makes a copy portable (packaging/windows/portable.txt).
+pub const PORTABLE_MARKER: &str = "portable.txt";
+
+/// `DownloadCraftData` beside the exe for a portable copy; else `%APPDATA%\DownloadCraft`,
+/// `~/Library/Application Support/DownloadCraft`, `~/.local/share/DownloadCraft`.
 pub fn default_dir() -> Option<PathBuf> {
-    dirs::data_dir().map(|d| d.join("DownloadCraft"))
+    portable_dir().or_else(|| dirs::data_dir().map(|d| d.join("DownloadCraft")))
+}
+
+/// The portable data folder, when `portable.txt` sits beside the exe and the folder can be made.
+fn portable_dir() -> Option<PathBuf> {
+    let exe = std::env::current_exe().ok()?;
+    let dir = exe.parent()?;
+    if !dir.join(PORTABLE_MARKER).is_file() {
+        return None;
+    }
+    let data = dir.join("DownloadCraftData");
+    match std::fs::create_dir_all(&data) {
+        Ok(()) => Some(data),
+        Err(e) => {
+            log::warn!("portable: {} can't be written ({e}); using the per-user folder", data.display());
+            None
+        }
+    }
 }
 
 impl Store {
     pub fn new(dir: PathBuf) -> Self {
         Store { dir }
+    }
+    pub fn dir(&self) -> &std::path::Path {
+        &self.dir
     }
     fn path(&self) -> PathBuf {
         self.dir.join("downloads.json")

@@ -1,0 +1,63 @@
+# Flatpak manifest for DownloadCraft, ready for a Flathub submission.
+#
+# Flatpak builds run offline, so the crate sources must be vendored first. From the repo root:
+#
+#   curl -fsSLO https://raw.githubusercontent.com/flatpak/flatpak-builder-tools/master/cargo/flatpak-cargo-generator.py
+#   python3 flatpak-cargo-generator.py Cargo.lock -o packaging/linux/flatpak/cargo-sources.json
+#   flatpak-builder --user --install --force-clean build-flatpak packaging/linux/flatpak/ai.storyteller.downloadcraft.yml
+#   flatpak run ai.storyteller.downloadcraft
+#
+# For Flathub, replace the `dir` source with a `git` source pinned to a release tag and commit.
+# The release's .flatpak bundles are built from ai.storyteller.downloadcraft.bundle.yml instead (it
+# repackages the Linux tarball); keep runtime-version and finish-args identical in both.
+id: ai.storyteller.downloadcraft
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: downloadcraft
+finish-args:
+  # Display: Wayland first; X11 only when no Wayland compositor is running.
+  - --socket=wayland
+  - --socket=fallback-x11
+  # X11 shared memory (MIT-SHM). Without it the X11 fallback is slow or fails.
+  - --share=ipc
+  # GPU access for the wgpu renderer (Vulkan, or GL as a fallback).
+  - --device=dri
+  # Downloading: DownloadCraft talks to the servers the user points it at.
+  - --share=network
+  # Downloads land in the Downloads folder by default; another folder is picked through the
+  # file-chooser portal (rfd), which grants access to just that folder.
+  - --filesystem=xdg-download
+  # Deliberately not granted: home/host filesystem access and sound. The download list lives in
+  # the sandbox's own data folder (~/.var/app/ai.storyteller.downloadcraft/data/DownloadCraft).
+build-options:
+  append-path: /usr/lib/sdk/rust-stable/bin
+modules:
+  - name: downloadcraft
+    buildsystem: simple
+    build-options:
+      env:
+        CARGO_HOME: /run/build/downloadcraft/cargo
+        CARGO_NET_OFFLINE: 'true'
+    build-commands:
+      - cargo --offline build --release --locked -p downloadcraft -p downloadcraft-cli
+      - install -Dm755 target/release/downloadcraft /app/bin/downloadcraft
+      - install -Dm755 target/release/downloadcraft-cli /app/bin/downloadcraft-cli
+      - install -Dm644 packaging/linux/ai.storyteller.downloadcraft.desktop /app/share/applications/ai.storyteller.downloadcraft.desktop
+      - mkdir -p /app/share/icons && cp -R assets/app-icon/hicolor /app/share/icons/
+      - >-
+        version=$(awk '/^\[/{p=($0=="[workspace.package]");next} p&&$1=="version"{gsub(/[" ]/,"",$3);print $3;exit}' Cargo.toml);
+        install -d /app/share/metainfo;
+        sed -e "s/@VERSION@/$version/" -e "s/@DATE@/$(date -u +%Y-%m-%d)/"
+        packaging/linux/ai.storyteller.downloadcraft.metainfo.xml.in > /app/share/metainfo/ai.storyteller.downloadcraft.metainfo.xml
+    sources:
+      - type: dir
+        path: ../../..
+        skip:
+          - target
+          - dist
+          - build-flatpak
+          - .flatpak-builder
+      - cargo-sources.json

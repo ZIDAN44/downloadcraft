@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- AppStream metadata (software centres, Flathub). Template: package.sh and the Flatpak
+     manifest substitute @VERSION@ and @DATE@ from Cargo.toml and the build date. -->
+<component type="desktop-application">
+  <id>ai.storyteller.downloadcraft</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT OR Apache-2.0</project_license>
+  <name>DownloadCraft</name>
+  <summary>Download files, pause them and carry on later</summary>
+  <developer id="ai.storyteller">
+    <name>Learning Machines LLC</name>
+  </developer>
+  <description>
+    <p>
+      DownloadCraft is a download manager: paste a link and watch it fill, pause it, close the
+      app and carry on tomorrow from where it stopped. Several downloads run at once and the rest
+      wait in a queue.
+    </p>
+    <p>
+      A download that is cut off keeps what came, and Resume asks the server for the rest. Files
+      get the name the server gives them, made safe for every file system. There are no ads, no
+      bundled offers and no telemetry: DownloadCraft talks only to the servers you point it at.
+    </p>
+    <p>
+      Every action is also a command that the command line and AI agents can drive.
+    </p>
+  </description>
+  <launchable type="desktop-id">ai.storyteller.downloadcraft.desktop</launchable>
+  <icon type="stock">ai.storyteller.downloadcraft</icon>
+  <!-- Only url types known to appstream 0.15 (Ubuntu 22.04, where CI validates): no vcs-browser. -->
+  <url type="homepage">https://github.com/ZIDAN44/downloadcraft</url>
+  <url type="bugtracker">https://github.com/ZIDAN44/downloadcraft/issues</url>
+  <url type="help">https://github.com/ZIDAN44/downloadcraft</url>
+  <url type="contact">https://discord.gg/artcraft</url>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/ZIDAN44/downloadcraft/main/docs/images/downloads.png</image>
+    </screenshot>
+  </screenshots>
+  <categories>
+    <category>Network</category>
+    <category>FileTransfer</category>
+  </categories>
+  <keywords>
+    <keyword>download</keyword>
+    <keyword>downloader</keyword>
+    <keyword>resume</keyword>
+  </keywords>
+  <branding>
+    <color type="primary" scheme_preference="light">#a9c9f3</color>
+    <color type="primary" scheme_preference="dark">#1758b4</color>
+  </branding>
+  <requires>
+    <display_length compare="ge">720</display_length>
+  </requires>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+  <provides>
+    <binary>downloadcraft</binary>
+  </provides>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="@VERSION@" date="@DATE@"/>
+  </releases>
+</component>
