@@ -88,6 +88,7 @@ fn progress_and_eta() {
         added: 0,
         speed: 100,
         run: 1,
+        segments: Vec::new(),
     };
     assert_eq!(d.fraction(), Some(0.25));
     assert_eq!(d.eta(), Some(8));

@@ -65,12 +65,12 @@ impl Worker {
     pub fn submit(&mut self, job: Job) {
         self.transfers.retain(|_, t| !t.handle.is_finished());
         match job {
-            Job::Fetch { id, run, url, folder, file_name, may_rename } => {
+            Job::Fetch { id, run, url, folder, file_name, may_rename, connections } => {
                 // A transfer of the same download that is still on its way out finishes first,
                 // so two never write one partial file.
                 let before = self.stop(id);
                 let cancel = Arc::new(AtomicBool::new(false));
-                let spec = http::Fetch { id, run, url, folder: PathBuf::from(folder), file_name, may_rename };
+                let spec = http::Fetch { id, run, url, folder: PathBuf::from(folder), file_name, may_rename, connections };
                 let (agent, sink, flag) = (self.agent.clone(), self.sink.clone(), cancel.clone());
                 let spawned = std::thread::Builder::new().name(format!("download-{}", id.0)).spawn(move || {
                     if let Some(h) = before {
@@ -98,10 +98,12 @@ impl Worker {
                     if let Some(h) = before {
                         let _ = h.join();
                     }
-                    if let Err(e) = std::fs::remove_file(&part)
-                        && e.kind() != std::io::ErrorKind::NotFound
-                    {
-                        log::warn!("couldn't delete {}: {e}", part.display());
+                    for f in [http::parts_record(&part), part] {
+                        if let Err(e) = std::fs::remove_file(&f)
+                            && e.kind() != std::io::ErrorKind::NotFound
+                        {
+                            log::warn!("couldn't delete {}: {e}", f.display());
+                        }
                     }
                 });
             }

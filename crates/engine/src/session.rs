@@ -180,6 +180,7 @@ impl Session {
                 folder: d.folder.clone(),
                 file_name: d.file_name.clone(),
                 may_rename: d.done == 0 && d.total.is_none(),
+                connections: self.prefs.connections.clamp(1, downloadcraft_model::MAX_CONNECTIONS),
             };
             self.jobs.push(job);
             running += 1;
@@ -228,9 +229,10 @@ impl Session {
                     d.file_name = downloadcraft_model::names::sanitize(&file_name);
                 }
             }
-            Event::Progress { done, speed, .. } => {
+            Event::Progress { done, speed, segments, .. } => {
                 d.done = done;
                 d.speed = speed;
+                d.segments = segments;
                 return;
             }
             Event::Finished { done, .. } => {
@@ -252,6 +254,7 @@ impl Session {
             if let Some(d) = self.get_mut(id) {
                 d.speed = 0;
                 d.run = 0;
+                d.segments.clear();
             }
             self.status = status;
             self.pump();
@@ -280,6 +283,7 @@ impl Session {
         self.downloads = saved.downloads;
         self.prefs = saved.prefs;
         self.prefs.max_active = self.prefs.max_active.clamp(1, downloadcraft_model::MAX_ACTIVE_LIMIT);
+        self.prefs.connections = self.prefs.connections.clamp(1, downloadcraft_model::MAX_CONNECTIONS);
         self.next_id = saved.next_id.max(top.saturating_add(1));
         self.selection = None;
         self.dirty = false;

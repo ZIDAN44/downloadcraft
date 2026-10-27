@@ -21,60 +21,77 @@ pub(crate) struct Serve {
     /// Close the first answer after this many body bytes.
     pub(crate) cut_after: Option<usize>,
     pub(crate) status: Option<u16>,
+    /// Turn away this many requests for a closed range (`bytes=a-b`) with 503, as servers that
+    /// allow few connections per client do.
+    pub(crate) refuse_parts: usize,
 }
 
-/// Serve `s` until the test ends; the `Range` header of every request is recorded.
+/// Serve `s` until the test ends, each connection on a thread of its own; the `Range` header of
+/// every request is recorded (`"123"` for `bytes=123-`, `"5-9"` for `bytes=5-9`).
 pub(crate) fn serve(s: Serve) -> (String, Arc<Mutex<Vec<Option<String>>>>) {
+    let refused = Arc::new(AtomicUsize::new(0));
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let url = format!("http://{}/files/data.bin", listener.local_addr().unwrap());
     let seen = Arc::new(Mutex::new(Vec::new()));
     let log = seen.clone();
-    let answered = AtomicUsize::new(0);
+    let answered = Arc::new(AtomicUsize::new(0));
+    let s = Arc::new(s);
     std::thread::spawn(move || {
         for stream in listener.incoming() {
-            let Ok(mut stream) = stream else { continue };
-            let mut reader = BufReader::new(stream.try_clone().unwrap());
-            let mut range = None;
-            loop {
-                let mut line = String::new();
-                if reader.read_line(&mut line).unwrap_or(0) == 0 || line == "\r\n" {
-                    break;
-                }
-                if let Some(v) = line.to_ascii_lowercase().strip_prefix("range: bytes=") {
-                    range = v.trim().trim_end_matches('-').parse::<usize>().ok();
-                }
-            }
-            log.lock().unwrap().push(range.map(|r| r.to_string()));
-            let first = answered.fetch_add(1, Ordering::SeqCst) == 0;
-            let mut head = String::new();
-            let (status, start) = match (s.status, range) {
-                (Some(code), _) => (code, 0),
-                (None, Some(r)) if s.ranges && r >= s.body.len() => (416, 0),
-                (None, Some(r)) if s.ranges => (206, r),
-                _ => (200, 0),
-            };
-            let part = if status == 200 || status == 206 { &s.body[start..] } else { &[][..] };
-            head.push_str(&format!("HTTP/1.1 {status} X\r\nContent-Length: {}\r\nConnection: close\r\n", part.len()));
-            if s.ranges {
-                head.push_str("Accept-Ranges: bytes\r\n");
-            }
-            if status == 206 {
-                head.push_str(&format!("Content-Range: bytes {start}-{}/{}\r\n", s.body.len() - 1, s.body.len()));
-            }
-            if let Some(d) = &s.disposition {
-                head.push_str(&format!("Content-Disposition: {d}\r\n"));
-            }
-            head.push_str("\r\n");
-            let _ = stream.write_all(head.as_bytes());
-            let send = match s.cut_after {
-                Some(n) if first => &part[..n.min(part.len())],
-                _ => part,
-            };
-            let _ = stream.write_all(send);
-            let _ = stream.flush();
+            let Ok(stream) = stream else { continue };
+            let (s, log, answered, refused) = (s.clone(), log.clone(), answered.clone(), refused.clone());
+            std::thread::spawn(move || answer(&s, stream, &log, &answered, &refused));
         }
     });
     (url, seen)
+}
+
+fn answer(s: &Serve, mut stream: std::net::TcpStream, log: &Mutex<Vec<Option<String>>>, answered: &AtomicUsize, refused: &AtomicUsize) {
+    let mut reader = BufReader::new(stream.try_clone().unwrap());
+    let mut range: Option<(usize, Option<usize>)> = None;
+    let mut raw = None;
+    loop {
+        let mut line = String::new();
+        if reader.read_line(&mut line).unwrap_or(0) == 0 || line == "\r\n" {
+            break;
+        }
+        if let Some(v) = line.to_ascii_lowercase().strip_prefix("range: bytes=") {
+            let v = v.trim().to_string();
+            let (a, b) = v.split_once('-').unwrap_or((&v, ""));
+            range = a.parse::<usize>().ok().map(|a| (a, b.parse::<usize>().ok()));
+            raw = Some(v.trim_end_matches('-').to_string());
+        }
+    }
+    log.lock().unwrap().push(raw);
+    let first = answered.fetch_add(1, Ordering::SeqCst) == 0;
+    let len = s.body.len();
+    let refuse = matches!(range, Some((_, Some(_)))) && refused.fetch_add(1, Ordering::SeqCst) < s.refuse_parts;
+    let (status, start, end) = match (s.status, range) {
+        (Some(code), _) => (code, 0, 0),
+        _ if refuse => (503, 0, 0),
+        (None, Some((a, _))) if s.ranges && a >= len => (416, 0, 0),
+        (None, Some((a, b))) if s.ranges => (206, a, b.map_or(len, |b| (b + 1).min(len))),
+        _ => (200, 0, len),
+    };
+    let part = if status == 200 || status == 206 { &s.body[start..end] } else { &[][..] };
+    let mut head = format!("HTTP/1.1 {status} X\r\nContent-Length: {}\r\nConnection: close\r\n", part.len());
+    if s.ranges {
+        head.push_str("Accept-Ranges: bytes\r\n");
+    }
+    if status == 206 {
+        head.push_str(&format!("Content-Range: bytes {start}-{}/{len}\r\n", end - 1));
+    }
+    if let Some(d) = &s.disposition {
+        head.push_str(&format!("Content-Disposition: {d}\r\n"));
+    }
+    head.push_str("\r\n");
+    let _ = stream.write_all(head.as_bytes());
+    let send = match s.cut_after {
+        Some(n) if first => &part[..n.min(part.len())],
+        _ => part,
+    };
+    let _ = stream.write_all(send);
+    let _ = stream.flush();
 }
 
 fn temp_dir(name: &str) -> PathBuf {
@@ -90,7 +107,7 @@ fn body(n: usize) -> Vec<u8> {
 fn run(url: &str, folder: &Path, name: &str, may_rename: bool) -> Vec<Event> {
     let (tx, rx) = channel();
     let sink = Sink::new(tx, Arc::new(|| {}));
-    let f = Fetch { id: DownloadId(1), run: 1, url: url.into(), folder: folder.to_path_buf(), file_name: name.into(), may_rename };
+    let f = Fetch { id: DownloadId(1), run: 1, url: url.into(), folder: folder.to_path_buf(), file_name: name.into(), may_rename, connections: 1 };
     fetch(&agent(), &f, &AtomicBool::new(false), &sink);
     drop(sink);
     rx.iter().collect()
@@ -188,7 +205,15 @@ fn the_worker_runs_jobs_and_drops_partials() {
     let (tx, rx): (_, Receiver<Event>) = channel();
     let mut w = Worker::new(Sink::new(tx, Arc::new(|| {})));
     let folder = dir.to_string_lossy().into_owned();
-    w.submit(downloadcraft_model::Job::Fetch { id: DownloadId(4), run: 9, url, folder: folder.clone(), file_name: "w.bin".into(), may_rename: true });
+    w.submit(downloadcraft_model::Job::Fetch {
+        id: DownloadId(4),
+        run: 9,
+        url,
+        folder: folder.clone(),
+        file_name: "w.bin".into(),
+        may_rename: true,
+        connections: 1,
+    });
     let done = rx.iter().find(|e| !matches!(e, Event::Started { .. } | Event::Progress { .. }));
     assert_eq!(done, Some(Event::Finished { id: DownloadId(4), run: 9, done: 200_000 }));
     std::fs::write(dir.join("gone.bin.dcpart"), b"x").unwrap();
@@ -201,5 +226,85 @@ fn the_worker_runs_jobs_and_drops_partials() {
     }
     assert!(!dir.join("gone.bin.dcpart").exists());
     assert!(dir.join("w.bin").exists());
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+fn run_on(url: &str, folder: &Path, name: &str, may_rename: bool, connections: u8) -> Vec<Event> {
+    let (tx, rx) = channel();
+    let sink = Sink::new(tx, Arc::new(|| {}));
+    let f = Fetch { id: DownloadId(1), run: 1, url: url.into(), folder: folder.to_path_buf(), file_name: name.into(), may_rename, connections };
+    fetch(&agent(), &f, &AtomicBool::new(false), &sink);
+    drop(sink);
+    rx.iter().collect()
+}
+
+#[test]
+fn a_big_file_comes_in_parts_on_several_connections() {
+    let data = body(9_000_000);
+    let (url, seen) = serve(Serve { body: data.clone(), ranges: true, ..Default::default() });
+    let dir = temp_dir("parts");
+    let ev = run_on(&url, &dir, "big.bin", true, 4);
+    assert!(matches!(last(&ev), Event::Finished { done: 9_000_000, .. }), "{ev:?}");
+    assert_eq!(std::fs::read(dir.join("big.bin")).unwrap(), data);
+    assert!(!dir.join("big.bin.dcpart.parts").exists(), "the parts' record goes once the file is whole");
+    let ranges = seen.lock().unwrap().clone();
+    assert_eq!(ranges.first().cloned().flatten().as_deref(), Some("0"), "the first ask finds out ranges work");
+    assert!(ranges.iter().flatten().filter(|r| r.contains('-')).count() >= 3, "the other parts are asked for by range: {ranges:?}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn a_part_cut_off_is_fetched_again() {
+    let data = body(4_500_000);
+    let (url, _) = serve(Serve { body: data.clone(), ranges: true, cut_after: Some(300_000), ..Default::default() });
+    let dir = temp_dir("parts-cut");
+    let ev = run_on(&url, &dir, "cut.bin", true, 3);
+    assert!(matches!(last(&ev), Event::Finished { done: 4_500_000, .. }), "{ev:?}");
+    assert_eq!(std::fs::read(dir.join("cut.bin")).unwrap(), data);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn parts_carry_on_from_their_record() {
+    let data = body(4 * 1024 * 1024);
+    let (url, seen) = serve(Serve { body: data.clone(), ranges: true, ..Default::default() });
+    let dir = temp_dir("parts-resume");
+    std::fs::create_dir_all(&dir).unwrap();
+    // Two parts, each half done: what a pause leaves.
+    let half = 2 * 1024 * 1024;
+    let mut partial = vec![0u8; data.len()];
+    partial[..half / 2].copy_from_slice(&data[..half / 2]);
+    partial[half..half + half / 2].copy_from_slice(&data[half..half + half / 2]);
+    std::fs::write(dir.join("r.bin.dcpart"), &partial).unwrap();
+    let record = format!(r#"{{"total":{},"parts":[[0,{half},{}],[{half},{},{}]]}}"#, data.len(), half / 2, data.len(), half + half / 2);
+    std::fs::write(dir.join("r.bin.dcpart.parts"), record).unwrap();
+    let ev = run_on(&url, &dir, "r.bin", false, 2);
+    assert!(matches!(ev.first(), Some(Event::Started { done, .. }) if *done == half as u64), "{ev:?}");
+    assert!(matches!(last(&ev), Event::Finished { .. }), "{ev:?}");
+    assert_eq!(std::fs::read(dir.join("r.bin")).unwrap(), data);
+    let ranges = seen.lock().unwrap().clone();
+    assert!(ranges.iter().flatten().all(|r| r.contains('-')), "only the missing bytes are asked for: {ranges:?}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn a_server_without_ranges_gets_one_connection() {
+    let data = body(3_000_000);
+    let (url, _) = serve(Serve { body: data.clone(), ..Default::default() });
+    let dir = temp_dir("no-parts");
+    let ev = run_on(&url, &dir, "one.bin", true, 8);
+    assert!(matches!(last(&ev), Event::Finished { done: 3_000_000, .. }), "{ev:?}");
+    assert_eq!(std::fs::read(dir.join("one.bin")).unwrap(), data);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn connections_the_server_turns_away_hand_their_parts_to_the_others() {
+    let data = body(8_000_000);
+    let (url, _) = serve(Serve { body: data.clone(), ranges: true, refuse_parts: 2, ..Default::default() });
+    let dir = temp_dir("parts-refused");
+    let ev = run_on(&url, &dir, "busy.bin", true, 4);
+    assert!(matches!(last(&ev), Event::Finished { done: 8_000_000, .. }), "{ev:?}");
+    assert_eq!(std::fs::read(dir.join("busy.bin")).unwrap(), data);
     let _ = std::fs::remove_dir_all(&dir);
 }

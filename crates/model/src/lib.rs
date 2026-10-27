@@ -13,7 +13,7 @@ pub mod source;
 
 use serde::{Deserialize, Serialize};
 
-pub use job::{Event, Job};
+pub use job::{Event, Job, Segment};
 pub use source::SourceKind;
 
 /// A download's id, unique in one list.
@@ -89,6 +89,10 @@ pub struct Download {
     /// The transfer run whose events count (not saved); see [`Job::Fetch`].
     #[serde(skip)]
     pub run: u64,
+    /// The parts being fetched at once, as the last progress report had them (not saved: the
+    /// network layer keeps its own record beside the partial file).
+    #[serde(skip)]
+    pub segments: Vec<Segment>,
 }
 
 impl Download {
@@ -111,6 +115,28 @@ impl Download {
     }
 }
 
+/// Light or dark.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Theme {
+    /// Whatever the system uses.
+    #[default]
+    System,
+    Light,
+    Dark,
+}
+
+impl Theme {
+    pub const ALL: [Theme; 3] = [Theme::System, Theme::Light, Theme::Dark];
+    pub fn label(self) -> &'static str {
+        match self {
+            Theme::System => "System",
+            Theme::Light => "Light",
+            Theme::Dark => "Dark",
+        }
+    }
+}
+
 /// Settings that belong with the list.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Prefs {
@@ -120,18 +146,30 @@ pub struct Prefs {
     /// How many transfer at once; the rest wait in the queue.
     #[serde(default = "default_max_active")]
     pub max_active: usize,
+    /// How many connections one download may open, each fetching its own part of the file
+    /// (when the server takes byte ranges).
+    #[serde(default = "default_connections")]
+    pub connections: u8,
+    #[serde(default)]
+    pub theme: Theme,
 }
 
 fn default_max_active() -> usize {
     3
 }
 
+fn default_connections() -> u8 {
+    8
+}
+
 /// The most transfers at once anyone can ask for.
 pub const MAX_ACTIVE_LIMIT: usize = 16;
+/// The most connections one download may open.
+pub const MAX_CONNECTIONS: u8 = 16;
 
 impl Default for Prefs {
     fn default() -> Self {
-        Prefs { folder: String::new(), max_active: default_max_active() }
+        Prefs { folder: String::new(), max_active: default_max_active(), connections: default_connections(), theme: Theme::System }
     }
 }
 

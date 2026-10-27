@@ -1,4 +1,6 @@
-//! One HTTP(S) transfer, resumable with byte ranges.
+//! One HTTP(S) transfer, resumable with byte ranges, on one connection or several (`segmented`).
+
+mod segmented;
 
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
@@ -12,9 +14,9 @@ use downloadcraft_model::{DownloadId, Event, names};
 use crate::{NetError, Sink};
 
 /// How often progress is reported.
-const TICK: Duration = Duration::from_millis(250);
+pub(crate) const TICK: Duration = Duration::from_millis(250);
 /// The read buffer.
-const CHUNK: usize = 256 * 1024;
+pub(crate) const CHUNK: usize = 256 * 1024;
 /// The most `name (n)` numbers tried for a taken name.
 const MAX_NUMBERED: u32 = 999;
 
@@ -25,6 +27,8 @@ pub(crate) struct Fetch {
     pub folder: PathBuf,
     pub file_name: String,
     pub may_rename: bool,
+    /// The most connections for this file.
+    pub connections: u8,
 }
 
 /// The agent every transfer shares: certificates always checked (rustls with Mozilla's roots),
@@ -101,12 +105,27 @@ fn transfer(agent: &ureq::Agent, f: &Fetch, cancel: &AtomicBool, sink: &Sink) ->
     std::fs::create_dir_all(&f.folder).map_err(|e| disk(&f.folder, e))?;
     let mut name = names::sanitize(&f.file_name);
     let mut part = part_of(&f.folder, &name);
+    // Parts left by a download on several connections carry on where each one was.
+    if !f.may_rename
+        && let Some((total, parts)) = segmented::load(&part)
+        && std::fs::metadata(&part).is_ok_and(|m| m.len() == total)
+    {
+        let done = parts.iter().map(|p| p.pos - p.start).sum();
+        sink.send(Event::Started { id: f.id, run: f.run, total: Some(total), resumable: true, file_name: name.clone(), done });
+        let got = segmented::run(agent, f, &part, total, parts, None, cancel, sink)?;
+        return got.map(|done| finish(f, &name, &part, done)).transpose();
+    }
+    let _ = std::fs::remove_file(segmented::record_path(&part));
     // A first start never carries on from a partial file someone else left under that name.
     let mut offset = if f.may_rename { 0 } else { std::fs::metadata(&part).map(|m| m.len()).unwrap_or(0) };
 
     let mut req = agent.get(&f.url).header("Accept-Encoding", "identity");
     if offset > 0 {
         req = req.header("Range", format!("bytes={offset}-"));
+    } else if f.connections > 1 {
+        // Asked as a range from the start, the answer says whether the server takes ranges
+        // (206), so the file can be fetched on several connections.
+        req = req.header("Range", "bytes=0-");
     }
     let mut resp = match req.call() {
         Ok(r) => r,
@@ -140,6 +159,16 @@ fn transfer(agent: &ureq::Agent, f: &Fetch, cancel: &AtomicBool, sink: &Sink) ->
     }
     sink.send(Event::Started { id: f.id, run: f.run, total, resumable, file_name: name.clone(), done: offset });
 
+    if status == 206
+        && offset == 0
+        && f.connections > 1
+        && let Some(t) = total.filter(|t| *t >= 2 * segmented::MIN_PART)
+    {
+        let parts = segmented::split(t, f.connections);
+        let got = segmented::run(agent, f, &part, t, parts, Some(resp.into_body()), cancel, sink)?;
+        return got.map(|done| finish(f, &name, &part, done)).transpose();
+    }
+
     let mut file = if offset > 0 { OpenOptions::new().append(true).open(&part) } else { File::create(&part) }.map_err(|e| disk(&part, e))?;
     let mut body = resp.body_mut().with_config().limit(u64::MAX).reader();
     let mut buf = vec![0u8; CHUNK];
@@ -165,7 +194,7 @@ fn transfer(agent: &ureq::Agent, f: &Fetch, cancel: &AtomicBool, sink: &Sink) ->
         let elapsed = tick.elapsed();
         if elapsed >= TICK {
             let speed = ((done - tick_bytes) as f64 / elapsed.as_secs_f64()) as u64;
-            sink.send(Event::Progress { id: f.id, run: f.run, done, speed });
+            sink.send(Event::Progress { id: f.id, run: f.run, done, speed, segments: Vec::new() });
             (tick, tick_bytes) = (Instant::now(), done);
         }
     }
@@ -192,6 +221,11 @@ fn finish(f: &Fetch, name: &str, part: &Path, done: u64) -> Result<u64, NetError
     }
     std::fs::rename(part, &target).map_err(|e| disk(&target, e))?;
     Ok(done)
+}
+
+/// The record of a download's parts beside its partial file (deleted with it).
+pub(crate) fn parts_record(part: &Path) -> PathBuf {
+    segmented::record_path(part)
 }
 
 #[cfg(test)]

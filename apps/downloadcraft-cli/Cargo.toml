@@ -18,3 +18,4 @@ path = "src/main.rs"
 downloadcraft-engine = { workspace = true }
 downloadcraft-net = { workspace = true }
 serde_json = { workspace = true }
+log = { workspace = true }

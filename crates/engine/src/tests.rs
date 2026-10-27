@@ -80,11 +80,11 @@ fn pausing_ends_the_run_and_late_events_are_ignored() {
     s.run("download.add", &json!({"url": "https://e.com/big.iso"})).unwrap();
     let (id, run) = fetches(&s.take_jobs())[0];
     s.apply(Event::Started { id, run, total: Some(1000), resumable: true, file_name: "Big Disc.iso".into(), done: 0 });
-    s.apply(Event::Progress { id, run, done: 400, speed: 50 });
+    s.apply(Event::Progress { id, run, done: 400, speed: 50, segments: Vec::new() });
     s.run("download.pause", &json!({"id": id.0})).unwrap();
     assert_eq!(s.take_jobs(), vec![Job::Stop { id }]);
     // The old transfer reports once more on its way out: dropped.
-    s.apply(Event::Progress { id, run, done: 450, speed: 50 });
+    s.apply(Event::Progress { id, run, done: 450, speed: 50, segments: Vec::new() });
     s.apply(Event::Failed { id, run, error: "stopped".into() });
     let d = s.get(id).unwrap();
     assert_eq!((d.state, d.done, d.file_name.as_str()), (State::Paused, 400, "Big Disc.iso"));
@@ -170,7 +170,7 @@ fn saves_and_loads() {
     s.run("download.add", &json!({"url": "https://e.com/a.zip"})).unwrap();
     s.run("download.add", &json!({"url": "https://e.com/b.zip", "paused": true})).unwrap();
     let (id, run) = fetches(&s.take_jobs())[0];
-    s.apply(Event::Progress { id, run, done: 77, speed: 9 });
+    s.apply(Event::Progress { id, run, done: 77, speed: 9, segments: Vec::new() });
     let saved = s.save();
 
     let mut t = Session::new();
@@ -208,7 +208,7 @@ fn transfers_running_when_an_update_installs_come_back_queued() {
     s.run("download.add", &json!({"url": "https://e.com/a.zip"})).unwrap();
     s.run("download.add", &json!({"url": "https://e.com/b.zip", "paused": true})).unwrap();
     let (id, run) = fetches(&s.take_jobs())[0];
-    s.apply(Event::Progress { id, run, done: 10, speed: 5 });
+    s.apply(Event::Progress { id, run, done: 10, speed: 5, segments: Vec::new() });
     s.requeue_running();
     let mut t = Session::new();
     t.load(s.save()).unwrap();
@@ -216,4 +216,20 @@ fn transfers_running_when_an_update_installs_come_back_queued() {
     assert_eq!(t.get(DownloadId(2)).map(|d| d.state), Some(State::Paused), "a paused one stays paused");
     t.pump();
     assert_eq!(fetches(&t.take_jobs()).len(), 1, "it starts again by itself");
+}
+
+#[test]
+fn theme_and_connections_are_settings_that_are_kept() {
+    let mut s = session();
+    s.run("prefs.theme", &json!({"theme": "dark"})).unwrap();
+    assert!(s.run("prefs.theme", &json!({"theme": "purple"})).is_err());
+    s.run("prefs.connections", &json!({"count": 99})).unwrap();
+    assert_eq!(s.prefs.connections, downloadcraft_model::MAX_CONNECTIONS, "capped");
+    s.run("prefs.connections", &json!({"count": 4})).unwrap();
+    s.run("download.add", &json!({"url": "https://e.com/a.iso"})).unwrap();
+    let jobs = s.take_jobs();
+    assert!(matches!(jobs.first(), Some(Job::Fetch { connections: 4, .. })), "{jobs:?}");
+    let mut t = Session::new();
+    t.load(s.save()).unwrap();
+    assert_eq!((t.prefs.theme, t.prefs.connections), (downloadcraft_model::Theme::Dark, 4));
 }

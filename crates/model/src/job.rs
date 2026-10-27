@@ -12,8 +12,9 @@ use crate::DownloadId;
 pub enum Job {
     /// Download `url` into `folder`/`file_name`, carrying on from the partial file if there is
     /// one. When `may_rename` is set (a first start), the server's `Content-Disposition` name is
-    /// used instead, and a taken name gets a number.
-    Fetch { id: DownloadId, run: u64, url: String, folder: String, file_name: String, may_rename: bool },
+    /// used instead, and a taken name gets a number. Up to `connections` connections fetch parts
+    /// of the file at once when the server takes byte ranges.
+    Fetch { id: DownloadId, run: u64, url: String, folder: String, file_name: String, may_rename: bool, connections: u8 },
     /// Stop the transfer of `id` (whatever run it is on); the partial file stays for a resume.
     Stop { id: DownloadId },
     /// Delete the partial file of `id`, which is being removed, once its transfer has stopped
@@ -38,6 +39,9 @@ pub enum Event {
         run: u64,
         done: u64,
         speed: u64,
+        /// The parts being fetched (empty for a download on one connection).
+        #[serde(default)]
+        segments: Vec<Segment>,
     },
     Finished {
         id: DownloadId,
@@ -61,6 +65,21 @@ impl Event {
         match self {
             Event::Started { run, .. } | Event::Progress { run, .. } | Event::Finished { run, .. } | Event::Failed { run, .. } => *run,
         }
+    }
+}
+
+/// One part of a file fetched on a connection of its own: bytes `start..end`, of which `done`
+/// are on disk.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Segment {
+    pub start: u64,
+    pub end: u64,
+    pub done: u64,
+}
+
+impl Segment {
+    pub fn finished(&self) -> bool {
+        self.start.saturating_add(self.done) >= self.end
     }
 }
 

@@ -14,7 +14,9 @@ use serde_json::{Value, json};
 const USAGE: &str = "\
 usage: downloadcraft-cli <command>
 
-  get <url>… [--dir <folder>]   download links into a folder (default: the current one)
+  get <url>… [--dir <folder>] [--connections <n>]
+                                download links into a folder (default: the current one),
+                                each on up to n connections (default 8)
   commands                      every engine command, as JSON
   run <id> [<json>]             run one command on an empty list and print its answer
   --version                     print the version
@@ -32,10 +34,13 @@ fn out(v: &Value) {
 fn get(args: &[String]) -> Result<(), String> {
     let mut urls = Vec::new();
     let mut dir = std::env::current_dir().map(|d| d.to_string_lossy().into_owned()).unwrap_or_else(|_| ".".into());
+    let mut connections = None;
     let mut it = args.iter();
     while let Some(a) = it.next() {
         if a == "--dir" {
             dir = it.next().ok_or("--dir needs a folder")?.clone();
+        } else if a == "--connections" {
+            connections = Some(it.next().and_then(|n| n.parse::<u64>().ok()).ok_or("--connections needs a number")?);
         } else {
             urls.push(a.clone());
         }
@@ -45,6 +50,9 @@ fn get(args: &[String]) -> Result<(), String> {
     }
     let mut s = Session::new();
     s.prefs.folder = dir;
+    if let Some(n) = connections {
+        s.run("prefs.connections", &json!({"count": n})).map_err(|e| e.to_string())?;
+    }
     let added = s.run("download.addMany", &json!({"urls": urls})).map_err(|e| e.to_string())?;
     for r in added["refused"].as_array().into_iter().flatten() {
         say(&format!("skipped {}: {}", r["url"].as_str().unwrap_or(""), r["error"].as_str().unwrap_or("")));
@@ -82,7 +90,27 @@ fn get(args: &[String]) -> Result<(), String> {
     if failed > 0 { Err(format!("{failed} download(s) failed")) } else { Ok(()) }
 }
 
+/// `DOWNLOADCRAFT_LOG=1`: what the network layer does, on standard error.
+struct StderrLog;
+
+impl log::Log for StderrLog {
+    fn enabled(&self, m: &log::Metadata) -> bool {
+        m.level() <= log::Level::Info
+    }
+    fn log(&self, r: &log::Record) {
+        if self.enabled(r.metadata()) {
+            let _ = writeln!(std::io::stderr(), "[{}] {}", r.level(), r.args());
+        }
+    }
+    fn flush(&self) {}
+}
+
+static LOGGER: StderrLog = StderrLog;
+
 fn main() -> ExitCode {
+    if std::env::var_os("DOWNLOADCRAFT_LOG").is_some_and(|v| v == "1") && log::set_logger(&LOGGER).is_ok() {
+        log::set_max_level(log::LevelFilter::Info);
+    }
     let args: Vec<String> = std::env::args().skip(1).collect();
     let r = match args.first().map(String::as_str) {
         Some("get") => get(args.get(1..).unwrap_or_default()),

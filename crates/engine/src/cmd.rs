@@ -8,7 +8,7 @@ use serde_json::{Value, json};
 
 use crate::session::{Filter, MAX_DOWNLOADS};
 use crate::{CmdError, CmdResult, CommandSpec, Registry, Session, p};
-use downloadcraft_model::{Download, DownloadId, Job, MAX_ACTIVE_LIMIT, State, names, source};
+use downloadcraft_model::{Download, DownloadId, Job, MAX_ACTIVE_LIMIT, MAX_CONNECTIONS, State, Theme, names, source};
 
 /// The most links one `download.addMany` takes.
 const MAX_BATCH: usize = 1000;
@@ -37,6 +37,8 @@ pub fn registry() -> Registry {
         CommandSpec::new("list.filter", "Show", "Categories", filter).params(r#"{"filter": "all"|"active"|"paused"|"completed"|"failed"}"#),
         CommandSpec::new("prefs.folder", "Download folder", "Settings", set_folder).params(r#"{"folder": string}"#),
         CommandSpec::new("prefs.maxActive", "Downloads at once", "Settings", set_max_active).params(r#"{"count": number}"#),
+        CommandSpec::new("prefs.connections", "Connections per download", "Settings", set_connections).params(r#"{"count": number}"#),
+        CommandSpec::new("prefs.theme", "Theme", "Settings › Appearance", set_theme).params(r#"{"theme": "system"|"light"|"dark"}"#),
     ])
 }
 
@@ -89,6 +91,7 @@ fn new_download(s: &mut Session, url: &str, folder: Option<&str>, name: Option<&
         added: s.now,
         speed: 0,
         run: 0,
+        segments: Vec::new(),
     });
     s.selection = Some(id);
     s.dirty = true;
@@ -244,4 +247,20 @@ fn set_max_active(s: &mut Session, v: &Value) -> CmdResult {
     s.prefs.max_active = n;
     s.dirty = true;
     Ok(json!({"count": n}))
+}
+
+fn set_connections(s: &mut Session, v: &Value) -> CmdResult {
+    let n = p::u64(v, "count").ok_or_else(|| CmdError::Params("`count` (number) is required".into()))?;
+    let n = u8::try_from(n).unwrap_or(MAX_CONNECTIONS).clamp(1, MAX_CONNECTIONS);
+    s.prefs.connections = n;
+    s.dirty = true;
+    Ok(json!({"count": n}))
+}
+
+fn set_theme(s: &mut Session, v: &Value) -> CmdResult {
+    let t = v.get("theme").cloned().ok_or_else(|| CmdError::Params("`theme` is required".into()))?;
+    let theme: Theme = serde_json::from_value(t).map_err(|_| CmdError::Params("`theme` is system, light or dark".into()))?;
+    s.prefs.theme = theme;
+    s.dirty = true;
+    Ok(json!({"theme": theme}))
 }
