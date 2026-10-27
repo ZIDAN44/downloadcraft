@@ -1,0 +1,4 @@
+# Files and folders over the size limits (xtask/src/sizes.rs) when the rule came in, and
+# their size now: they may shrink, never grow. `cargo xtask sizes --update` lowers these
+# figures; nothing is ever added here. Split a file by topic: `foo.rs` keeps the shared
+# part and declares `mod bar;`, its pieces go in `foo/bar.rs`.
