@@ -577,8 +577,9 @@ impl DownloadApp {
     }
 
     fn status_bar(&mut self, ui: &mut Ui, t: &Tokens) {
+        // The right-hand side is laid out first; the last message takes the room that's left,
+        // cut short with … (all of it on hover), so a long file name never runs under it.
         ui.horizontal(|ui| {
-            ui.label(RichText::new(&self.session.status).size(12.5).color(t.muted));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 self.update_status(ui, t);
                 // Torrents: the DHT, and the port others reach this computer on.
@@ -621,6 +622,11 @@ impl DownloadApp {
                         .size(12.5)
                         .color(t.faint),
                 );
+                ui.add_space(16.0);
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    let status = &self.session.status;
+                    ui.add(egui::Label::new(RichText::new(status).size(12.5).color(t.muted)).truncate()).on_hover_text(status);
+                });
             });
         });
     }
