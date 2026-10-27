@@ -70,10 +70,22 @@ pub fn status() -> VideoTools {
     VideoTools { ytdlp: fetching.0.unwrap_or_else(|| on_disk(ytdlp().is_some())), ffmpeg: fetching.1.unwrap_or_else(|| on_disk(ffmpeg().is_some())) }
 }
 
-/// Whether FFmpeg can be fetched here (its builds come as zips for Windows; elsewhere the system's
-/// package manager has it: `brew install ffmpeg`, `sudo apt install ffmpeg`).
+/// yt-dlp's FFmpeg build for this system (from `yt-dlp/FFmpeg-Builds`): a zip on Windows, an
+/// `.tar.xz` on Linux. There is none for macOS, where Homebrew has it (`brew install ffmpeg`).
+fn ffmpeg_asset() -> Option<&'static str> {
+    Some(match (std::env::consts::OS, std::env::consts::ARCH) {
+        ("windows", "x86_64") => "ffmpeg-master-latest-win64-gpl.zip",
+        ("windows", "aarch64") => "ffmpeg-master-latest-winarm64-gpl.zip",
+        ("windows", "x86") => "ffmpeg-master-latest-win32-gpl.zip",
+        ("linux", "x86_64") => "ffmpeg-master-latest-linux64-gpl.tar.xz",
+        ("linux", "aarch64") => "ffmpeg-master-latest-linuxarm64-gpl.tar.xz",
+        _ => return None,
+    })
+}
+
+/// Whether FFmpeg can be fetched here (see [`ffmpeg_asset`]).
 pub fn can_fetch_ffmpeg() -> bool {
-    cfg!(windows) && cfg!(any(target_arch = "x86_64", target_arch = "aarch64"))
+    ffmpeg_asset().is_some()
 }
 
 fn set(ytdlp: bool, state: Option<ToolState>) {
@@ -161,26 +173,65 @@ pub fn fetch_ytdlp() -> Result<PathBuf, NetError> {
     result
 }
 
-/// Fetch FFmpeg (Windows: yt-dlp's FFmpeg build, its `ffmpeg.exe` and `ffprobe.exe`) into the
-/// tools folder (blocking).
+/// Fetch FFmpeg (yt-dlp's FFmpeg build, its `ffmpeg` and `ffprobe`) into the tools folder
+/// (blocking).
 pub fn fetch_ffmpeg() -> Result<PathBuf, NetError> {
     set(false, Some(ToolState::Fetching));
     let result: Result<PathBuf, NetError> = (|| {
-        if !can_fetch_ffmpeg() {
-            return Err(NetError::Http("install FFmpeg with the system's package manager".into()));
-        }
+        let Some(asset) = ffmpeg_asset() else {
+            return Err(NetError::Http("install FFmpeg with the system's package manager (on a Mac, `brew install ffmpeg`)".into()));
+        };
         let dir = dir().ok_or_else(|| NetError::Disk("no tools folder".into()))?;
-        let asset = if cfg!(target_arch = "aarch64") { "ffmpeg-master-latest-winarm64-gpl.zip" } else { "ffmpeg-master-latest-win64-gpl.zip" };
         std::fs::create_dir_all(dir).map_err(|e| NetError::Disk(e.to_string()))?;
         let staged = dir.join(format!("{asset}.part"));
         fetch_checked("https://github.com/yt-dlp/FFmpeg-Builds/releases/latest/download", "checksums.sha256", asset, &staged)?;
-        let unpacked = unzip_programs(&staged, dir, &["ffmpeg.exe", "ffprobe.exe"]);
+        let programs = [exe("ffmpeg"), exe("ffprobe")];
+        let wanted: Vec<&str> = programs.iter().map(String::as_str).collect();
+        let unpacked = if asset.ends_with(".zip") { unzip_programs(&staged, dir, &wanted) } else { untar_programs(&staged, dir, &wanted) };
         let _ = std::fs::remove_file(&staged);
         unpacked?;
-        Ok(dir.join("ffmpeg.exe"))
+        Ok(dir.join(exe("ffmpeg")))
     })();
     set(false, result.as_ref().err().map(|e| ToolState::Failed(e.to_string())));
     result
+}
+
+/// Take the programs named `wanted` (in the archive's `bin/`) out of an `.tar.xz` into `dir`, with
+/// the system's `tar` (GNU tar, with xz, is on every Linux desktop).
+fn untar_programs(archive: &Path, dir: &Path, wanted: &[&str]) -> Result<(), NetError> {
+    let out = dir.join("ffmpeg-unpack");
+    let _ = std::fs::remove_dir_all(&out);
+    std::fs::create_dir_all(&out).map_err(|e| NetError::Disk(e.to_string()))?;
+    let patterns: Vec<String> = wanted.iter().map(|w| format!("*/bin/{w}")).collect();
+    let status = std::process::Command::new("tar")
+        .arg("-xJf")
+        .arg(archive)
+        .arg("-C")
+        .arg(&out)
+        .arg("--wildcards")
+        .args(&patterns)
+        .stdin(std::process::Stdio::null())
+        .status()
+        .map_err(|e| NetError::Disk(format!("tar didn't start ({e}); install FFmpeg with the system's package manager")))?;
+    let mut found = 0;
+    if status.success() {
+        for top in std::fs::read_dir(&out).map_err(|e| NetError::Disk(e.to_string()))?.flatten() {
+            for name in wanted {
+                let from = top.path().join("bin").join(name);
+                if from.is_file() && from.metadata().is_ok_and(|m| m.len() <= MAX_TOOL) {
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        let _ = std::fs::set_permissions(&from, std::fs::Permissions::from_mode(0o755));
+                    }
+                    std::fs::rename(&from, dir.join(name)).map_err(|e| NetError::Disk(e.to_string()))?;
+                    found += 1;
+                }
+            }
+        }
+    }
+    let _ = std::fs::remove_dir_all(&out);
+    if found == wanted.len() { Ok(()) } else { Err(NetError::Disk("the FFmpeg archive didn't have its programs".into())) }
 }
 
 /// Take the files named `wanted` (wherever they are inside) out of the zip into `dir`.
