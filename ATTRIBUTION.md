@@ -31,7 +31,8 @@ icon. MIT OR Apache-2.0, like the code.
 | File | Source |
 |---|---|
 | `docs/images/downloads.png` | Screenshot of DownloadCraft (dark mode) |
-| `docs/images/add-link.png` | Screenshot of DownloadCraft (light mode, Add link dialog) |
+| `docs/images/add-link.png` | Screenshot of DownloadCraft (dark mode, Add link dialog) |
+| `docs/images/settings.png` | Screenshot of DownloadCraft (light mode, Settings) |
 | `docs/images/social-preview.png` | The app icon and `docs/images/downloads.png` on a gradient, set in Segoe UI (rendered, no font file included) |
 
 ## Interface icons

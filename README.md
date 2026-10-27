@@ -18,19 +18,26 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/downloads.png" alt="DownloadCraft in dark mode: the toolbar with Add link, Resume, Pause, Remove, Resume all, Pause all and Clear completed; categories on the left with counts; two speed tests downloading with progress bars, speed and time left, one queued, a paused Ubuntu image at 2.42 GB of 6.20 GB, a failed link that answered 404, and two completed downloads" width="100%">
+  <img src="docs/images/downloads.png" alt="DownloadCraft in dark mode: a sidebar with Add link, the categories with counts, the total speed, the download folder and Settings; a header with search and the theme switch; an Ubuntu image downloading at 39.6 MB/s on 8 connections, its bar showing the 8 parts filling in, then paused, failed and completed downloads" width="100%">
 </p>
 
-<p align="center">
-  <img src="docs/images/add-link.png" alt="The Add link dialog in light mode with three links pasted: two direct links marked as such, and a magnet link marked as arriving in v0.3; the folder to save to, Start now, and Add 2 downloads" width="80%">
-  <br><sub><b>Paste several links at once.</b> Each is checked as you type, and links a later version handles say so.</sub>
-</p>
+<table>
+<tr>
+<td width="50%"><img src="docs/images/add-link.png" alt="The Add link dialog with four links pasted: two direct links shown with their file names, a magnet link marked as arriving in v0.3, the folder to save to, Start downloading now, and Add 2 downloads" width="100%"><p align="center"><sub><b>Paste several links at once.</b> Each is checked as you type, with the file name it will get.</sub></p></td>
+<td width="50%"><img src="docs/images/settings.png" alt="Settings in the light theme: Theme with Dark, Light and System, the download folder, downloads at once and connections per download" width="100%"><p align="center"><sub><b>Light, dark or the system's</b> theme, and how many connections each download may open.</sub></p></td>
+</tr>
+</table>
 
-## What works today (v0.1)
+## What works today
 
-- **Direct HTTP and HTTPS downloads** that **resume**: a pause, a dropped connection or quitting
-  the app keeps the partial file (`name.dcpart`), and Resume asks the server for the rest with a
-  byte range. Servers that don't take ranges start over, and the list says so.
+- **Multi-part downloads, as IDM does them**: a file is split into parts fetched on up to 16
+  connections at once (8 by default), each written straight into place. A connection that
+  finishes early takes over half of the biggest part left, and a connection the server turns away
+  hands its part to the others. The bar shows every part filling in. On cdn.kernel.org a 140 MB
+  file took 1.8 s on 8 connections against 23 s on one.
+- **Downloads that resume**: a pause, a dropped connection or quitting the app keeps the partial
+  file and a record of every part, and Resume asks the server for just the missing bytes. Servers
+  that don't take ranges get one connection and start over, and the list says so.
 - **A queue**: up to 3 downloads at once by default (1–16 in Settings); the rest wait their turn.
 - **Paste anywhere**: Ctrl+V in the window opens Add link with what you copied; several links,
   one per line, add as many downloads.
@@ -41,7 +48,9 @@
   finished one to open it.
 - **The list is kept** between runs (`downloads.json` in the app's data folder); a damaged file is
   set aside, never fatal.
-- **Light and dark**, following the system.
+- **Light, dark or the system's theme**, from the switch beside the search or Settings.
+- **Search** the list by name or link (Ctrl+F), and hover a row for Pause, Resume, Open folder and
+  Remove.
 - **Built for agents**: every action is a command with an id, shared by the toolbar, shortcuts,
   `--cmd` and the CLI (`downloadcraft-cli get <url>`, `downloadcraft-cli commands`).
 
@@ -70,10 +79,10 @@ cargo run -p downloadcraft
 ```
 
 ```bash
-cargo run -p downloadcraft-cli -- get https://example.com/file.zip --dir ./downloads
+cargo run -p downloadcraft-cli -- get https://example.com/file.zip --dir ./downloads --connections 8
 ```
 
-Keyboard: Ctrl+N add link, Ctrl+V paste a link, Space pause / resume, Delete remove,
+Keyboard: Ctrl+N add link, Ctrl+V paste a link, Ctrl+F search, Space pause / resume, Delete remove,
 ↑ ↓ move through the list, Enter open a finished file.
 
 ## How it's built

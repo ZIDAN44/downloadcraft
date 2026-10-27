@@ -59,7 +59,7 @@ A download manager that crashes loses hours of downloading. **This outranks feat
 | Layer | Crate | Job |
 |---|---|---|
 | L0 | `model` | downloads, sources (link classification), file names, jobs/events, sizes (pure, wasm) |
-| L3 | `net` | HTTP(S) transfers with resume, the worker threads (native only) |
+| L3 | `net` | HTTP(S) transfers with resume, on one connection or several (`http/segmented.rs`), the worker threads, the updater's downloads (native only) |
 | L4 | `engine` | sans-I/O `Session`: the list, the queue, the command registry |
 | L6 | `ui-egui` | egui front end |
 | apps | `downloadcraft`, `downloadcraft-cli` | binaries |

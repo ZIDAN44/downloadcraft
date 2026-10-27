@@ -1,6 +1,6 @@
 # Roadmap
 
-**Stage:** v0.1 — direct downloads that resume (2026-10-27). Each milestone below is a version,
+**Stage:** v0.1, with v0.2's multi-part downloads, a theme setting and the redesigned window (2026-10-27). Each milestone below is a version,
 named for what it adds. The ranked work list for the current milestone is
 [docs/gaps.md](docs/gaps.md).
 
@@ -9,15 +9,15 @@ named for what it adds. The ranked work list for the current milestone is
 | | |
 |---|---|
 | Crates | 4 libraries + 2 apps + xtask |
-| Commands | 15 (`downloadcraft-cli commands`) |
+| Commands | 17 (`downloadcraft-cli commands`) |
 | Platforms | Windows, macOS, Linux |
 
 ## Milestones
 
 1. **v0.1 — Direct downloads** ✅ HTTP(S) with resume, a queue, the server's file names, the
    saved list, categories, paste-to-add, light and dark, the CLI.
-2. **v0.2 — Faster** Segmented downloads: several connections per file, each on its own byte
-   range, merged in place (the IDM speed-up); per-download and global speed limits; an idle-read
+2. **v0.2 — Faster** ✅ (early) multi-part downloads on up to 16 connections, written in place and
+   resumed part by part. Still to do: per-download and global speed limits; an idle-read
    timeout and automatic retries with back-off; checking free disk space before starting.
 3. **v0.3 — Torrents** `.torrent` files and magnet links (BEP 3, 9, 10), DHT (BEP 5), web seeds
    (BEP 19), choosing files inside a torrent, seeding to a ratio. Permissive crates only (no

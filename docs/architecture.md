@@ -33,6 +33,21 @@ depends on the network layer: the apps wire the two together.
 - A new run for a download waits for the previous run's thread to leave, so two threads never
   write one partial file. Removing a download deletes its partial file after the same wait.
 
+## Several connections (`crates/net/src/http/segmented.rs`)
+
+- A first start asks for `Range: bytes=0-`. A `206` with a size of at least 2 MiB means the file
+  can come in parts: it is split into up to `Prefs::connections` parts (at least 1 MiB each) and
+  the partial file is sized to the whole file. The first answer serves the first part; the other
+  connections ask for `bytes=start-end` each.
+- Each connection reserves the bytes it may write under a lock, then writes them at their offset.
+  A connection that finishes takes over the back half of the biggest part still going (never
+  closer than 1 MiB to where that part's connection is), so all of them stay busy to the end.
+- A connection that fails while others still work gives its part back and ends (servers that cap
+  connections answer 429 or 503, or leave the extra ones waiting: those wait 15 s). The last one
+  tries three times before the download fails.
+- Where every part is goes to `name.dcpart.parts` once a second and on stopping, so Resume carries
+  on each part. The record is checked to cover the file exactly once before it is trusted.
+
 ## The saved list (`apps/downloadcraft/src/store.rs`)
 
 `Session::save` → `downloads.json` (written beside and renamed into place) every couple of seconds
