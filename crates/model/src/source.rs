@@ -1,0 +1,97 @@
+//! What kind of link the user pasted, and whether this version can fetch it.
+
+use serde::{Deserialize, Serialize};
+
+/// The kinds of link DownloadCraft knows. Only `Http` transfers in v0.1; the others are
+/// recognised so the app can say when they arrive (ROADMAP.md).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SourceKind {
+    /// A direct `http://` or `https://` link.
+    Http,
+    /// An `ftp://` or `ftps://` link.
+    Ftp,
+    /// A `.torrent` file's link.
+    Torrent,
+    /// A `magnet:` link (BEP 9).
+    Magnet,
+    /// A MEGA file or folder link (`mega.nz`, `mega.io`).
+    Mega,
+}
+
+impl SourceKind {
+    pub fn label(self) -> &'static str {
+        match self {
+            SourceKind::Http => "Direct link",
+            SourceKind::Ftp => "FTP",
+            SourceKind::Torrent => "Torrent",
+            SourceKind::Magnet => "Magnet link",
+            SourceKind::Mega => "MEGA",
+        }
+    }
+    /// `None` when this version downloads it; otherwise why not yet.
+    pub fn not_yet(self) -> Option<&'static str> {
+        match self {
+            SourceKind::Http => None,
+            SourceKind::Ftp => Some("FTP downloads arrive in v0.4"),
+            SourceKind::Torrent | SourceKind::Magnet => Some("torrents arrive in v0.3"),
+            SourceKind::Mega => Some("MEGA links arrive in v0.5"),
+        }
+    }
+}
+
+/// The longest link accepted (servers rarely take more than 8 KiB; magnet links run longer).
+pub const MAX_URL: usize = 16 * 1024;
+
+/// What `text` links to, or why it isn't a link DownloadCraft can take.
+pub fn classify(text: &str) -> Result<SourceKind, &'static str> {
+    let url = text.trim();
+    if url.is_empty() {
+        return Err("paste a link");
+    }
+    if url.len() > MAX_URL {
+        return Err("the link is too long");
+    }
+    if url.chars().any(char::is_whitespace) {
+        return Err("a link has no spaces");
+    }
+    let Some((scheme, rest)) = url.split_once(':') else { return Err("that isn't a link") };
+    let scheme = scheme.to_ascii_lowercase();
+    if scheme == "magnet" {
+        return if rest.starts_with('?') { Ok(SourceKind::Magnet) } else { Err("that magnet link is incomplete") };
+    }
+    let Some(after) = rest.strip_prefix("//") else { return Err("that isn't a link") };
+    let host = host_of(after);
+    if host.is_empty() {
+        return Err("the link has no server");
+    }
+    match scheme.as_str() {
+        "http" | "https" => {
+            if host == "mega.nz" || host == "mega.io" || host.ends_with(".mega.nz") {
+                Ok(SourceKind::Mega)
+            } else if path_of(after).to_ascii_lowercase().ends_with(".torrent") {
+                Ok(SourceKind::Torrent)
+            } else {
+                Ok(SourceKind::Http)
+            }
+        }
+        "ftp" | "ftps" => Ok(SourceKind::Ftp),
+        _ => Err("only http, https, ftp, magnet and MEGA links"),
+    }
+}
+
+/// The host of `after` (what follows `scheme://`), lowercased, without user info or port.
+fn host_of(after: &str) -> String {
+    let authority = after.split(['/', '?', '#']).next().unwrap_or("");
+    let host_port = authority.rsplit_once('@').map_or(authority, |(_, h)| h);
+    let host =
+        if let Some(v6) = host_port.strip_prefix('[') { v6.split(']').next().unwrap_or("") } else { host_port.split(':').next().unwrap_or("") };
+    host.trim_end_matches('.').to_ascii_lowercase()
+}
+
+/// The path of `after`, without the query or fragment.
+pub(crate) fn path_of(after: &str) -> &str {
+    let no_frag = after.split('#').next().unwrap_or("");
+    let no_query = no_frag.split('?').next().unwrap_or("");
+    no_query.find('/').and_then(|i| no_query.get(i..)).unwrap_or("")
+}
