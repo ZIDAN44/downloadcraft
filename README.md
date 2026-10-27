@@ -59,9 +59,9 @@ Test builds are on the [releases page](https://github.com/ZIDAN44/downloadcraft/
 | Linux x86_64 / aarch64 | `.AppImage`, `.deb`, `.rpm`, `.flatpak`, `.tar.gz` |
 | Linux riscv64, FreeBSD | `.deb`, `.rpm`, `.tar.gz` |
 
-Installed from the `.msi`, the portable zip, the `.dmg` or the `.AppImage`, a test build updates
-itself: it downloads the next one in the background, checks its SHA-256, and installs it when you
-restart. See [docs/updates.md](docs/updates.md).
+Installed from the `.msi`, the portable zip, the `.dmg` or the `.AppImage`, DownloadCraft updates
+itself: it downloads the next version in the background, checks its SHA-256, and installs it when
+you restart. Releases follow releases; test builds also follow test builds. See [docs/updates.md](docs/updates.md).
 
 ## Running it from source
 

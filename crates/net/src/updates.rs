@@ -47,6 +47,8 @@ pub struct Release {
     pub size: u64,
     /// The release's `SHA256SUMS.txt` (empty when there is none).
     pub sums: String,
+    /// A pre-release (the test builds); stable builds never take one.
+    pub prerelease: bool,
 }
 
 /// What a conditional listing found.
@@ -155,6 +157,7 @@ pub fn parse(body: &str, suffix: &str) -> Result<Vec<Release>> {
             sha256,
             size,
             sums,
+            prerelease: r.get("prerelease").and_then(Value::as_bool).unwrap_or(false),
         });
     }
     Ok(out)

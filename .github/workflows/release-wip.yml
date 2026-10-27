@@ -32,8 +32,8 @@ env:
   RUST_BACKTRACE: 1
   # Unsigned on purpose: the packaging scripts note it rather than warn.
   UNSIGNED_BUILD: "1"
-  # These builds update themselves to the next test build (apps/downloadcraft/src/self_update.rs);
-  # release.yml doesn't set it, so signed releases never do.
+  # These builds update themselves to the next test build as well as to releases
+  # (apps/downloadcraft/src/self_update.rs); release.yml's builds take releases only.
   DOWNLOADCRAFT_UPDATE_CHANNEL: test
 
 jobs:
@@ -329,7 +329,7 @@ jobs:
 
           Check a download against \`SHA256SUMS.txt\`.
 
-          Installed from the \`.msi\`, the portable \`.zip\`, the \`.dmg\` or the \`.AppImage\`, a test build updates itself: it downloads the next one in the background (a download cut off carries on next time), checks it against its SHA-256, says when it's ready, and installs it at once with *Restart now* or as DownloadCraft closes. Downloads in progress pause and carry on in the new version. \`DOWNLOADCRAFT_NO_AUTO_UPDATE=1\` turns that off.
+          Installed from the \`.msi\`, the portable \`.zip\`, the \`.dmg\` or the \`.AppImage\`, DownloadCraft updates itself: a test build downloads the next test build or release in the background (a download cut off carries on next time), checks it against its SHA-256, says when it's ready, and installs it at once with *Restart now* or as DownloadCraft closes. Downloads in progress pause and carry on in the new version. \`DOWNLOADCRAFT_NO_AUTO_UPDATE=1\` turns that off.
           EOF
           gh release create "$TAG" --prerelease --target "$GITHUB_SHA" \
             --title "DownloadCraft $VERSION (unsigned test build ${{ github.run_number }})" \

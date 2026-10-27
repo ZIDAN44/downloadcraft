@@ -88,7 +88,9 @@ A download manager that crashes loses hours of downloading. **This outranks feat
   call them. Keep the app id, binary names and the WiX `UpgradeCode` stable.
 - The Windows MSI installs **per user** (no administrator); don't switch it to per-machine
   without reading `docs/updates.md`.
-- Test builds update themselves (`apps/downloadcraft/src/self_update.rs`, `docs/updates.md`).
+- DownloadCraft updates itself; nothing else does (it isn't in any launcher or store). Releases
+  follow releases, test builds follow test builds too (`apps/downloadcraft/src/self_update.rs`,
+  `docs/updates.md`).
 
 ## Quality gates
 Before every commit: `cargo xtask ci`. Commit after every arc of work that builds.

@@ -4,7 +4,7 @@ use super::*;
 use crate::tests::{Serve, serve};
 
 const LISTING: &str = r#"[
-  {"tag_name": "v0.2.0-test.7", "draft": false, "target_commitish": "0123456789abcdef0123456789abcdef01234567",
+  {"tag_name": "v0.2.0-test.7", "draft": false, "prerelease": true, "target_commitish": "0123456789abcdef0123456789abcdef01234567",
    "assets": [
      {"name": "downloadcraft-0.2.0-windows-x64.msi", "size": 1234,
       "browser_download_url": "https://github.com/ZIDAN44/downloadcraft/releases/download/v0.2.0-test.7/downloadcraft-0.2.0-windows-x64.msi",
@@ -27,6 +27,8 @@ fn parses_releases_and_keeps_only_our_addresses() {
     assert_eq!(r.sha256, "a".repeat(64));
     assert!(r.sums.ends_with("SHA256SUMS.txt"));
     assert_eq!(r.commit.len(), 40);
+    assert!(r.prerelease);
+    assert!(!list[1].prerelease, "no flag: a release");
     assert_eq!(list[1].download, "", "an address off our releases page is dropped");
     assert!(parse("{}", "x").is_err());
     assert!(parse("not json", "x").is_err());

@@ -1,15 +1,17 @@
-//! Test builds keep themselves up to date, on Windows, macOS and Linux.
+//! DownloadCraft keeps itself up to date, on Windows, macOS and Linux.
 //!
-//! Only a build made by the unsigned test-build workflow has this (it sets
-//! `DOWNLOADCRAFT_UPDATE_CHANNEL=test` when compiling); signed releases are left to how they were
-//! installed, and a developer's build never changes itself. `DOWNLOADCRAFT_NO_AUTO_UPDATE=1`
-//! turns it off for a run. Ported from MailCraft's updater (docs/updates.md).
+//! Nothing else updates it, so every installed copy does this itself: a signed release follows
+//! the published releases, and a build of the unsigned test-build workflow (which sets
+//! `DOWNLOADCRAFT_UPDATE_CHANNEL=test` when compiling) follows the test builds too. A developer's
+//! build never changes itself: it isn't run from anywhere [`detect`] recognises.
+//! `DOWNLOADCRAFT_NO_AUTO_UPDATE=1` turns it off for a run. Ported from MailCraft's updater
+//! (docs/updates.md).
 //!
 //! 1. **Check** a minute after start (ten seconds when a download was left part way), then about
 //!    hourly with jitter, asking GitHub with the last `ETag` so an unchanged list costs nothing
 //!    against its anonymous quota. A failed check is tried again after 5 minutes, doubling.
-//! 2. **Pick** the newest test build newer than this one, and its installer of the kind this copy
-//!    was installed from ([`Kind`]).
+//! 2. **Pick** the newest release newer than this one (of this build's channel), and its
+//!    installer of the kind this copy was installed from ([`Kind`]).
 //! 3. **Download** it into `<data>/updates`, resumably, keeping it only if its SHA-256 and size
 //!    are the release's (`downloadcraft_net::updates`).
 //! 4. **Say so**: a bar in the window with Restart now (`crates/ui-egui/src/updates.rs`).
@@ -39,7 +41,7 @@ mod install;
 #[cfg(test)]
 mod tests;
 
-/// Set at compile time by the test-build workflow.
+/// Set to `test` at compile time by the test-build workflow; anything else is a stable build.
 const CHANNEL: Option<&str> = option_env!("DOWNLOADCRAFT_UPDATE_CHANNEL");
 /// The commit this was built from (the packaging scripts set it).
 const BUILD_SHA: Option<&str> = option_env!("DOWNLOADCRAFT_BUILD_SHA");
@@ -58,9 +60,19 @@ const MARKER: &str = "update-installed.txt";
 /// Where downloads wait, in the data folder.
 const DOWNLOADS: &str = "updates";
 
-/// Whether this build updates itself.
+/// Whether updating is on for this run.
 pub fn enabled() -> bool {
-    CHANNEL == Some("test") && std::env::var_os("DOWNLOADCRAFT_NO_AUTO_UPDATE").is_none_or(|v| v.is_empty() || v == "0")
+    std::env::var_os("DOWNLOADCRAFT_NO_AUTO_UPDATE").is_none_or(|v| v.is_empty() || v == "0")
+}
+
+/// Whether this is a test build, which takes test builds (pre-releases) as well as releases.
+fn test_channel() -> bool {
+    CHANNEL == Some("test")
+}
+
+/// The releases this build may update to: a stable build never takes a pre-release.
+fn for_channel(releases: Vec<Release>, test: bool) -> Vec<Release> {
+    releases.into_iter().filter(|r| test || !r.prerelease).collect()
 }
 
 /// How this copy was installed, among the kinds the updater can replace.
@@ -362,7 +374,7 @@ impl Updater {
             Listing::Unchanged => return Ok(()),
             Listing::Changed(list, tag) => {
                 *etag = tag;
-                list
+                for_channel(list, test_channel())
             }
         };
         let Some(release) = newer_release(&current_version(), BUILD_SHA, &releases) else { return Ok(()) };

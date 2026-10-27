@@ -2,8 +2,8 @@
 # macOS universal (.dmg + CLI zip), Windows x64/x86/arm64 (.msi + portable zip), Linux
 # x86_64/aarch64 (AppImage, deb, rpm, tar.gz, Flatpak), Linux riscv64 and FreeBSD. Runs on a push
 # to the `release` branch, or by hand with an optional version override for a test run.
-# The scripts it calls live in packaging/; the version comes from Cargo.toml. Signed releases
-# don't update themselves (only test builds do: release-wip.yml, docs/updates.md).
+# The scripts it calls live in packaging/; the version comes from Cargo.toml. Once a release is
+# published, installed copies update themselves to it (docs/updates.md).
 name: Release
 
 on:

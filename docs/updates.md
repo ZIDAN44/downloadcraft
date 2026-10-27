@@ -1,14 +1,20 @@
 # Updates
 
-How a DownloadCraft test build keeps itself up to date on Windows, macOS and Linux. Ported from
+How DownloadCraft keeps itself up to date on Windows, macOS and Linux. Nothing else updates it (it
+isn't part of any launcher or store), so every installed copy does it itself. Ported from
 MailCraft's updater. The code: `apps/downloadcraft/src/self_update.rs` (the updater) and
 `self_update/install.rs` (the helper that puts the new version in place),
 `crates/net/src/updates.rs` (GitHub's list and the resumable, checked download),
 `crates/ui-egui/src/updates.rs` (what the window says).
 
-Only builds from the unsigned test-build workflow (`release-wip.yml`) update themselves: it sets
-`DOWNLOADCRAFT_UPDATE_CHANNEL=test` at compile time. Signed releases and developers' builds never
-change themselves, and `DOWNLOADCRAFT_NO_AUTO_UPDATE=1` turns it off for a run.
+Two channels:
+
+- **Releases** (`release.yml`, signed) follow published releases only, never a pre-release.
+- **Test builds** (`release-wip.yml`, which sets `DOWNLOADCRAFT_UPDATE_CHANNEL=test` at compile
+  time) follow the test builds (pre-releases) as well as releases.
+
+A developer's build never changes itself: it isn't run from an installed location the updater
+recognises. `DOWNLOADCRAFT_NO_AUTO_UPDATE=1` turns updating off for a run.
 
 ## What happens
 
@@ -44,13 +50,12 @@ To try it against the newest test build, run a test build with
 
 ## Windows: per user, no administrator
 
-The installer follows craft-launcher's (storytold/craft-launcher): a setup wizard with a folder
-page (default `%LOCALAPPDATA%\Programs\DownloadCraft`, or another the user picks) and a "Create a
-desktop shortcut" box, and a Finish page that offers to launch it. The folder and the shortcut
-choice are recorded under `HKCU\Software\Learning Machines LLC\DownloadCraft`; updates (run with
-`/passive`, no wizard) land in the same folder, and the updater reads `InstallDir` there to know
-this copy came from the MSI. `windows-arm64.yml` checks all of it on every push, as for the
-launcher.
+The installer is a setup wizard with a folder page (default
+`%LOCALAPPDATA%\Programs\DownloadCraft`, or another the user picks), a "Create a desktop shortcut"
+box, and a Finish page that offers to launch it. The folder and the shortcut choice are recorded
+under `HKCU\Software\Learning Machines LLC\DownloadCraft`; updates (run with `/passive`, no
+wizard) land in the same folder, and the updater reads `InstallDir` there to know this copy came
+from the MSI. `windows-arm64.yml` checks all of it on every push.
 
 MailCraft's MSI installs into Program Files for everyone on the PC, so every update makes Windows
 ask for an administrator. DownloadCraft's MSI installs for the user running it instead, the way VS
@@ -72,6 +77,4 @@ What that costs:
 - **A signature on the update.** The SHA-256 comes from the same GitHub release as the file, so it
   proves the file arrived whole, not who made it. Signing updates with an Ed25519 key (as Tauri and
   Sparkle do) needs a key kept as a secret of the release workflow: the owner's to make.
-- **Signed releases updating themselves.** `release.yml` (signed, through craft-common-actions)
-  doesn't set the update channel yet.
 - **Smaller downloads.** The whole installer is fetched each time.

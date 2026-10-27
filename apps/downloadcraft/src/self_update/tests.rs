@@ -205,3 +205,14 @@ fn the_msi_folder_comes_from_the_registry_too() {
         let _ = std::fs::remove_dir_all(&dir);
     }
 }
+
+/// A signed (stable) build only ever moves to a published release; a test build takes test
+/// builds too.
+#[test]
+fn stable_builds_skip_pre_releases() {
+    let rel = |tag: &str, prerelease: bool| Release { tag: tag.into(), prerelease, ..Default::default() };
+    let list = vec![rel("v0.3.0-test.4", true), rel("v0.2.0", false)];
+    let tags = |l: Vec<Release>| l.into_iter().map(|r| r.tag).collect::<Vec<_>>();
+    assert_eq!(tags(for_channel(list.clone(), false)), ["v0.2.0"]);
+    assert_eq!(tags(for_channel(list, true)), ["v0.3.0-test.4", "v0.2.0"]);
+}
