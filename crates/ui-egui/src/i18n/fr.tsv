@@ -50,7 +50,7 @@
 	Downloads at once	Téléchargements simultanés
 	Downloads in this category show up here.	Les téléchargements de cette catégorie apparaissent ici.
 	FTP	FTP
-	FTP downloads arrive in v0.4	les téléchargements FTP arrivent avec la v0.4
+	FTP downloads arrive in v0.5	les téléchargements FTP arrivent avec la v0.5
 	Failed	Échoués
 	Follows your computer's language unless you pick one.	Suit la langue de votre ordinateur, sauf si vous en choisissez une.
 	Get Deno	Obtenir Deno
@@ -67,7 +67,7 @@
 	Link copied	Lien copié
 	Links	Liens
 	MEGA	MEGA
-	MEGA links arrive in v0.5	les liens MEGA arrivent avec la v0.5
+	MEGA links arrive in v0.6	les liens MEGA arrivent avec la v0.6
 	Magnet link	Lien magnet
 	No downloads yet	Aucun téléchargement pour l’instant
 	No matches	Aucun résultat
@@ -134,7 +134,7 @@
 	none	aucune
 	one per line	un par ligne
 	starts over when resumed	repart de zéro à la reprise
-	torrents arrive in v0.3	les torrents arrivent avec la v0.3
+	torrents arrive in v0.4	les torrents arrivent avec la v0.4
 	{done} of {total}	{done} sur {total}
 	{n} connections	{n} connexions
 	{n} downloads	{n} téléchargements

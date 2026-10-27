@@ -61,9 +61,9 @@ impl SourceKind {
     pub fn not_yet(self) -> Option<&'static str> {
         match self {
             SourceKind::Http => None,
-            SourceKind::Ftp => Some("FTP downloads arrive in v0.4"),
-            SourceKind::Torrent | SourceKind::Magnet => Some("torrents arrive in v0.3"),
-            SourceKind::Mega => Some("MEGA links arrive in v0.5"),
+            SourceKind::Ftp => Some("FTP downloads arrive in v0.5"),
+            SourceKind::Torrent | SourceKind::Magnet => Some("torrents arrive in v0.4"),
+            SourceKind::Mega => Some("MEGA links arrive in v0.6"),
             SourceKind::VideoPage => None,
         }
     }

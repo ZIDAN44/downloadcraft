@@ -50,7 +50,7 @@
 	Downloads at once	Downloads tegelijk
 	Downloads in this category show up here.	Downloads in deze categorie verschijnen hier.
 	FTP	FTP
-	FTP downloads arrive in v0.4	FTP-downloads komen in v0.4
+	FTP downloads arrive in v0.5	FTP-downloads komen in v0.5
 	Failed	Mislukt
 	Follows your computer's language unless you pick one.	Volgt de taal van je computer, tenzij je er een kiest.
 	Get Deno	Deno ophalen
@@ -67,7 +67,7 @@
 	Link copied	Link gekopieerd
 	Links	Links
 	MEGA	MEGA
-	MEGA links arrive in v0.5	MEGA-links komen in v0.5
+	MEGA links arrive in v0.6	MEGA-links komen in v0.6
 	Magnet link	Magnetlink
 	No downloads yet	Nog geen downloads
 	No matches	Geen resultaten
@@ -134,7 +134,7 @@
 	none	geen
 	one per line	één per regel
 	starts over when resumed	begint opnieuw bij hervatten
-	torrents arrive in v0.3	torrents komen in v0.3
+	torrents arrive in v0.4	torrents komen in v0.4
 	{done} of {total}	{done} van {total}
 	{n} connections	{n} verbindingen
 	{n} downloads	{n} downloads

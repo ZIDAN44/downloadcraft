@@ -50,7 +50,7 @@
 	Downloads at once	Загрузок одновременно
 	Downloads in this category show up here.	Здесь появляются загрузки этой категории.
 	FTP	FTP
-	FTP downloads arrive in v0.4	загрузки по FTP появятся в v0.4
+	FTP downloads arrive in v0.5	загрузки по FTP появятся в v0.5
 	Failed	С ошибкой
 	Follows your computer's language unless you pick one.	Язык компьютера, если вы не выберете другой.
 	Get Deno	Получить Deno
@@ -67,7 +67,7 @@
 	Link copied	Ссылка скопирована
 	Links	Ссылки
 	MEGA	MEGA
-	MEGA links arrive in v0.5	ссылки MEGA появятся в v0.5
+	MEGA links arrive in v0.6	ссылки MEGA появятся в v0.6
 	Magnet link	Magnet-ссылка
 	No downloads yet	Загрузок пока нет
 	No matches	Ничего не найдено
@@ -134,7 +134,7 @@
 	none	нет
 	one per line	по одной в строке
 	starts over when resumed	начнётся заново при продолжении
-	torrents arrive in v0.3	торренты появятся в v0.3
+	torrents arrive in v0.4	торренты появятся в v0.4
 	{done} of {total}	{done} из {total}
 	{n} connections	соединений: {n}
 	{n} downloads	Загрузок: {n}
