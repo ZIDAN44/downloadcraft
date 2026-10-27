@@ -1,4 +1,5 @@
-//! Settings › Torrents: sharing, the port and how peers connect, limits, a proxy and an IP filter.
+//! Settings › Torrents (sharing and speed limits) and Settings › Connection (peers per torrent, the
+//! port and how peers connect, port forwarding, a proxy and an IP filter).
 
 use downloadcraft_engine::model::MAX_SEED_RATIO;
 use downloadcraft_engine::model::torrent::{MAX_PEER_LIMIT, Protocol, TorrentPrefs, proxy_url};
@@ -17,7 +18,8 @@ fn random_port(ui: &Ui) -> u16 {
     20_000 + (mixed % 40_000) as u16
 }
 
-pub(super) fn section(ui: &mut Ui, t: &Tokens, seed_ratio: &mut f32, p: &mut TorrentPrefs, services: &dyn Services, width: f32) {
+/// Settings › Torrents: sharing, and speed limits over all torrents.
+pub(super) fn sharing(ui: &mut Ui, t: &Tokens, seed_ratio: &mut f32, p: &mut TorrentPrefs) {
     let ratio = egui::DragValue::new(seed_ratio).range(0.0..=MAX_SEED_RATIO).speed(0.05).fixed_decimals(1).suffix(" ×");
     setting(ui, t, "Share finished torrents", "Until each has sent this many times its size. 0: not at all.", 120.0, |ui| {
         ui.add(ratio);
@@ -31,7 +33,10 @@ pub(super) fn section(ui: &mut Ui, t: &Tokens, seed_ratio: &mut f32, p: &mut Tor
         ui.add(egui::DragValue::new(down).range(0..=4_000_000).speed(16));
         ui.label(RichText::new(tl!("Download")).size(12.5));
     });
-    ui.add_space(4.0);
+}
+
+/// Settings › Connection: how peers reach this computer and how it reaches them.
+pub(super) fn connection(ui: &mut Ui, t: &Tokens, p: &mut TorrentPrefs, services: &dyn Services, width: f32) {
     setting(ui, t, "Peers per torrent", "The most one torrent connects to at once. 0: no limit.", 120.0, |ui| {
         ui.add(egui::DragValue::new(&mut p.peer_limit).range(0..=MAX_PEER_LIMIT).speed(4));
     });

@@ -60,6 +60,11 @@ fn an_empty_list_and_the_dialogs_draw() {
     frame(&mut app, &ctx, vec![]);
     app.open_settings();
     frame(&mut app, &ctx, vec![]);
+    // Every section of Settings.
+    for (section, ..) in crate::dialogs::Section::ALL {
+        ctx.data_mut(|d| d.insert_temp(crate::dialogs::section_key(), section));
+        frame(&mut app, &ctx, vec![]);
+    }
 }
 
 #[test]

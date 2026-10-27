@@ -186,3 +186,8 @@ the next build, so no two different builds share a version.
     again then); it now counts from what's on disk.
   - Checked against the router's own table: DownloadCraft's port 48081 forwarded for TCP and UDP
     by NAT-PMP beside qBittorrent's 47895.
+- **2026-10-28** — **v0.4**: Settings in sections (General, Downloads, Videos, Torrents,
+  Connection, About), listed down the side as the window lists its categories, each page short
+  enough to need no scrolling; the network settings for torrents moved to Connection. It opens on
+  the section last shown. A long message in the status bar is cut short rather than running under
+  the counts.

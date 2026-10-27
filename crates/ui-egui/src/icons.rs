@@ -27,6 +27,14 @@ pub enum Icon {
     /// Open something upwards, and fold it down again.
     ChevronUp,
     ChevronDown,
+    /// A film frame with a play mark: videos.
+    Video,
+    /// Three linked dots: a swarm of peers (torrents).
+    Swarm,
+    /// A globe: the network.
+    Globe,
+    /// An `i` in a circle: about.
+    Info,
 }
 
 /// Draw `icon` filling `r` (a square) in `color`.
@@ -121,6 +129,30 @@ pub fn paint(p: &Painter, r: Rect, icon: Icon, color: Color32) {
             p.rect_stroke(Rect::from_min_max(at(2.0, 3.0), at(14.0, 11.0)), 1.5, stroke, egui::StrokeKind::Middle);
             p.line_segment([at(8.0, 11.0), at(8.0, 13.5)], stroke);
             p.line_segment([at(5.0, 13.5), at(11.0, 13.5)], stroke);
+        }
+        Icon::Video => {
+            p.rect_stroke(Rect::from_min_max(at(2.0, 3.5), at(14.0, 12.5)), 2.0, stroke, egui::StrokeKind::Middle);
+            play(p, at(6.5, 5.8), at(10.5, 8.0), at(6.5, 10.2), color);
+        }
+        Icon::Swarm => {
+            let (a, b, d) = (at(8.0, 3.2), at(3.4, 12.0), at(12.6, 12.0));
+            p.line_segment([a, b], stroke);
+            p.line_segment([b, d], stroke);
+            p.line_segment([d, a], stroke);
+            for q in [a, b, d] {
+                p.circle_filled(q, 2.1 * u, color);
+            }
+        }
+        Icon::Globe => {
+            p.circle_stroke(c, 6.0 * u, stroke);
+            p.line_segment([at(2.0, 8.0), at(14.0, 8.0)], stroke);
+            let half = Shape::ellipse_stroke(c, vec2(2.6 * u, 6.0 * u), stroke);
+            p.add(half);
+        }
+        Icon::Info => {
+            p.circle_stroke(c, 6.0 * u, stroke);
+            p.circle_filled(at(8.0, 5.0), 0.95 * u, color);
+            p.line_segment([at(8.0, 7.2), at(8.0, 11.5)], stroke);
         }
     }
 }
