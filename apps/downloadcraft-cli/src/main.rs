@@ -17,6 +17,7 @@ usage: downloadcraft-cli <command>
   get <url>… [--dir <folder>] [--connections <n>]
                                 download links into a folder (default: the current one),
                                 each on up to n connections (default 8)
+  tools [get]                   where yt-dlp and FFmpeg stand; `get` fetches what's missing
   commands                      every engine command, as JSON
   run <id> [<json>]             run one command on an empty list and print its answer
   --version                     print the version
@@ -107,13 +108,52 @@ impl log::Log for StderrLog {
 
 static LOGGER: StderrLog = StderrLog;
 
+/// Report where the video tools stand, fetching what's missing with `get`.
+fn tools(action: Option<&str>) -> Result<(), String> {
+    use downloadcraft_engine::model::probe::ToolState;
+    use downloadcraft_net::video::tools;
+    if action == Some("get") {
+        if tools::ytdlp().is_none() {
+            let p = tools::fetch_ytdlp().map_err(|e| format!("yt-dlp: {e}"))?;
+            say(&format!("yt-dlp: fetched and checked: {}", p.display()));
+        }
+        if tools::ffmpeg().is_none() && tools::can_fetch_ffmpeg() {
+            let p = tools::fetch_ffmpeg().map_err(|e| format!("FFmpeg: {e}"))?;
+            say(&format!("FFmpeg: fetched and checked: {}", p.display()));
+        }
+    }
+    let s = tools::status();
+    let show = |name: &str, state: &ToolState, path: Option<std::path::PathBuf>| match state {
+        ToolState::Ready => say(&format!("{name}: {}", path.map(|p| p.display().to_string()).unwrap_or_default())),
+        _ => say(&format!("{name}: not found")),
+    };
+    show("yt-dlp", &s.ytdlp, tools::ytdlp());
+    show("FFmpeg", &s.ffmpeg, tools::ffmpeg());
+    Ok(())
+}
+
 fn main() -> ExitCode {
     if std::env::var_os("DOWNLOADCRAFT_LOG").is_some_and(|v| v == "1") && log::set_logger(&LOGGER).is_ok() {
         log::set_max_level(log::LevelFilter::Info);
     }
+    // Video downloads use the yt-dlp and FFmpeg the app fetched (DOWNLOADCRAFT_TOOLS overrides).
+    if std::env::var_os("DOWNLOADCRAFT_TOOLS").is_none()
+        && let Some(data) = std::env::var_os(if cfg!(windows) { "APPDATA" } else { "HOME" })
+    {
+        let base = std::path::PathBuf::from(data);
+        let dir = if cfg!(windows) {
+            base.join("DownloadCraft")
+        } else if cfg!(target_os = "macos") {
+            base.join("Library/Application Support/DownloadCraft")
+        } else {
+            base.join(".local/share/DownloadCraft")
+        };
+        downloadcraft_net::video::tools::set_dir(dir.join("tools"));
+    }
     let args: Vec<String> = std::env::args().skip(1).collect();
     let r = match args.first().map(String::as_str) {
         Some("get") => get(args.get(1..).unwrap_or_default()),
+        Some("tools") => tools(args.get(1).map(String::as_str)),
         Some("commands") => {
             out(&Session::new().registry().describe());
             Ok(())

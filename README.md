@@ -30,6 +30,18 @@
 
 ## What works today
 
+- **Video pages: YouTube, Vimeo, Dailymotion, Twitch, TikTok, X and more**, with the quality
+  picked per video (each with its size, e.g. 1080p · 107 MB, 720p · 85 MB, Audio only). Within a
+  resolution, H.264 video and AAC audio are preferred, so the file plays nearly everywhere; it's
+  saved as MP4 under the video's title. This uses [yt-dlp](https://github.com/yt-dlp/yt-dlp), which
+  DownloadCraft fetches on request from its official release and checks against its published
+  SHA-256 (FFmpeg too, on Windows, to join video and sound). Only download videos you have the right
+  to; DRM-protected videos aren't supported.
+- **The real file name before you add it**: each link is looked at as you paste it, and the
+  name comes from the server (`Content-Disposition`, else the address after redirects, with an
+  extension from the file type when it has none), along with the size. A link that opens a web
+  page rather than a file says so.
+
 - **Multi-part downloads, as IDM does them**: a file is split into parts fetched on up to 16
   connections at once (8 by default), each written straight into place. A connection that
   finishes early takes over half of the biggest part left, and a connection the server turns away
@@ -53,6 +65,13 @@
   Remove.
 - **Built for agents**: every action is a command with an id, shared by the toolbar, shortcuts,
   `--cmd` and the CLI (`downloadcraft-cli get <url>`, `downloadcraft-cli commands`).
+
+- **Show in folder**, as browsers do it: the file manager opens with the file selected
+  (Explorer, Finder, and on Linux any file manager with the freedesktop FileManager1 interface).
+- **Deleted files show as Deleted**: a finished file that's been deleted or moved is faded and
+  struck through, as in a browser's downloads page, with **Download again**.
+- **Remove asks first**, as torrent clients do, with a box to delete the file too; it goes to the
+  Recycle Bin or Trash, and the box remembers how you left it.
 
 Torrent, magnet, MEGA and FTP links are recognised now, and the Add dialog says which version
 brings each.

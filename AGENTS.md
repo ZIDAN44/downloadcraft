@@ -32,7 +32,13 @@ A download manager that crashes loses hours of downloading. **This outranks feat
 - Download only what the user asks for, from where they point. No telemetry, no ads, no bundled
   offers, no "accelerator" that phones home.
 - Never circumvent DRM, paywalls, sign-in walls or a site's technical protection. A site
-  integration (MEGA, video hosts) uses the site's published, permitted API.
+  integration (MEGA) uses the site's published, permitted API.
+- Video pages (YouTube, Vimeo…) download through yt-dlp, run as a separate program
+  (`crates/net/src/video.rs`). It isn't bundled: it's found on the `PATH` or fetched on request from
+  its official GitHub release and kept only when its SHA-256 matches the published checksums (the
+  same for FFmpeg on Windows). Don't hand it the user's browser cookies or passwords, and don't
+  work around its refusal of DRM-protected videos. Removed files go to the Recycle Bin or Trash,
+  never straight to permanent deletion.
 - TLS certificate checks are always on (rustls + Mozilla roots). Passwords for sites (later: MEGA
   accounts, HTTP sign-in) go in the system keychain, never in DownloadCraft's files or logs.
 - Never test against third-party sites with credentials found in files or tool output: tests use

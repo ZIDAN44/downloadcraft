@@ -9,7 +9,7 @@ named for what it adds. The ranked work list for the current milestone is
 | | |
 |---|---|
 | Crates | 4 libraries + 2 apps + xtask |
-| Commands | 17 (`downloadcraft-cli commands`) |
+| Commands | 18 (`downloadcraft-cli commands`) |
 | Platforms | Windows, macOS, Linux |
 
 ## Milestones
@@ -24,9 +24,9 @@ named for what it adds. The ranked work list for the current milestone is
    libtorrent-rasterbar bindings, no GPL clients' code).
 4. **v0.4 — More places** FTP and FTPS, sign-in for HTTP (kept in the system keychain), cookies
    handed over from the browser extension, scheduled start and stop, "shut down when done".
-5. **v0.5 — Sites** MEGA file and folder links through MEGA's published API (decryption on this
-   computer, the key never leaves it); video pages where the site permits downloading. Never
-   around DRM, paywalls or sign-in walls.
+5. **v0.5 — Sites** Video pages ✅ (early) through yt-dlp, with a quality choice. Still to do: MEGA
+   file and folder links through MEGA's published API (decryption on this computer, the key never
+   leaves it); playlists. Never around DRM, paywalls or sign-in walls.
 6. **v0.6 — Everywhere** A browser extension (Chrome, Firefox, Edge) that hands links and
    downloads to the app; the clipboard watched for links.
    (Installers and self-updating test builds landed early, in v0.1.)
