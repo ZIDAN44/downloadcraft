@@ -71,3 +71,5 @@ next version: the version is raised and the Progress log gains its entry before 
 - **2026-10-27** — **v0.3**: a download whose size is known checks the disk's free space before it
   writes anything ("not enough room on the disk: 135 MB needed, 21.0 MB free"), and a disk that
   fills while writing says so and keeps the partial file for Resume.
+- **2026-10-27** — **v0.3**: a server that turns connections away is remembered for half an hour:
+  the next downloads from it open only as many connections as it served.

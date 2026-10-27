@@ -49,7 +49,9 @@ depends on the network layer: the apps wire the two together.
   closer than 1 MiB to where that part's connection is), so all of them stay busy to the end.
 - A connection that fails while others still work gives its part back and ends (servers that cap
   connections answer 429 or 503, or leave the extra ones waiting: those wait 15 s). The last one
-  tries three times before the download fails.
+  tries three times before the download fails. A connection turned away before its first byte
+  marks the server (`host:port`) as allowing only the connections still going; for 30 minutes
+  later downloads from it open no more than that (`CAPS` in `segmented.rs`).
 - Where every part is goes to `name.dcpart.parts` once a second and on stopping, so Resume carries
   on each part. The record is checked to cover the file exactly once before it is trusted.
 

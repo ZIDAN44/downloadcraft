@@ -36,6 +36,39 @@ const PART_ANSWER: Duration = Duration::from_secs(15);
 const SAVE_EVERY: Duration = Duration::from_secs(1);
 /// The most parts a record may hold (a hostile or damaged one is ignored).
 const MAX_PARTS: usize = 1024;
+/// How long a server's connection cap is remembered; after that it gets the full count again, in
+/// case the cap was a busy moment.
+const CAP_FOR: Duration = Duration::from_secs(30 * 60);
+
+/// Servers that turned connections away: `host:port`, how many connections they took, and when.
+static CAPS: Mutex<Vec<(String, usize, Instant)>> = Mutex::new(Vec::new());
+
+/// `host:port` of `url`, the key of [`CAPS`].
+fn server(url: &str) -> Option<String> {
+    let uri: ureq::http::Uri = url.parse().ok()?;
+    let host = uri.host()?.to_ascii_lowercase();
+    let port = uri.port_u16().unwrap_or(if uri.scheme_str() == Some("http") { 80 } else { 443 });
+    Some(format!("{host}:{port}"))
+}
+
+/// How many connections a download from `url` opens: `wanted`, or fewer when its server turned
+/// connections away lately.
+pub(crate) fn connections_for(url: &str, wanted: usize) -> usize {
+    let Some(key) = server(url) else { return wanted };
+    let mut caps = CAPS.lock().unwrap_or_else(PoisonError::into_inner);
+    caps.retain(|(_, _, at)| at.elapsed() < CAP_FOR);
+    caps.iter().find(|(k, _, _)| *k == key).map_or(wanted, |(_, cap, _)| wanted.min(*cap)).max(1)
+}
+
+/// Remember that `url`'s server served no more than `n` connections at once.
+fn remember_cap(url: &str, n: usize) {
+    let Some(key) = server(url) else { return };
+    let mut caps = CAPS.lock().unwrap_or_else(PoisonError::into_inner);
+    match caps.iter_mut().find(|(k, _, _)| *k == key) {
+        Some(c) => *c = (key, c.1.min(n), Instant::now()),
+        None => caps.push((key, n, Instant::now())),
+    }
+}
 
 /// A part of the file: bytes `start..end`, written up to `pos`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -208,7 +241,7 @@ pub(super) fn run(
     if let Err(e) = save(part, total, &shared.snapshot()) {
         return Err(disk(part, e));
     }
-    let workers = usize::from(f.connections.max(1));
+    let workers = connections_for(&f.url, usize::from(f.connections.max(1)));
     std::thread::scope(|scope| {
         let mut first = first;
         for _ in 0..workers {
@@ -282,6 +315,7 @@ fn connection(sh: &Shared, mut first: Option<(usize, ureq::Body)>) -> bool {
         };
         let mut tries = 0;
         loop {
+            let at = sh.parts().get(i).map(|p| p.pos);
             match fetch_part(sh, &mut handle, i, body.take()) {
                 Ok(()) => break,
                 Err(_) if sh.stop.load(Ordering::Relaxed) => return false,
@@ -290,6 +324,10 @@ fn connection(sh: &Shared, mut first: Option<(usize, ureq::Body)>) -> bool {
                     // goes, as a download manager does when a server allows fewer connections.
                     if leave_to_others(sh) {
                         log::info!("part {i}: {e}; left to the other connections");
+                        // Turned away before a byte: the server allows only the ones still going.
+                        if sh.parts().get(i).map(|p| p.pos) == at {
+                            remember_cap(sh.url, sh.busy.load(Ordering::SeqCst).max(1));
+                        }
                         if let Some(p) = sh.parts().get_mut(i) {
                             p.taken = false;
                         }

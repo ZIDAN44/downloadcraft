@@ -11,11 +11,8 @@ Missing features and known problems, most important first. Remove an item once i
 4. **SonarCloud and Nix** (`sonarcloud.yml`, `nix.yml`, `flake.nix`) as the storytold apps have
    them: SonarCloud needs the project and a `SONAR_TOKEN` secret set up by the owner.
 5. **Fuzz targets** for `Content-Range`, `Content-Disposition` and `source::classify`.
-6. **A per-server memory of how many connections it allows.** A server that caps connections
-   (answering 429 or 503, or not at all) is coped with per download, by handing parts back; some
-   then slow the whole client down for a while, so learning the cap would help.
-7. **Video pages: the rest.** Playlists and channels (one link now downloads one video);
+6. **Video pages: the rest.** Playlists and channels (one link now downloads one video);
    subtitles; FFmpeg fetched on macOS and Linux (their package managers have it today); private or
    members-only videos, which would need the user's sign-in.
-8. **Show in folder on Linux** was checked through its parts (the `file://` address, the D-Bus
+7. **Show in folder on Linux** was checked through its parts (the `file://` address, the D-Bus
     call), not yet against a running desktop's file manager.

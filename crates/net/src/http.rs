@@ -1,6 +1,6 @@
 //! One HTTP(S) transfer, resumable with byte ranges, on one connection or several (`segmented`).
 
-mod segmented;
+pub(crate) mod segmented;
 
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
