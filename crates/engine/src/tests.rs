@@ -201,3 +201,19 @@ fn unknown_commands_are_errors() {
     let mut s = session();
     assert_eq!(s.run("no.such", &Value::Null), Err(CmdError::Unknown("no.such".into())));
 }
+
+#[test]
+fn transfers_running_when_an_update_installs_come_back_queued() {
+    let mut s = session();
+    s.run("download.add", &json!({"url": "https://e.com/a.zip"})).unwrap();
+    s.run("download.add", &json!({"url": "https://e.com/b.zip", "paused": true})).unwrap();
+    let (id, run) = fetches(&s.take_jobs())[0];
+    s.apply(Event::Progress { id, run, done: 10, speed: 5 });
+    s.requeue_running();
+    let mut t = Session::new();
+    t.load(s.save()).unwrap();
+    assert_eq!(t.get(id).map(|d| d.state), Some(State::Queued));
+    assert_eq!(t.get(DownloadId(2)).map(|d| d.state), Some(State::Paused), "a paused one stays paused");
+    t.pump();
+    assert_eq!(fetches(&t.take_jobs()).len(), 1, "it starts again by itself");
+}

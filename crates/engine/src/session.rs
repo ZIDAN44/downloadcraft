@@ -200,6 +200,17 @@ impl Session {
         self.dirty = true;
     }
 
+    /// Queue running transfers again (an update is installing as the app closes): saved as
+    /// queued, they start by themselves in the new version and carry on from their partial files.
+    pub fn requeue_running(&mut self) {
+        for d in self.downloads.iter_mut().filter(|d| d.state == State::Downloading) {
+            d.state = State::Queued;
+            d.speed = 0;
+            d.run = 0;
+            self.dirty = true;
+        }
+    }
+
     /// Apply what the network layer reports. Events for a run that has ended are dropped.
     pub fn apply(&mut self, ev: Event) {
         let id = ev.id();

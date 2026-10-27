@@ -806,6 +806,8 @@ version = "0.1.0"
 dependencies = [
  "downloadcraft-model",
  "log",
+ "ring",
+ "serde_json",
  "thiserror 2.0.21",
  "ureq",
 ]

@@ -12,5 +12,9 @@ workspace = true
 [dependencies]
 downloadcraft-model = { workspace = true }
 ureq = { workspace = true }
+# GitHub's release list, for the test builds' updater.
+serde_json = { workspace = true }
+# SHA-256 of a downloaded update (already rustls's crypto provider).
+ring = "0.17"
 log = { workspace = true }
 thiserror = { workspace = true }

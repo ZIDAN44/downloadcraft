@@ -6,6 +6,7 @@
 // No console window behind the app on Windows (release builds).
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
+mod self_update;
 mod store;
 #[cfg(test)]
 mod windows_manifest;
@@ -52,6 +53,7 @@ struct App {
     events: Receiver<Event>,
     store: Option<store::Store>,
     last_save: Instant,
+    updater: Option<self_update::Updater>,
 }
 
 fn now() -> u64 {
@@ -92,15 +94,30 @@ impl eframe::App for App {
         }
     }
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        if let Some(u) = &self.updater {
+            self.app.update = u.state();
+        }
         self.app.ui(ui);
+        if self.app.take_update_choice() == Some(downloadcraft_ui_egui::UpdateChoice::RestartNow)
+            && self.updater.as_ref().is_some_and(self_update::Updater::restart_after_close)
+        {
+            ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+        }
         self.pump();
         self.save(false);
     }
     fn on_exit(&mut self) {
-        // Transfers stop; their partial files stay, and they come back paused.
+        // Transfers stop; their partial files stay, and they come back paused. When an update
+        // installs now, they come back queued instead, so they carry on in the new version.
+        if self.updater.as_ref().is_some_and(self_update::Updater::installs_on_close) {
+            self.app.session.requeue_running();
+        }
         self.worker.stop_all();
         self.app.session.dirty = true;
         self.save(true);
+        if let Some(u) = &self.updater {
+            u.closing();
+        }
     }
 }
 
@@ -205,7 +222,12 @@ fn main() -> eframe::Result {
             if !args.links.is_empty() {
                 app.open_add(&args.links.join("\n"));
             }
-            Ok(Box::new(App { app, worker, events: rx, store, last_save: Instant::now() }))
+            let updater = store.as_ref().and_then(|s| self_update::Updater::start(s.dir().to_path_buf()));
+            if let Some(u) = &updater {
+                let ctx = cc.egui_ctx.clone();
+                u.set_waker(Arc::new(move || ctx.request_repaint()));
+            }
+            Ok(Box::new(App { app, worker, events: rx, store, last_save: Instant::now(), updater }))
         }),
     )
 }

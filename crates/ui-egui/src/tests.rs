@@ -70,3 +70,15 @@ fn pasting_a_link_opens_the_add_dialog() {
     frame(&mut app, &ctx, vec![egui::Event::Paste("https://e.com/pasted.bin".into())]);
     assert!(matches!(&app.dialog, Some(crate::Dialog::Add(f)) if f.links == "https://e.com/pasted.bin"));
 }
+
+#[test]
+fn the_update_bar_and_progress_draw() {
+    let ctx = egui::Context::default();
+    let mut app = DownloadApp::new(sample(), Box::new(NoServices));
+    app.update = crate::UpdateState::Downloading { version: "0.2.0-test.3".into(), done: 5, total: 10 };
+    frame(&mut app, &ctx, vec![]);
+    app.update = crate::UpdateState::Ready { version: "0.2.0-test.3".into() };
+    frame(&mut app, &ctx, vec![]);
+    assert!(app.update_bar_wanted());
+    assert_eq!(app.take_update_choice(), None);
+}

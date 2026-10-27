@@ -11,6 +11,7 @@ mod dialogs;
 pub mod icons;
 mod list;
 pub mod theme;
+mod updates;
 mod widgets;
 
 use std::path::{Path, PathBuf};
@@ -21,6 +22,7 @@ use serde_json::{Value, json};
 
 use icons::Icon;
 use theme::Tokens;
+pub use updates::{UpdateChoice, UpdateState};
 
 /// What the platform does for the UI.
 pub trait Services {
@@ -49,11 +51,26 @@ pub struct DownloadApp {
     pub force_dark: Option<bool>,
     tokens: Option<Tokens>,
     dialog: Option<Dialog>,
+    /// Where the test builds' updater is (the app keeps it current; `None` when it doesn't run).
+    pub update: UpdateState,
+    /// What the update bar's buttons asked for, for the app to act on (`take_update_choice`).
+    update_choice: Option<UpdateChoice>,
+    /// The version whose bar Later hid.
+    update_dismissed: Option<String>,
 }
 
 impl DownloadApp {
     pub fn new(session: Session, services: Box<dyn Services>) -> Self {
-        DownloadApp { session, services, force_dark: None, tokens: None, dialog: None }
+        DownloadApp {
+            session,
+            services,
+            force_dark: None,
+            tokens: None,
+            dialog: None,
+            update: UpdateState::None,
+            update_choice: None,
+            update_dismissed: None,
+        }
     }
 
     /// Run a command, as a button does; failures go to the status bar (the engine sets it).
@@ -91,6 +108,11 @@ impl DownloadApp {
         egui::Panel::top("toolbar")
             .frame(egui::Frame::new().fill(t.chrome).inner_margin(Margin::symmetric(10, 6)))
             .show(ui, |ui| self.toolbar(ui, &t));
+        if self.update_bar_wanted() {
+            egui::Panel::top("update-bar")
+                .frame(egui::Frame::new().fill(t.selected).inner_margin(Margin::symmetric(12, 6)).stroke(egui::Stroke::new(1.0, t.border)))
+                .show(ui, |ui| self.update_bar(ui, &t));
+        }
         egui::Panel::bottom("status")
             .frame(egui::Frame::new().fill(t.chrome).inner_margin(Margin::symmetric(12, 4)))
             .show(ui, |ui| self.status_bar(ui, &t));
@@ -246,6 +268,7 @@ impl DownloadApp {
         ui.horizontal(|ui| {
             ui.label(egui::RichText::new(&self.session.status).color(t.muted));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                self.update_status(ui, t);
                 let running = self.session.downloads.iter().filter(|d| d.state == State::Downloading).count();
                 if running > 0 {
                     let speed = downloadcraft_engine::model::format::speed(self.session.total_speed());

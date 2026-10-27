@@ -14,17 +14,17 @@ use crate::http::{Fetch, agent, fetch};
 use crate::{Sink, Worker};
 
 #[derive(Clone, Default)]
-struct Serve {
-    body: Vec<u8>,
-    ranges: bool,
-    disposition: Option<String>,
+pub(crate) struct Serve {
+    pub(crate) body: Vec<u8>,
+    pub(crate) ranges: bool,
+    pub(crate) disposition: Option<String>,
     /// Close the first answer after this many body bytes.
-    cut_after: Option<usize>,
-    status: Option<u16>,
+    pub(crate) cut_after: Option<usize>,
+    pub(crate) status: Option<u16>,
 }
 
 /// Serve `s` until the test ends; the `Range` header of every request is recorded.
-fn serve(s: Serve) -> (String, Arc<Mutex<Vec<Option<String>>>>) {
+pub(crate) fn serve(s: Serve) -> (String, Arc<Mutex<Vec<Option<String>>>>) {
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     let url = format!("http://{}/files/data.bin", listener.local_addr().unwrap());
     let seen = Arc::new(Mutex::new(Vec::new()));
