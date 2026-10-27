@@ -53,6 +53,7 @@
 	Direct link · size not given	Link direto · tamanho não informado
 	Direct link · {size}	Link direto · {size}
 	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Links diretos e páginas de vídeo já baixam · torrents, links magnet e MEGA estão a caminho
+	Download	Download
 	Download again	Baixar de novo
 	Download and upload over all torrents, in KiB/s. 0: no limit.	Download e upload de todos os torrents, em KiB/s. 0: sem limite.
 	Download folder	Pasta de downloads
@@ -172,7 +173,7 @@
 	System follows your computer.	Sistema segue o seu computador.
 	TCP	TCP
 	TCP and µTP	TCP e µTP
-	The DHT and UDP trackers still connect directly; they can't go through a SOCKS5 proxy here.	O DHT e os trackers UDP continuam se conectando diretamente; aqui eles não podem passar por um proxy SOCKS5.
+	The DHT, UDP trackers and .torrent links still connect directly, and web trackers' names are looked up directly; web seeds aren't used.	O DHT, os trackers UDP e os links .torrent continuam se conectando diretamente, e os nomes dos trackers web são resolvidos diretamente; sementes web não são usadas.
 	The IP filter blocks {n} ranges.	O filtro de IP bloqueia {n} faixas.
 	The most one torrent connects to at once. 0: no limit.	O máximo de pares a que um torrent se conecta de uma vez. 0: sem limite.
 	The part downloaded so far is deleted.	A parte baixada até agora é apagada.
@@ -199,6 +200,7 @@
 	Up to 1080p	Até 1080p
 	Up to 480p	Até 480p
 	Up to 720p	Até 720p
+	Upload	Upload
 	Upload limit	Limite de upload
 	Upload speed	Velocidade de upload
 	Video	Vídeo
@@ -219,6 +221,8 @@
 	host:port, or empty for none	host:porta, ou vazio para nenhum
 	none	nenhum
 	not known yet	ainda não se sabe
+	not used while a download speed limit is set	não usada enquanto houver limite de download
+	not used while a proxy is set	não usada enquanto houver um proxy
 	one per line	um por linha
 	port {port}	porta {port}
 	starts over when resumed	recomeça do zero ao retomar

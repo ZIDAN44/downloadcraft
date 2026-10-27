@@ -53,6 +53,7 @@
 	Direct link · size not given	Lien direct · taille non indiquée
 	Direct link · {size}	Lien direct · {size}
 	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Les liens directs et les pages vidéo se téléchargent déjà · torrents, liens magnet et MEGA arrivent
+	Download	Téléchargement
 	Download again	Télécharger à nouveau
 	Download and upload over all torrents, in KiB/s. 0: no limit.	Téléchargement et envoi pour tous les torrents, en Kio/s. 0 : sans limite.
 	Download folder	Dossier des téléchargements
@@ -172,7 +173,7 @@
 	System follows your computer.	Système suit votre ordinateur.
 	TCP	TCP
 	TCP and µTP	TCP et µTP
-	The DHT and UDP trackers still connect directly; they can't go through a SOCKS5 proxy here.	Le DHT et les trackers UDP se connectent toujours directement ; ils ne peuvent pas passer par un proxy SOCKS5 ici.
+	The DHT, UDP trackers and .torrent links still connect directly, and web trackers' names are looked up directly; web seeds aren't used.	Le DHT, les trackers UDP et les liens .torrent se connectent toujours directement, et les noms des trackers web sont résolus directement ; les sources web ne sont pas utilisées.
 	The IP filter blocks {n} ranges.	Le filtre IP bloque {n} plages.
 	The most one torrent connects to at once. 0: no limit.	Le nombre maximal de pairs auxquels un torrent se connecte à la fois. 0 : sans limite.
 	The part downloaded so far is deleted.	La partie déjà téléchargée est supprimée.
@@ -199,6 +200,7 @@
 	Up to 1080p	Jusqu’à 1080p
 	Up to 480p	Jusqu’à 480p
 	Up to 720p	Jusqu’à 720p
+	Upload	Envoi
 	Upload limit	Limite d’envoi
 	Upload speed	Vitesse d’envoi
 	Video	Vidéo
@@ -219,6 +221,8 @@
 	host:port, or empty for none	hôte:port, ou vide pour aucun
 	none	aucune
 	not known yet	pas encore connu
+	not used while a download speed limit is set	inutilisée tant qu’une limite de téléchargement est réglée
+	not used while a proxy is set	inutilisée tant qu’un proxy est réglé
 	one per line	un par ligne
 	port {port}	port {port}
 	starts over when resumed	repart de zéro à la reprise

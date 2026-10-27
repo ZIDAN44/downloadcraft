@@ -53,6 +53,7 @@
 	Direct link · size not given	Enlace directo · tamaño no indicado
 	Direct link · {size}	Enlace directo · {size}
 	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Los enlaces directos y las páginas de vídeo ya se descargan · los torrents, enlaces magnet y MEGA están en camino
+	Download	Descarga
 	Download again	Descargar de nuevo
 	Download and upload over all torrents, in KiB/s. 0: no limit.	Descarga y subida de todos los torrents, en KiB/s. 0: sin límite.
 	Download folder	Carpeta de descargas
@@ -172,7 +173,7 @@
 	System follows your computer.	Sistema sigue a tu ordenador.
 	TCP	TCP
 	TCP and µTP	TCP y µTP
-	The DHT and UDP trackers still connect directly; they can't go through a SOCKS5 proxy here.	El DHT y los trackers UDP siguen conectando directamente; aquí no pueden pasar por un proxy SOCKS5.
+	The DHT, UDP trackers and .torrent links still connect directly, and web trackers' names are looked up directly; web seeds aren't used.	El DHT, los trackers UDP y los enlaces .torrent siguen conectando directamente, y los nombres de los trackers web se resuelven directamente; no se usan semillas web.
 	The IP filter blocks {n} ranges.	El filtro de IP bloquea {n} rangos.
 	The most one torrent connects to at once. 0: no limit.	El máximo de pares con que un torrent se conecta a la vez. 0: sin límite.
 	The part downloaded so far is deleted.	Se borra la parte descargada hasta ahora.
@@ -199,6 +200,7 @@
 	Up to 1080p	Hasta 1080p
 	Up to 480p	Hasta 480p
 	Up to 720p	Hasta 720p
+	Upload	Subida
 	Upload limit	Límite de subida
 	Upload speed	Velocidad de subida
 	Video	Vídeo
@@ -219,6 +221,8 @@
 	host:port, or empty for none	host:puerto, o vacío para ninguno
 	none	ninguno
 	not known yet	aún no se sabe
+	not used while a download speed limit is set	sin usar mientras haya un límite de descarga
+	not used while a proxy is set	sin usar mientras haya un proxy
 	one per line	uno por línea
 	port {port}	puerto {port}
 	starts over when resumed	empieza de cero al reanudar

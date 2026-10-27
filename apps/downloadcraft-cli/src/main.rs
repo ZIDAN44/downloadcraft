@@ -188,6 +188,7 @@ fn details_line(l: &downloadcraft_engine::model::torrent::TorrentLive, engine: O
             TrackerStatus::Failing(why) => format!("{} failing ({why})", t.url),
             TrackerStatus::Waiting => format!("{} waiting", t.url),
             TrackerStatus::Unsupported => format!("{} not asked", t.url),
+            TrackerStatus::Skipped(why) => format!("{} {why}", t.url),
         })
         .collect();
     let top = l.peers.first().map(|p| format!("{} {} {} {}", p.address, p.connection, p.client, format::speed(p.down_speed))).unwrap_or_default();

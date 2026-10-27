@@ -53,6 +53,9 @@ const THROUGH_VARIABLES: &[&str] = &[
     "Trackers",
     "Peers",
     "Files",
+    // Why a web seed is left unused (`torrent::TrackerStatus::Skipped`).
+    "not used while a proxy is set",
+    "not used while a download speed limit is set",
     // A torrent proxy that can't be used (`torrent::proxy_url`).
     "a proxy with a password isn't supported yet",
     "write the proxy as host:port",

@@ -245,10 +245,21 @@ fn transfer(spec: &TorrentFetch, cancel: &AtomicBool, sink: &Sink) -> Result<(),
     let hash = found.info_hash.as_string();
     sink.send(Event::Started { id, run, total: Some(total), resumable: true, file_name: top.clone(), done: 0 });
 
-    // Web seeds first, when the torrent names any (and no proxy is set).
-    let seeds = if e.proxied() { Vec::new() } else { downloadcraft_model::torrent::url_list(&found.torrent_bytes) };
+    // Web seeds first, when the torrent names any. Not through a proxy (the HTTP downloader would
+    // go around it), and not under a download speed limit (it has none yet).
+    let seeds = downloadcraft_model::torrent::url_list(&found.torrent_bytes);
+    let why_not = if e.proxied() {
+        Some("not used while a proxy is set")
+    } else if spec.down_kib > 0 || engine::down_limited() {
+        Some("not used while a download speed limit is set")
+    } else {
+        None
+    };
     let mut web = web::Outcome { seeds: Vec::new(), all: false, wrote: false };
-    if !seeds.is_empty() {
+    if let Some(why) = why_not {
+        use downloadcraft_model::torrent::{Tracker, TrackerStatus};
+        web.seeds = seeds.iter().map(|u| Tracker { url: u.clone(), status: TrackerStatus::Skipped(why.into()), ..Tracker::default() }).collect();
+    } else if !seeds.is_empty() {
         let order: Vec<&TorrentFile> = files
             .iter()
             .filter(|f| first.contains(&f.index))
@@ -256,13 +267,26 @@ fn transfer(spec: &TorrentFetch, cancel: &AtomicBool, sink: &Sink) -> Result<(),
             .collect();
         let plan = web::Plan { seeds, name: &name, single: !own, out: &out, files: order };
         let mut told = false;
-        let mut report = |done: u64, speed: u64, seeds: &[downloadcraft_model::torrent::Tracker]| {
+        let since = Instant::now();
+        let (pieces, piece_size) = (found.info.lengths().total_pieces(), found.info.lengths().default_piece_length());
+        let slots = files.iter().map(|f| f.index + 1).max().unwrap_or(0);
+        let mut report = |done: u64, speed: u64, seeds: &[downloadcraft_model::torrent::Tracker], per_file: &[(usize, u64)]| {
             sink.send(Event::Progress { id, run, done: done.min(total), speed, segments: Vec::new() });
+            let mut file_done = vec![0u64; slots];
+            for (i, n) in per_file {
+                if let Some(slot) = file_done.get_mut(*i) {
+                    *slot = *n;
+                }
+            }
             let live = TorrentLive {
                 info_hash: hash.clone(),
+                active_secs: since.elapsed().as_secs(),
                 size: total,
                 have: done.min(total),
                 down_speed: speed,
+                pieces,
+                piece_size,
+                file_done,
                 web_seeds: seeds.to_vec(),
                 from_web: true,
                 files: if std::mem::replace(&mut told, true) { Vec::new() } else { files.clone() },

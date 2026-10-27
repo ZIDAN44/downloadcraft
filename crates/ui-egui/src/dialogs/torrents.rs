@@ -25,8 +25,11 @@ pub(super) fn section(ui: &mut Ui, t: &Tokens, seed_ratio: &mut f32, p: &mut Tor
     ui.add_space(4.0);
     let (down, up) = (&mut p.down_kib, &mut p.up_kib);
     setting(ui, t, "Speed limits", "Download and upload over all torrents, in KiB/s. 0: no limit.", 200.0, |ui| {
-        ui.add(egui::DragValue::new(up).range(0..=4_000_000).speed(16).prefix("↑ "));
-        ui.add(egui::DragValue::new(down).range(0..=4_000_000).speed(16).prefix("↓ "));
+        // Laid out right to left: Download, its value, Upload, its value.
+        ui.add(egui::DragValue::new(up).range(0..=4_000_000).speed(16));
+        ui.label(RichText::new(tl!("Upload")).size(12.5));
+        ui.add(egui::DragValue::new(down).range(0..=4_000_000).speed(16));
+        ui.label(RichText::new(tl!("Download")).size(12.5));
     });
     ui.add_space(4.0);
     setting(ui, t, "Peers per torrent", "The most one torrent connects to at once. 0: no limit.", 120.0, |ui| {
@@ -62,7 +65,7 @@ pub(super) fn section(ui: &mut Ui, t: &Tokens, seed_ratio: &mut f32, p: &mut Tor
     } else if !p.proxy.trim().is_empty() {
         ui.add(
             egui::Label::new(
-                RichText::new(tl!("The DHT and UDP trackers still connect directly; they can't go through a SOCKS5 proxy here."))
+                RichText::new(tl!("The DHT, UDP trackers and .torrent links still connect directly, and web trackers' names are looked up directly; web seeds aren't used."))
                     .size(12.0)
                     .color(t.muted),
             )

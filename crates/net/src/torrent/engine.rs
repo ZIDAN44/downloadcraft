@@ -140,6 +140,11 @@ impl Drop for Running {
     }
 }
 
+/// Whether downloads over all torrents have a speed limit now.
+pub(super) fn down_limited() -> bool {
+    state().wanted.down_kib > 0
+}
+
 /// Where the torrent engine stands, for the status bar: `None` before the first torrent.
 pub fn status() -> Option<EngineStatus> {
     let e = state().current.clone()?;

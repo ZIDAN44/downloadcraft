@@ -53,6 +53,7 @@
 	Direct link · size not given	Directe link · grootte niet opgegeven
 	Direct link · {size}	Directe link · {size}
 	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Directe links en videopagina's downloaden al · torrents, magnetlinks en MEGA komen eraan
+	Download	Download
 	Download again	Opnieuw downloaden
 	Download and upload over all torrents, in KiB/s. 0: no limit.	Download en upload over alle torrents, in KiB/s. 0: geen limiet.
 	Download folder	Downloadmap
@@ -172,7 +173,7 @@
 	System follows your computer.	Systeem volgt je computer.
 	TCP	TCP
 	TCP and µTP	TCP en µTP
-	The DHT and UDP trackers still connect directly; they can't go through a SOCKS5 proxy here.	De DHT en UDP-trackers verbinden nog steeds rechtstreeks; ze kunnen hier niet via een SOCKS5-proxy.
+	The DHT, UDP trackers and .torrent links still connect directly, and web trackers' names are looked up directly; web seeds aren't used.	De DHT, UDP-trackers en .torrent-links verbinden nog steeds rechtstreeks, en de namen van webtrackers worden rechtstreeks opgezocht; webseeds worden niet gebruikt.
 	The IP filter blocks {n} ranges.	Het IP-filter blokkeert {n} reeksen.
 	The most one torrent connects to at once. 0: no limit.	Het hoogste aantal waarmee één torrent tegelijk verbindt. 0: geen limiet.
 	The part downloaded so far is deleted.	Het deel dat al binnen is, wordt verwijderd.
@@ -199,6 +200,7 @@
 	Up to 1080p	Tot 1080p
 	Up to 480p	Tot 480p
 	Up to 720p	Tot 720p
+	Upload	Upload
 	Upload limit	Uploadlimiet
 	Upload speed	Uploadsnelheid
 	Video	Video
@@ -219,6 +221,8 @@
 	host:port, or empty for none	host:poort, of leeg voor geen
 	none	geen
 	not known yet	nog niet bekend
+	not used while a download speed limit is set	niet gebruikt zolang er een downloadlimiet is
+	not used while a proxy is set	niet gebruikt zolang er een proxy is ingesteld
 	one per line	één per regel
 	port {port}	poort {port}
 	starts over when resumed	begint opnieuw bij hervatten

@@ -106,7 +106,7 @@ never depends on the network layer: the apps connect the two.
   is fetched from the torrent's `url-list` (BEP 19 addresses) by `http::fetch`, into `name.dcpart`
   and renamed into place when whole, so a file at its path is complete; librqbit is then let
   write over them (`overwrite`) and checks them as it adds the torrent. When all came from the
-  web and no peer appears for 20 s to check pieces shared with files left out, the transfer
+  web (skipped under a proxy or a download limit) and no peer appears for 20 s to check pieces shared with files left out, the transfer
   reports Finished itself. Download first: librqbit is given only those files, and the rest once
   it reports them done. A torrent's own limits go in `AddTorrentOptions::ratelimits`.
 - **Scrape** (`torrent/scrape.rs`): a thread per torrent asks each tracker (at most 30) about the

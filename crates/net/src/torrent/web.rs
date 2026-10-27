@@ -43,12 +43,16 @@ pub(super) struct Plan<'a> {
     pub files: Vec<&'a TorrentFile>,
 }
 
-/// Fetch `plan`'s files that aren't on disk, reporting `(bytes so far, speed, the seeds)` as it
-/// goes. `None` when it was stopped.
-pub(super) fn fetch(spec: &TorrentFetch, plan: &Plan, cancel: &AtomicBool, report: &mut dyn FnMut(u64, u64, &[Tracker])) -> Option<Outcome> {
+/// What the web seeds have brought so far: bytes in all, the speed now, the seeds, and each
+/// file's bytes (its index in the torrent's list, and how many are on disk).
+pub(super) type Report<'r> = dyn FnMut(u64, u64, &[Tracker], &[(usize, u64)]) + 'r;
+
+/// Fetch `plan`'s files that aren't on disk, reporting as it goes. `None` when it was stopped.
+pub(super) fn fetch(spec: &TorrentFetch, plan: &Plan, cancel: &AtomicBool, report: &mut Report) -> Option<Outcome> {
     let mut seeds: Vec<Tracker> =
         plan.seeds.iter().map(|u| Tracker { url: u.clone(), status: TrackerStatus::Waiting, ..Tracker::default() }).collect();
     let mut done = 0u64;
+    let mut per_file: Vec<(usize, u64)> = Vec::new();
     let mut all = true;
     let mut wrote = false;
     for f in &plan.files {
@@ -56,6 +60,7 @@ pub(super) fn fetch(spec: &TorrentFetch, plan: &Plan, cancel: &AtomicBool, repor
         let target: PathBuf = parts.iter().fold(plan.out.to_path_buf(), |p, part| p.join(part));
         if target.exists() {
             done = done.saturating_add(f.size);
+            per_file.push((f.index, f.size));
             continue;
         }
         // A name the downloader would change (it makes names safe for every system) is left to
@@ -72,7 +77,12 @@ pub(super) fn fetch(spec: &TorrentFetch, plan: &Plan, cancel: &AtomicBool, repor
             }
             let path_parts = if plan.single { &[][..] } else { &parts[..] };
             let url = web_seed_url(seed, if plan.single { file_name } else { plan.name }, path_parts, plan.single);
-            match one(spec, &url, &folder, file_name, f.size, cancel, &mut |n, speed| report(done.saturating_add(n), speed, &seeds)) {
+            let mut progress = |n: u64, speed: u64| {
+                let mut now = per_file.clone();
+                now.push((f.index, n.min(f.size)));
+                report(done.saturating_add(n), speed, &seeds, &now);
+            };
+            match one(spec, &url, &folder, file_name, f.size, cancel, &mut progress) {
                 One::Done => {
                     got = true;
                     wrote = true;
@@ -93,10 +103,11 @@ pub(super) fn fetch(spec: &TorrentFetch, plan: &Plan, cancel: &AtomicBool, repor
         }
         if got {
             done = done.saturating_add(f.size);
+            per_file.push((f.index, f.size));
         } else {
             all = false;
         }
-        report(done, 0, &seeds);
+        report(done, 0, &seeds, &per_file);
         if seeds.iter().all(|s| matches!(s.status, TrackerStatus::Failing(_))) {
             // No web seed answers: the rest is left to peers.
             all = false;

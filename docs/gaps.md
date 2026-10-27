@@ -5,7 +5,8 @@ remove it and record it in the [Progress log](../ROADMAP.md#progress-log).
 
 1. **More from torrents.**
    - Web seeds and peers take turns rather than working at once: the web seeds go first, then
-     peers fill in. Speed limits don't apply to web seeds yet.
+     peers fill in. The HTTP downloader has no speed limit yet, so a torrent under a download
+     limit (its own or the overall one) leaves its web seeds unused.
    - A resume reads every file of the torrent again to check it; on a big torrent that takes a
      while. librqbit's fast resume needs its session state kept, which DownloadCraft doesn't keep
      yet. For the same reason a magnet link asks peers for its details again on every start.

@@ -95,6 +95,8 @@ pub enum TrackerStatus {
     Failing(String),
     /// It can't be asked about the swarm (no scrape address, or a web socket tracker).
     Unsupported,
+    /// A web seed left unused, and why.
+    Skipped(String),
 }
 
 /// Where the torrent engine stands, for the status bar.

@@ -95,7 +95,13 @@ fn general(ui: &mut Ui, t: &Tokens, d: &Download, live: Option<&TorrentLive>, pr
     } else {
         format::duration(l.active_secs)
     };
-    let limit = |kib: u32| if kib == 0 { tl!("none").to_string() } else { format::speed(u64::from(kib) * 1024) };
+    // The limit that holds: this torrent's own or the overall one, whichever is lower.
+    let limit = |own: u32, overall: u32| match (own, overall) {
+        (0, 0) => tl!("none").to_string(),
+        (0, k) | (k, 0) => format::speed(u64::from(k) * 1024),
+        (a, b) => format::speed(u64::from(a.min(b)) * 1024),
+    };
+    let (own_down, own_up) = d.torrent.as_ref().map_or((0, 0), |c| (c.down_kib, c.up_kib));
     let connections = if l.peer_limit == 0 { l.connected.to_string() } else { tf!("{n} (up to {max})", n = l.connected, max = l.peer_limit) };
     let swarm = l.trackers.iter().filter(|x| x.status == TrackerStatus::Working).fold(None, |best: Option<(u32, u32)>, x| {
         let here = (x.seeds.unwrap_or(0), x.leechers.unwrap_or(0));
@@ -119,14 +125,14 @@ fn general(ui: &mut Ui, t: &Tokens, d: &Download, live: Option<&TorrentLive>, pr
                     pair(ui, t, "Downloaded", tf!("{have} of {size}", have = format::bytes(l.have), size = format::bytes(l.size)));
                     pair(ui, t, "This run", tf!("{down} received · {up} sent", down = format::bytes(l.downloaded), up = format::bytes(l.uploaded)));
                     pair(ui, t, "Download speed", format::speed(l.down_speed));
-                    pair(ui, t, "Download limit", limit(prefs.torrent.down_kib));
+                    pair(ui, t, "Download limit", limit(own_down, prefs.torrent.down_kib));
                 });
                 grid(b, "details-general-2", &mut |ui| {
                     pair(ui, t, "Time left", eta.clone());
                     pair(ui, t, "Sent", format::bytes(d.sent));
                     pair(ui, t, "Share ratio", format!("{ratio:.2}"));
                     pair(ui, t, "Upload speed", format::speed(l.up_speed));
-                    pair(ui, t, "Upload limit", limit(prefs.torrent.up_kib));
+                    pair(ui, t, "Upload limit", limit(own_up, prefs.torrent.up_kib));
                 });
                 grid(c, "details-general-3", &mut |ui| {
                     pair(ui, t, "Connections", connections.clone());
@@ -142,8 +148,10 @@ fn general(ui: &mut Ui, t: &Tokens, d: &Download, live: Option<&TorrentLive>, pr
             let (mut down, mut up) = (choice.down_kib, choice.up_kib);
             ui.horizontal_wrapped(|ui| {
                 ui.label(RichText::new(tl!("This torrent's limits (KiB/s, 0: none)")).size(12.5).color(t.muted));
-                let a = ui.add(egui::DragValue::new(&mut down).range(0..=4_000_000).speed(16).prefix("↓ "));
-                let b = ui.add(egui::DragValue::new(&mut up).range(0..=4_000_000).speed(16).prefix("↑ "));
+                ui.label(RichText::new(tl!("Download")).size(12.5));
+                let a = ui.add(egui::DragValue::new(&mut down).range(0..=4_000_000).speed(16));
+                ui.label(RichText::new(tl!("Upload")).size(12.5));
+                let b = ui.add(egui::DragValue::new(&mut up).range(0..=4_000_000).speed(16));
                 if a.changed() || b.changed() {
                     *act = Some(Action::Limits(down, up));
                 }
@@ -181,6 +189,21 @@ fn count(n: Option<u32>) -> String {
     n.map_or_else(|| "—".into(), |n| n.to_string())
 }
 
+/// The widths of the Trackers tab's first two columns: an address and a reason both fit.
+const SOURCE_W: f32 = 250.0;
+const STATUS_W: f32 = 270.0;
+
+/// A label in a cell `width` wide, left-aligned, cut short with … when longer (all of it on hover).
+fn fixed(ui: &mut Ui, width: f32, text: RichText) -> egui::Response {
+    let hover = text.text().to_string();
+    ui.allocate_ui_with_layout(vec2(width, 18.0), Layout::left_to_right(Align::Center), |ui| {
+        ui.set_width(width);
+        ui.add(egui::Label::new(text).truncate())
+    })
+    .inner
+    .on_hover_text(hover)
+}
+
 fn trackers(ui: &mut Ui, t: &Tokens, live: Option<&TorrentLive>, engine: Option<&EngineStatus>) {
     let Some(l) = live else { return not_running(ui, t) };
     let on = |yes: bool| if yes { tl!("On") } else { tl!("Off") };
@@ -200,28 +223,30 @@ fn trackers(ui: &mut Ui, t: &Tokens, live: Option<&TorrentLive>, engine: Option<
             ui.end_row();
         }
         for x in &l.web_seeds {
-            ui.add(egui::Label::new(RichText::new(tf!("Web seed: {url}", url = x.url)).size(12.5)).truncate()).on_hover_text(&x.url);
+            fixed(ui, SOURCE_W, RichText::new(tf!("Web seed: {url}", url = x.url)).size(12.5));
             let (text, color) = match &x.status {
                 TrackerStatus::Waiting => (tl!("Not asked yet").to_string(), t.muted),
                 TrackerStatus::Working => (tl!("Answering").to_string(), t.success),
                 TrackerStatus::Failing(why) => (tf!("Not answering: {why}", why = why), t.danger),
                 TrackerStatus::Unsupported => (tl!("Can't be asked about the swarm").to_string(), t.faint),
+                TrackerStatus::Skipped(why) => (tl!(why).to_string(), t.faint),
             };
-            ui.add(egui::Label::new(RichText::new(text).size(12.5).color(color)).truncate());
+            fixed(ui, STATUS_W, RichText::new(&text).size(12.5).color(color));
             cell(ui, "");
             cell(ui, "");
             cell(ui, x.completed.map_or_else(String::new, |n| tf!("{n} files", n = n)));
             ui.end_row();
         }
         for x in &l.trackers {
-            ui.add(egui::Label::new(RichText::new(&x.url).size(12.5)).truncate()).on_hover_text(&x.url);
+            fixed(ui, SOURCE_W, RichText::new(&x.url).size(12.5));
             let (text, color) = match &x.status {
                 TrackerStatus::Waiting => (tl!("Not asked yet").to_string(), t.muted),
                 TrackerStatus::Working => (tl!("Answering").to_string(), t.success),
                 TrackerStatus::Failing(why) => (tf!("Not answering: {why}", why = why), t.danger),
                 TrackerStatus::Unsupported => (tl!("Can't be asked about the swarm").to_string(), t.faint),
+                TrackerStatus::Skipped(why) => (tl!(why).to_string(), t.faint),
             };
-            ui.add(egui::Label::new(RichText::new(text).size(12.5).color(color)).truncate());
+            fixed(ui, STATUS_W, RichText::new(&text).size(12.5).color(color));
             cell(ui, count(x.seeds));
             cell(ui, count(x.leechers));
             cell(ui, count(x.completed));
@@ -273,6 +298,9 @@ fn files(ui: &mut Ui, t: &Tokens, pane: &mut Pane, d: &Download, live: Option<&T
     let filter = pane.filter.trim().to_lowercase();
     let shown: Vec<_> = choice.list.iter().filter(|f| filter.is_empty() || f.path.to_lowercase().contains(&filter)).collect();
     let row_h = 22.0;
+    // Compact rows: the window's controls are taller than a list of files wants.
+    ui.spacing_mut().item_spacing.y = 2.0;
+    ui.spacing_mut().interact_size.y = 18.0;
     egui::ScrollArea::vertical().id_salt("details-files").auto_shrink([false, false]).show_rows(ui, row_h, shown.len(), |ui, range| {
         for f in shown.get(range).unwrap_or_default() {
             ui.horizontal(|ui| {

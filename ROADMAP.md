@@ -159,8 +159,9 @@ the next build, so no two different builds share a version.
     server that has each file; librqbit then checks them piece by piece, fetches whatever is
     missing from peers, and shares them. When every file came from the web but some pieces shared
     with files left out can't be checked (no peer has them), the files are taken as they came
-    after 20 s. Nothing is fetched this way while a proxy is set. The Trackers tab lists the web
-    seeds and how each did; the list says "from a web seed".
+    after 20 s. Nothing is fetched this way while a proxy or a download speed limit is set (the
+    HTTP downloader would go around the one and has none of the other yet); the Trackers tab says
+    so, beside how each web seed did, and the list says "from a web seed".
   - Download first: files marked First in the Files tab are picked alone, and the rest of those
     picked follow once they're done (`download.first`).
   - Speed limits for one torrent, beside the overall ones (General tab, `download.torrentLimits`);

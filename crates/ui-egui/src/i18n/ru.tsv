@@ -53,6 +53,7 @@
 	Direct link · size not given	Прямая ссылка · размер не указан
 	Direct link · {size}	Прямая ссылка · {size}
 	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Прямые ссылки и страницы с видео уже скачиваются · торренты, magnet-ссылки и MEGA на подходе
+	Download	Загрузка
 	Download again	Скачать снова
 	Download and upload over all torrents, in KiB/s. 0: no limit.	Загрузка и отдача по всем торрентам, в КиБ/с. 0 — без ограничения.
 	Download folder	Папка загрузок
@@ -172,7 +173,7 @@
 	System follows your computer.	«Системная» следует за вашим компьютером.
 	TCP	TCP
 	TCP and µTP	TCP и µTP
-	The DHT and UDP trackers still connect directly; they can't go through a SOCKS5 proxy here.	DHT и UDP-трекеры по-прежнему соединяются напрямую: здесь они не могут идти через SOCKS5-прокси.
+	The DHT, UDP trackers and .torrent links still connect directly, and web trackers' names are looked up directly; web seeds aren't used.	DHT, UDP-трекеры и ссылки на .torrent по-прежнему соединяются напрямую, а имена веб-трекеров разрешаются напрямую; веб-сиды не используются.
 	The IP filter blocks {n} ranges.	IP-фильтр блокирует диапазонов: {n}.
 	The most one torrent connects to at once. 0: no limit.	Сколько пиров торрент может держать одновременно. 0 — без ограничения.
 	The part downloaded so far is deleted.	Уже загруженная часть удаляется.
@@ -199,6 +200,7 @@
 	Up to 1080p	До 1080p
 	Up to 480p	До 480p
 	Up to 720p	До 720p
+	Upload	Отдача
 	Upload limit	Ограничение отдачи
 	Upload speed	Скорость отдачи
 	Video	Видео
@@ -219,6 +221,8 @@
 	host:port, or empty for none	хост:порт, пусто — без прокси
 	none	нет
 	not known yet	пока неизвестно
+	not used while a download speed limit is set	не используется, пока задано ограничение загрузки
+	not used while a proxy is set	не используется, пока задан прокси
 	one per line	по одной в строке
 	port {port}	порт {port}
 	starts over when resumed	начнётся заново при продолжении
