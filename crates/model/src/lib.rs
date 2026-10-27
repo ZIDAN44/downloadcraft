@@ -9,6 +9,7 @@
 pub mod format;
 pub mod job;
 pub mod names;
+pub mod probe;
 pub mod source;
 
 use serde::{Deserialize, Serialize};
@@ -93,6 +94,22 @@ pub struct Download {
     /// network layer keeps its own record beside the partial file).
     #[serde(skip)]
     pub segments: Vec<Segment>,
+    /// A video page downloaded through yt-dlp: the quality chosen.
+    #[serde(default)]
+    pub video: Option<VideoChoice>,
+    /// The finished file is no longer where it was saved (deleted or moved), as the app last
+    /// looked (not saved: looked at again each run).
+    #[serde(skip)]
+    pub missing: bool,
+}
+
+/// The quality chosen for a video download.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VideoChoice {
+    /// The yt-dlp format selector.
+    pub selector: String,
+    /// What the user picked (`1080p`).
+    pub label: String,
 }
 
 impl Download {
@@ -152,6 +169,9 @@ pub struct Prefs {
     pub connections: u8,
     #[serde(default)]
     pub theme: Theme,
+    /// Whether Remove also deletes the file, as last chosen in its question.
+    #[serde(default)]
+    pub delete_files_on_remove: bool,
 }
 
 fn default_max_active() -> usize {
@@ -169,7 +189,13 @@ pub const MAX_CONNECTIONS: u8 = 16;
 
 impl Default for Prefs {
     fn default() -> Self {
-        Prefs { folder: String::new(), max_active: default_max_active(), connections: default_connections(), theme: Theme::System }
+        Prefs {
+            folder: String::new(),
+            max_active: default_max_active(),
+            connections: default_connections(),
+            theme: Theme::System,
+            delete_files_on_remove: false,
+        }
     }
 }
 

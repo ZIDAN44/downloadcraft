@@ -168,19 +168,31 @@ impl Session {
             }
             let run = self.next_run;
             self.next_run = self.next_run.saturating_add(1);
+            let connections = self.prefs.connections.clamp(1, downloadcraft_model::MAX_CONNECTIONS);
             let Some(d) = self.get_mut(id) else { continue };
             d.state = State::Downloading;
             d.run = run;
             d.speed = 0;
             d.error = None;
-            let job = Job::Fetch {
-                id,
-                run,
-                url: d.url.clone(),
-                folder: d.folder.clone(),
-                file_name: d.file_name.clone(),
-                may_rename: d.done == 0 && d.total.is_none(),
-                connections: self.prefs.connections.clamp(1, downloadcraft_model::MAX_CONNECTIONS),
+            let job = match &d.video {
+                Some(v) => Job::FetchVideo {
+                    id,
+                    run,
+                    url: d.url.clone(),
+                    folder: d.folder.clone(),
+                    file_name: d.file_name.clone(),
+                    selector: v.selector.clone(),
+                    connections,
+                },
+                None => Job::Fetch {
+                    id,
+                    run,
+                    url: d.url.clone(),
+                    folder: d.folder.clone(),
+                    file_name: d.file_name.clone(),
+                    may_rename: d.done == 0 && d.total.is_none(),
+                    connections,
+                },
             };
             self.jobs.push(job);
             running += 1;
@@ -209,6 +221,15 @@ impl Session {
             d.speed = 0;
             d.run = 0;
             self.dirty = true;
+        }
+    }
+
+    /// Note whether a finished download's file is still where it was saved (the app looks).
+    pub fn set_missing(&mut self, id: DownloadId, missing: bool) {
+        if let Some(d) = self.get_mut(id)
+            && d.state == State::Completed
+        {
+            d.missing = missing;
         }
     }
 

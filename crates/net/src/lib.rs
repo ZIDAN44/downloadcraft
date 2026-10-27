@@ -7,7 +7,9 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 pub mod http;
+pub mod probe;
 pub mod updates;
+pub mod video;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -17,7 +19,28 @@ use std::sync::mpsc::Sender;
 use std::thread::JoinHandle;
 
 use downloadcraft_model::job::PARTIAL_SUFFIX;
-use downloadcraft_model::{DownloadId, Event, Job};
+use downloadcraft_model::{DownloadId, Event, Job, SourceKind};
+
+/// Look at a link before it's added (blocking: a request, or yt-dlp reading a video page).
+pub fn probe(url: &str) -> downloadcraft_model::probe::Probe {
+    match downloadcraft_model::source::classify(url) {
+        Ok(SourceKind::Http) => probe::probe_file(url.trim()),
+        Ok(SourceKind::VideoPage) => video::probe_video(url.trim()),
+        Ok(k) => downloadcraft_model::probe::Probe::Failed(k.not_yet().unwrap_or("not supported yet").to_string()),
+        Err(e) => downloadcraft_model::probe::Probe::Failed(e.to_string()),
+    }
+}
+
+/// Put `path` in the Recycle Bin or Trash; where there's none, delete it.
+pub fn trash_file(path: &std::path::Path) -> Result<(), String> {
+    if !path.exists() {
+        return Ok(());
+    }
+    trash::delete(path).or_else(|e| {
+        log::info!("no Recycle Bin for {} ({e}); deleting it", path.display());
+        std::fs::remove_file(path).map_err(|e| e.to_string())
+    })
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum NetError {
@@ -85,25 +108,56 @@ impl Worker {
                     Err(e) => self.sink.send(Event::Failed { id, run, error: format!("couldn't start: {e}") }),
                 }
             }
+            Job::FetchVideo { id, run, url, folder, file_name, selector, connections } => {
+                let before = self.stop(id);
+                let cancel = Arc::new(AtomicBool::new(false));
+                let spec = video::VideoFetch { id, run, url, folder: PathBuf::from(folder), file_name, selector, connections };
+                let (sink, flag) = (self.sink.clone(), cancel.clone());
+                let spawned = std::thread::Builder::new().name(format!("video-{}", id.0)).spawn(move || {
+                    if let Some(h) = before {
+                        let _ = h.join();
+                    }
+                    video::fetch(&spec, &flag, &sink);
+                });
+                match spawned {
+                    Ok(handle) => {
+                        self.transfers.insert(id, Transfer { cancel, handle });
+                    }
+                    Err(e) => self.sink.send(Event::Failed { id, run, error: format!("couldn't start: {e}") }),
+                }
+            }
             // It stays listed until its thread is gone, so a resume waits for it.
             Job::Stop { id } => {
                 if let Some(t) = self.transfers.get(&id) {
                     t.cancel.store(true, Ordering::Relaxed);
                 }
             }
-            Job::DropPartial { id, folder, file_name } => {
+            Job::DropPartial { id, folder, file_name, also_file } => {
                 let before = self.stop(id);
-                let part = PathBuf::from(folder).join(format!("{file_name}{PARTIAL_SUFFIX}"));
+                let folder = PathBuf::from(folder);
+                let part = folder.join(format!("{file_name}{PARTIAL_SUFFIX}"));
+                let stem = file_name.rsplit_once('.').map_or(file_name.as_str(), |(s, _)| s).to_string();
                 let _ = std::thread::Builder::new().name("drop-partial".into()).spawn(move || {
                     if let Some(h) = before {
                         let _ = h.join();
                     }
-                    for f in [http::parts_record(&part), part] {
+                    // Ours, and what yt-dlp leaves part way (`name.f137.mp4.part`, `name.mp4.ytdl`).
+                    let mut gone = vec![http::parts_record(&part), part];
+                    if let Ok(list) = std::fs::read_dir(&folder) {
+                        gone.extend(list.flatten().map(|e| e.path()).filter(|p| {
+                            let n = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+                            n.starts_with(&format!("{stem}.")) && (n.ends_with(".part") || n.ends_with(".ytdl") || n.contains(".part-Frag"))
+                        }));
+                    }
+                    for f in gone {
                         if let Err(e) = std::fs::remove_file(&f)
                             && e.kind() != std::io::ErrorKind::NotFound
                         {
                             log::warn!("couldn't delete {}: {e}", f.display());
                         }
+                    }
+                    if also_file && let Err(e) = trash_file(&folder.join(&file_name)) {
+                        log::warn!("couldn't delete {file_name}: {e}");
                     }
                 });
             }

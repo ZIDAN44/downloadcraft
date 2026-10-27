@@ -233,3 +233,55 @@ fn theme_and_connections_are_settings_that_are_kept() {
     t.load(s.save()).unwrap();
     assert_eq!((t.prefs.theme, t.prefs.connections), (downloadcraft_model::Theme::Dark, 4));
 }
+
+#[test]
+fn remove_can_also_delete_the_file_and_remembers_the_choice() {
+    let mut s = session();
+    s.run("download.add", &json!({"url": "https://e.com/a.zip"})).unwrap();
+    let (id, run) = fetches(&s.take_jobs())[0];
+    s.apply(Event::Finished { id, run, done: 3 });
+    s.run("download.remove", &json!({"id": id.0, "deleteFile": true})).unwrap();
+    assert_eq!(s.take_jobs(), vec![Job::DropPartial { id, folder: "/downloads".into(), file_name: "a.zip".into(), also_file: true }]);
+    assert!(s.prefs.delete_files_on_remove, "the box is ticked next time");
+    // Unticked: a finished download leaves its file alone.
+    s.run("download.add", &json!({"url": "https://e.com/b.zip"})).unwrap();
+    let (id, run) = fetches(&s.take_jobs())[0];
+    s.apply(Event::Finished { id, run, done: 3 });
+    s.run("download.remove", &json!({"id": id.0, "deleteFile": false})).unwrap();
+    assert_eq!(s.take_jobs(), vec![]);
+    assert!(!s.prefs.delete_files_on_remove);
+}
+
+#[test]
+fn a_deleted_file_shows_and_can_be_downloaded_again() {
+    let mut s = session();
+    s.run("download.add", &json!({"url": "https://e.com/a.zip", "name": "Real Name.zip"})).unwrap();
+    let (id, run) = fetches(&s.take_jobs())[0];
+    assert_eq!(s.get(id).map(|d| d.file_name.as_str()), Some("Real Name.zip"), "the name found when adding");
+    s.set_missing(id, true);
+    assert!(!s.get(id).is_some_and(|d| d.missing), "only a finished download can be missing");
+    s.apply(Event::Finished { id, run, done: 3 });
+    s.set_missing(id, true);
+    assert!(s.get(id).is_some_and(|d| d.missing));
+    s.run("download.again", &json!({"id": id.0})).unwrap();
+    let d = s.get(id).unwrap();
+    assert_eq!((d.state, d.missing, d.done), (State::Downloading, false, 0));
+    assert_eq!(fetches(&s.take_jobs()).len(), 1);
+}
+
+#[test]
+fn video_pages_download_through_yt_dlp_in_the_chosen_quality() {
+    let mut s = session();
+    s.run(
+        "download.add",
+        &json!({"url": "https://youtu.be/abc", "name": "A talk.mp4", "quality": {"selector": "bv*[height<=720]+ba/b", "label": "720p"}}),
+    )
+    .unwrap();
+    let jobs = s.take_jobs();
+    let Some(Job::FetchVideo { selector, file_name, .. }) = jobs.first() else { panic!("{jobs:?}") };
+    assert_eq!((selector.as_str(), file_name.as_str()), ("bv*[height<=720]+ba/b", "A talk.mp4"));
+    // No quality given: the best there is.
+    s.run("download.add", &json!({"url": "https://www.youtube.com/watch?v=x"})).unwrap();
+    let jobs = s.take_jobs();
+    assert!(matches!(jobs.first(), Some(Job::FetchVideo { selector, .. }) if selector == downloadcraft_model::probe::BEST), "{jobs:?}");
+}

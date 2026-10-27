@@ -16,5 +16,9 @@ ureq = { workspace = true }
 serde_json = { workspace = true }
 # SHA-256 of a downloaded update (already rustls's crypto provider).
 ring = "0.17"
+# Removed files go to the Recycle Bin or Trash rather than vanishing (MIT).
+trash = "5"
+# Unpacking FFmpeg's Windows build for video downloads (MIT); deflate only, pure Rust.
+zip = { version = "2", default-features = false, features = ["deflate"] }
 log = { workspace = true }
 thiserror = { workspace = true }

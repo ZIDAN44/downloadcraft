@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-/// The kinds of link DownloadCraft knows. Only `Http` transfers in v0.1; the others are
+/// The kinds of link DownloadCraft knows. `Http` and `VideoPage` download; the others are
 /// recognised so the app can say when they arrive (ROADMAP.md).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -17,8 +17,8 @@ pub enum SourceKind {
     Magnet,
     /// A MEGA file or folder link (`mega.nz`, `mega.io`).
     Mega,
-    /// A video site's page (YouTube, Vimeo…): a web page, not the video file, so fetching it as
-    /// it is would save the page.
+    /// A video site's page (YouTube, Vimeo…): a web page, not the video file, so it's fetched
+    /// through yt-dlp, which finds the video in it.
     #[serde(rename = "videopage")]
     VideoPage,
 }
@@ -64,7 +64,7 @@ impl SourceKind {
             SourceKind::Ftp => Some("FTP downloads arrive in v0.4"),
             SourceKind::Torrent | SourceKind::Magnet => Some("torrents arrive in v0.3"),
             SourceKind::Mega => Some("MEGA links arrive in v0.5"),
-            SourceKind::VideoPage => Some("video pages arrive in v0.5"),
+            SourceKind::VideoPage => None,
         }
     }
 }

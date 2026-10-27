@@ -15,11 +15,14 @@ pub enum Job {
     /// used instead, and a taken name gets a number. Up to `connections` connections fetch parts
     /// of the file at once when the server takes byte ranges.
     Fetch { id: DownloadId, run: u64, url: String, folder: String, file_name: String, may_rename: bool, connections: u8 },
+    /// Download a video page through yt-dlp, in the quality `selector` picks, with up to
+    /// `connections` parts at once.
+    FetchVideo { id: DownloadId, run: u64, url: String, folder: String, file_name: String, selector: String, connections: u8 },
     /// Stop the transfer of `id` (whatever run it is on); the partial file stays for a resume.
     Stop { id: DownloadId },
-    /// Delete the partial file of `id`, which is being removed, once its transfer has stopped
-    /// (the finished file is never touched).
-    DropPartial { id: DownloadId, folder: String, file_name: String },
+    /// Delete the partial file of `id`, which is being removed, once its transfer has stopped;
+    /// with `also_file`, the finished file goes to the Recycle Bin or Trash too.
+    DropPartial { id: DownloadId, folder: String, file_name: String, also_file: bool },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

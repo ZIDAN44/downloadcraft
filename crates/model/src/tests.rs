@@ -17,7 +17,7 @@ fn classifies_links() {
         assert_eq!(classify(page), Ok(SourceKind::VideoPage), "{page}");
     }
     assert_eq!(classify("https://notyoutube.com/a.mp4"), Ok(SourceKind::Http), "only the site itself");
-    assert!(SourceKind::VideoPage.not_yet().is_some());
+    assert!(SourceKind::VideoPage.not_yet().is_none(), "video pages download through yt-dlp");
     assert_eq!(classify("http://[::1]:8080/x"), Ok(SourceKind::Http));
     for bad in ["", "   ", "example.com/a.zip", "file:///etc/passwd", "javascript:alert(1)", "https://", "https:///x", "magnet:", "a b://c"] {
         assert!(classify(bad).is_err(), "{bad:?}");
@@ -95,6 +95,8 @@ fn progress_and_eta() {
         speed: 100,
         run: 1,
         segments: Vec::new(),
+        video: None,
+        missing: false,
     };
     assert_eq!(d.fraction(), Some(0.25));
     assert_eq!(d.eta(), Some(8));
@@ -105,4 +107,31 @@ fn progress_and_eta() {
     assert_eq!(d.fraction(), None);
     let json = serde_json::to_string(&d).unwrap_or_default();
     assert!(!json.contains("speed"), "{json}");
+}
+
+#[test]
+fn video_qualities_come_from_yt_dlp_s_answer() {
+    let info = serde_json::json!({
+        "title": "Big Buck Bunny: 60fps/4K",
+        "formats": [
+            {"format_id": "18", "ext": "mp4", "height": 360, "vcodec": "avc1", "acodec": "mp4a", "filesize": 9_000_000},
+            {"format_id": "140", "ext": "m4a", "vcodec": "none", "acodec": "mp4a", "filesize": 5_000_000},
+            {"format_id": "137", "ext": "mp4", "height": 1080, "fps": 30, "vcodec": "avc1", "acodec": "none", "filesize": 80_000_000},
+            {"format_id": "299", "ext": "mp4", "height": 1080, "fps": 60, "vcodec": "avc1", "acodec": "none", "filesize_approx": 120_000_000.0},
+            {"format_id": "136", "ext": "mp4", "height": 720, "vcodec": "avc1", "acodec": "none"},
+            {"format_id": "sb0", "ext": "mhtml", "vcodec": "none", "acodec": "none"}
+        ]
+    });
+    let q = crate::probe::qualities(&info);
+    let labels: Vec<&str> = q.iter().map(|q| q.label.as_str()).collect();
+    assert_eq!(labels, ["1080p60", "720p", "360p", "Audio only"]);
+    assert_eq!(q[0].size, Some(125_000_000), "the biggest 1080p stream and the audio");
+    assert!(q[0].needs_ffmpeg && q[0].selector.contains("height<=1080"));
+    assert!(!q[2].needs_ffmpeg, "360p comes as one file");
+    assert_eq!(q[2].size, Some(9_000_000));
+    assert_eq!(q[3].size, Some(5_000_000));
+    let (title, name) = crate::probe::title_and_name(&info);
+    assert_eq!(title, "Big Buck Bunny: 60fps/4K");
+    assert_eq!(name, "Big Buck Bunny_ 60fps_4K.mp4");
+    assert_eq!(crate::probe::qualities(&serde_json::json!({})).first().map(|q| q.selector.as_str()), Some(crate::probe::BEST));
 }

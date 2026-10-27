@@ -8,7 +8,9 @@ use serde_json::{Value, json};
 
 use crate::session::{Filter, MAX_DOWNLOADS};
 use crate::{CmdError, CmdResult, CommandSpec, Registry, Session, p};
-use downloadcraft_model::{Download, DownloadId, Job, MAX_ACTIVE_LIMIT, MAX_CONNECTIONS, State, Theme, names, source};
+use downloadcraft_model::{
+    Download, DownloadId, Job, MAX_ACTIVE_LIMIT, MAX_CONNECTIONS, SourceKind, State, Theme, VideoChoice, names, probe, source,
+};
 
 /// The most links one `download.addMany` takes.
 const MAX_BATCH: usize = 1000;
@@ -21,12 +23,13 @@ fn has_downloads(s: &Session) -> Option<&'static str> {
 pub fn registry() -> Registry {
     Registry::new(vec![
         CommandSpec::new("download.add", "Add link", "Toolbar", add)
-            .params(r#"{"url": string, "folder"?: string, "name"?: string, "paused"?: bool}"#),
+            .params(r#"{"url": string, "folder"?: string, "name"?: string, "paused"?: bool, "quality"?: {"selector": string, "label": string}}"#),
         CommandSpec::new("download.addMany", "Add links", "Toolbar › Add link", add_many)
             .params(r#"{"urls": [string], "folder"?: string, "paused"?: bool}"#),
         CommandSpec::new("download.resume", "Resume", "Toolbar", resume).params(r#"{"id"?: number}"#),
         CommandSpec::new("download.pause", "Pause", "Toolbar", pause).params(r#"{"id"?: number}"#),
-        CommandSpec::new("download.remove", "Remove", "Toolbar", remove).key("Delete").params(r#"{"id"?: number}"#),
+        CommandSpec::new("download.remove", "Remove", "Toolbar", remove).key("Delete").params(r#"{"id"?: number, "deleteFile"?: bool}"#),
+        CommandSpec::new("download.again", "Download again", "List", again).params(r#"{"id"?: number}"#),
         CommandSpec::new("download.resumeAll", "Resume all", "Toolbar › Queue", resume_all).when(has_downloads),
         CommandSpec::new("download.pauseAll", "Pause all", "Toolbar › Queue", pause_all).when(has_downloads),
         CommandSpec::new("download.clearCompleted", "Clear completed", "Toolbar › Queue", clear_completed).when(has_downloads),
@@ -62,7 +65,14 @@ fn describe(d: &Download) -> Value {
 }
 
 /// Make a new entry for `url`, queued unless `paused`.
-fn new_download(s: &mut Session, url: &str, folder: Option<&str>, name: Option<&str>, paused: bool) -> Result<DownloadId, CmdError> {
+fn new_download(
+    s: &mut Session,
+    url: &str,
+    folder: Option<&str>,
+    name: Option<&str>,
+    paused: bool,
+    quality: Option<&Value>,
+) -> Result<DownloadId, CmdError> {
     if s.downloads.len() >= MAX_DOWNLOADS {
         return Err(CmdError::Failed("the list is full; clear completed downloads first".into()));
     }
@@ -76,6 +86,12 @@ fn new_download(s: &mut Session, url: &str, folder: Option<&str>, name: Option<&
         return Err(CmdError::Params("choose a download folder first (`prefs.folder`)".into()));
     }
     let file_name = names::sanitize(name.map(str::trim).filter(|n| !n.is_empty()).map_or_else(|| names::from_url(url), str::to_string).as_str());
+    // A video page downloads through yt-dlp, in the quality picked (the best there is otherwise).
+    let video = (kind == SourceKind::VideoPage).then(|| {
+        let selector = quality.and_then(|q| p::str(q, "selector")).filter(|s| !s.is_empty() && s.len() < 400).unwrap_or(probe::BEST);
+        let label = quality.and_then(|q| p::str(q, "label")).filter(|l| l.len() < 40).unwrap_or("Best");
+        VideoChoice { selector: selector.to_string(), label: label.to_string() }
+    });
     let id = s.new_id();
     s.downloads.push(Download {
         id,
@@ -92,6 +108,8 @@ fn new_download(s: &mut Session, url: &str, folder: Option<&str>, name: Option<&
         speed: 0,
         run: 0,
         segments: Vec::new(),
+        video,
+        missing: false,
     });
     s.selection = Some(id);
     s.dirty = true;
@@ -100,7 +118,7 @@ fn new_download(s: &mut Session, url: &str, folder: Option<&str>, name: Option<&
 
 fn add(s: &mut Session, v: &Value) -> CmdResult {
     let url = p::req_str(v, "url")?;
-    let id = new_download(s, url, p::str(v, "folder"), p::str(v, "name"), p::bool(v, "paused").unwrap_or(false))?;
+    let id = new_download(s, url, p::str(v, "folder"), p::str(v, "name"), p::bool(v, "paused").unwrap_or(false), v.get("quality"))?;
     let name = s.get(id).map(|d| d.file_name.clone()).unwrap_or_default();
     s.status = format!("Added {name}");
     Ok(json!({"id": id.0, "file": name}))
@@ -116,7 +134,7 @@ fn add_many(s: &mut Session, v: &Value) -> CmdResult {
         if u.trim().is_empty() {
             continue;
         }
-        match new_download(s, u, folder, None, paused) {
+        match new_download(s, u, folder, None, paused, None) {
             Ok(id) => added.push(id.0),
             Err(e) => refused.push(json!({"url": u, "error": e.to_string()})),
         }
@@ -147,22 +165,46 @@ fn pause(s: &mut Session, v: &Value) -> CmdResult {
     Ok(json!({"id": id.0}))
 }
 
+/// Remove from the list. An unfinished download's partial file always goes; with `deleteFile`
+/// the finished file goes to the Recycle Bin or Trash too (the choice is remembered for next time).
 fn remove(s: &mut Session, v: &Value) -> CmdResult {
     let id = target(s, v)?;
     let finished = s.get(id).is_some_and(|d| d.state == State::Completed);
+    let delete = p::bool(v, "deleteFile");
+    if let Some(d) = delete {
+        s.prefs.delete_files_on_remove = d;
+    }
+    let delete = delete.unwrap_or(false);
     if !finished {
         s.stop(id, State::Paused);
     }
     let pos = s.downloads.iter().position(|d| d.id == id).ok_or_else(|| CmdError::Params(format!("no download {}", id.0)))?;
     let d = s.downloads.remove(pos);
-    if !finished {
-        s.push_job(Job::DropPartial { id, folder: d.folder.clone(), file_name: d.file_name.clone() });
+    if !finished || delete {
+        s.push_job(Job::DropPartial { id, folder: d.folder.clone(), file_name: d.file_name.clone(), also_file: finished && delete });
     }
     if s.selection == Some(id) {
         // The next one down the list on screen (which is newest first), else the one above.
         s.selection = s.downloads.get(pos.saturating_sub(1)).or_else(|| s.downloads.get(pos)).map(|d| d.id);
     }
     s.status = format!("Removed {}", d.file_name);
+    s.dirty = true;
+    Ok(json!({"id": id.0}))
+}
+
+/// Fetch a download once more from the start (its file was deleted or moved, or it failed).
+fn again(s: &mut Session, v: &Value) -> CmdResult {
+    let id = target(s, v)?;
+    let Some(d) = s.get_mut(id) else { return Err(CmdError::Params(format!("no download {}", id.0))) };
+    if d.state.active() {
+        return Err(CmdError::Disabled("it is downloading".into()));
+    }
+    d.state = State::Queued;
+    d.done = 0;
+    d.total = None;
+    d.error = None;
+    d.missing = false;
+    d.file_name = names::from_url(&d.url);
     s.dirty = true;
     Ok(json!({"id": id.0}))
 }
