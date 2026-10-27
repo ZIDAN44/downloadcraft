@@ -180,6 +180,11 @@ fn parse_args() -> Result<Option<Args>, String> {
                 a.cmds.push((id.to_string(), v));
             }
             s if s.starts_with("--") => return Err(format!("unknown option {s}\n\n{USAGE}")),
+            // A `.torrent` file opened with the app, or named from a shell's folder: its full path.
+            _ if arg.to_ascii_lowercase().ends_with(".torrent") && std::path::Path::new(&arg).is_file() => {
+                let full = std::fs::canonicalize(&arg).map(|p| p.to_string_lossy().into_owned()).unwrap_or(arg);
+                a.links.push(full.strip_prefix(r"\\?\").map(str::to_string).unwrap_or(full));
+            }
             _ => a.links.push(arg),
         }
     }
@@ -308,6 +313,7 @@ fn run(
             let worker = Worker::new(Sink::new(tx, Arc::new(move || ctx.request_repaint())));
             if let Some(s) = &store {
                 downloadcraft_net::video::tools::set_dir(s.dir().join("tools"));
+                downloadcraft_net::torrent::set_dir(s.dir().join("torrents"));
             }
             let repaint = cc.egui_ctx.clone();
             let platform = platform::Platform::new(Arc::new(move || repaint.request_repaint()));

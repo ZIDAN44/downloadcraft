@@ -7,7 +7,7 @@ mod remove;
 pub use add::{AddForm, add};
 pub use remove::{RemoveForm, remove};
 
-use downloadcraft_engine::model::{MAX_ACTIVE_LIMIT, MAX_CONNECTIONS, Prefs, Theme};
+use downloadcraft_engine::model::{MAX_ACTIVE_LIMIT, MAX_CONNECTIONS, MAX_SEED_RATIO, Prefs, Theme};
 use egui::{RichText, Ui};
 
 use crate::Services;
@@ -22,6 +22,8 @@ pub struct SettingsForm {
     pub connections: usize,
     pub theme: Theme,
     pub subtitles: String,
+    /// How many times its size a finished torrent sends to others (0: none).
+    pub seed_ratio: f32,
     /// `auto` (the system's) or a language code (`i18n::LANGUAGES`).
     pub language: String,
 }
@@ -34,6 +36,7 @@ impl SettingsForm {
             connections: usize::from(p.connections),
             theme: p.theme,
             subtitles: p.subtitles.clone(),
+            seed_ratio: p.seed_ratio,
             language: p.language.clone(),
         }
     }
@@ -142,6 +145,13 @@ pub fn settings(ctx: &egui::Context, f: &mut SettingsForm, t: &Tokens, services:
             widgets::section(ui, t, "Videos");
             setting(ui, t, "Subtitles", "Languages to save with videos, such as en, es. Empty: none.", 152.0, |ui| {
                 ui.add(egui::TextEdit::singleline(&mut f.subtitles).desired_width(150.0).hint_text(tl!("none")).char_limit(100));
+            });
+            ui.add_space(8.0);
+            ui.separator();
+            widgets::section(ui, t, "Torrents");
+            let ratio = egui::DragValue::new(&mut f.seed_ratio).range(0.0..=MAX_SEED_RATIO).speed(0.05).fixed_decimals(1).suffix(" ×");
+            setting(ui, t, "Share finished torrents", "Until each has sent this many times its size. 0: not at all.", 120.0, |ui| {
+                ui.add(ratio);
             });
             ui.add_space(8.0);
             ui.separator();

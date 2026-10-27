@@ -24,3 +24,7 @@ zip = { version = "9", default-features = false, features = ["deflate-flate2-zli
 fs4 = { version = "1", default-features = false }
 log = { workspace = true }
 thiserror = { workspace = true }
+# Torrents and magnet links (BEP 3, 5, 9, 10): rqbit's engine (Apache-2.0), on rustls like the rest.
+librqbit = { version = "9", default-features = false, features = ["rust-tls"] }
+tokio = { version = "1", features = ["rt-multi-thread"] }
+anyhow = "1"

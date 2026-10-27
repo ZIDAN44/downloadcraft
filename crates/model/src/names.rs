@@ -63,6 +63,26 @@ pub fn sanitize(name: &str) -> String {
     out
 }
 
+/// Whether `part`, one piece of a path inside a torrent, can't be written as it is: empty, `.` or
+/// `..`, a path separator or control character, longer than 255 bytes, or, on Windows (`windows`),
+/// one of its reserved characters (a `:` would open another stream of the file) or device names,
+/// or ending in a dot or space. A torrent's files keep their names, so such a torrent is refused
+/// rather than written somewhere else.
+pub fn unsafe_part(part: &str, windows: bool) -> bool {
+    if part.is_empty() || part == "." || part == ".." || part.len() > 255 || part.chars().any(|c| c.is_control() || c == '/' || c == '\\') {
+        return true;
+    }
+    if !windows {
+        return false;
+    }
+    let stem = part.split('.').next().unwrap_or("").trim_end().to_ascii_uppercase();
+    let numbered = (stem.starts_with("COM") || stem.starts_with("LPT")) && stem.len() == 4 && stem.as_bytes().get(3).is_some_and(u8::is_ascii_digit);
+    part.contains([':', '*', '?', '"', '<', '>', '|'])
+        || part.ends_with(['.', ' '])
+        || ["CON", "PRN", "AUX", "NUL"].contains(&stem.as_str())
+        || numbered
+}
+
 /// Cut `name` to [`MAX_NAME`] bytes, keeping a short extension.
 fn cap(name: &str) -> String {
     if name.len() <= MAX_NAME {

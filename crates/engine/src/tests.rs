@@ -57,12 +57,12 @@ fn adding_queues_and_starts_up_to_the_limit() {
 #[test]
 fn unsupported_and_bad_links_are_refused() {
     let mut s = session();
-    assert!(matches!(s.run("download.add", &json!({"url": "magnet:?xt=urn:btih:abc"})), Err(CmdError::Disabled(_))));
+    assert!(matches!(s.run("download.add", &json!({"url": "ftp://e.com/a.iso"})), Err(CmdError::Disabled(_))));
     assert!(matches!(s.run("download.add", &json!({"url": "https://mega.nz/file/x#k"})), Err(CmdError::Disabled(_))));
     assert!(matches!(s.run("download.add", &json!({"url": "not a link"})), Err(CmdError::Params(_))));
     assert!(s.downloads.is_empty());
     assert!(!s.status.is_empty());
-    let r = s.run("download.addMany", &json!({"urls": ["https://e.com/a", "magnet:?x", "https://e.com/b"]})).unwrap();
+    let r = s.run("download.addMany", &json!({"urls": ["https://e.com/a", "ftp://e.com/x", "https://e.com/b"]})).unwrap();
     assert_eq!(r["added"].as_array().map(Vec::len), Some(2));
     assert_eq!(r["refused"].as_array().map(Vec::len), Some(1));
 }
@@ -241,7 +241,7 @@ fn remove_can_also_delete_the_file_and_remembers_the_choice() {
     let (id, run) = fetches(&s.take_jobs())[0];
     s.apply(Event::Finished { id, run, done: 3 });
     s.run("download.remove", &json!({"id": id.0, "deleteFile": true})).unwrap();
-    assert_eq!(s.take_jobs(), vec![Job::DropPartial { id, folder: "/downloads".into(), file_name: "a.zip".into(), also_file: true }]);
+    assert_eq!(s.take_jobs(), vec![Job::DropPartial { id, folder: "/downloads".into(), file_name: "a.zip".into(), also_file: true, torrent: false }]);
     assert!(s.prefs.delete_files_on_remove, "the box is ticked next time");
     // Unticked: a finished download leaves its file alone.
     s.run("download.add", &json!({"url": "https://e.com/b.zip"})).unwrap();
@@ -284,4 +284,67 @@ fn video_pages_download_through_yt_dlp_in_the_chosen_quality() {
     s.run("download.add", &json!({"url": "https://www.youtube.com/watch?v=x"})).unwrap();
     let jobs = s.take_jobs();
     assert!(matches!(jobs.first(), Some(Job::FetchVideo { selector, .. }) if selector == downloadcraft_model::probe::BEST), "{jobs:?}");
+}
+
+#[test]
+fn torrents_download_the_files_picked_and_seed_once_finished() {
+    let mut s = session();
+    let magnet = "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel";
+    s.run("download.add", &json!({"url": magnet, "files": [5, 1, 5, 99_999_999]})).unwrap();
+    let jobs = s.take_jobs();
+    let Some(Job::FetchTorrent { id, run, file_name, files, first, seed_ratio, .. }) = jobs.first().cloned() else { panic!("{jobs:?}") };
+    assert_eq!((file_name.as_str(), files, first, seed_ratio), ("Sintel", vec![1, 5], true, 1.0), "picked once each, in order");
+    s.apply(Event::Started { id, run, total: Some(100), resumable: true, file_name: "Sintel".into(), done: 0 });
+    s.apply(Event::Finished { id, run, done: 100 });
+    // Still sharing: its run stays, so its uploads are counted.
+    s.apply(Event::Uploaded { id, run, uploaded: 40, seeding: true });
+    assert_eq!(s.get(id).map(|d| (d.state, d.uploaded, d.seeding)), Some((State::Completed, 40, true)));
+    s.apply(Event::Uploaded { id, run: run + 1, uploaded: 99, seeding: true });
+    assert_eq!(s.get(id).map(|d| d.uploaded), Some(40), "another run's report is dropped");
+    // Removing it stops the sharing and, unasked, leaves its files.
+    s.run("download.remove", &json!({"id": id.0})).unwrap();
+    assert_eq!(s.take_jobs(), vec![Job::Stop { id }]);
+
+    // An unfinished torrent that has written nothing leaves nothing to take away: a file of the
+    // same name that was already there (and refused it) is someone else's.
+    s.run("download.add", &json!({"url": magnet})).unwrap();
+    let (id, _) = s.downloads.last().map(|d| (d.id, d.run)).unwrap();
+    s.run("download.remove", &json!({"id": id.0})).unwrap();
+    assert!(!s.take_jobs().iter().any(|j| matches!(j, Job::DropPartial { .. })));
+    // One that started writing takes its files with it.
+    s.run("download.add", &json!({"url": magnet})).unwrap();
+    let id = s.downloads.last().map(|d| d.id).unwrap();
+    let run = s.get(id).map(|d| d.run).unwrap();
+    s.apply(Event::Started { id, run, total: Some(100), resumable: true, file_name: "Sintel".into(), done: 0 });
+    s.take_jobs();
+    s.run("download.remove", &json!({"id": id.0})).unwrap();
+    let jobs = s.take_jobs();
+    assert!(jobs.iter().any(|j| matches!(j, Job::DropPartial { also_file: true, torrent: true, .. })), "{jobs:?}");
+
+    // Fetched again, it keeps its name and checks what's there rather than refusing it.
+    s.run("prefs.seedRatio", &json!({"ratio": 0})).unwrap();
+    s.run("download.add", &json!({"url": magnet})).unwrap();
+    let id = s.downloads.last().map(|d| d.id).unwrap();
+    let run = s.get(id).map(|d| d.run).unwrap();
+    s.apply(Event::Started { id, run, total: Some(100), resumable: true, file_name: "Sintel".into(), done: 0 });
+    s.apply(Event::Failed { id, run, error: "the disk is full".into() });
+    s.take_jobs();
+    s.run("download.again", &json!({"id": id.0})).unwrap();
+    let jobs = s.take_jobs();
+    assert!(
+        matches!(jobs.first(), Some(Job::FetchTorrent { first: false, seed_ratio, file_name, .. }) if *seed_ratio == 0.0 && file_name == "Sintel"),
+        "{jobs:?}"
+    );
+}
+
+#[test]
+fn the_seeding_ratio_is_kept_in_range() {
+    let mut s = session();
+    s.run("prefs.seedRatio", &json!({"ratio": 2.345})).unwrap();
+    assert_eq!(s.prefs.seed_ratio, 2.3, "to a tenth");
+    s.run("prefs.seedRatio", &json!({"ratio": 1e9})).unwrap();
+    assert_eq!(s.prefs.seed_ratio, downloadcraft_model::MAX_SEED_RATIO);
+    s.run("prefs.seedRatio", &json!({"ratio": -3})).unwrap();
+    assert_eq!(s.prefs.seed_ratio, 0.0);
+    assert!(s.run("prefs.seedRatio", &json!({"ratio": "lots"})).is_err());
 }

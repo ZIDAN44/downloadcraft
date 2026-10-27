@@ -8,6 +8,7 @@
 
 pub mod http;
 pub mod probe;
+pub mod torrent;
 pub mod updates;
 pub mod video;
 
@@ -26,6 +27,7 @@ pub fn probe(url: &str) -> downloadcraft_model::probe::Probe {
     match downloadcraft_model::source::classify(url) {
         Ok(SourceKind::Http) => probe::probe_file(url.trim()),
         Ok(SourceKind::VideoPage) => video::probe_video(url.trim()),
+        Ok(SourceKind::Torrent | SourceKind::Magnet) => torrent::probe_torrent(&downloadcraft_model::source::normalize(url)),
         Ok(k) => downloadcraft_model::probe::Probe::Failed(k.not_yet().unwrap_or("not supported yet").to_string()),
         Err(e) => downloadcraft_model::probe::Probe::Failed(e.to_string()),
     }
@@ -130,13 +132,31 @@ impl Worker {
                     Err(e) => self.sink.send(Event::Failed { id, run, error: format!("couldn't start: {e}") }),
                 }
             }
+            Job::FetchTorrent { id, run, url, folder, file_name, files, first, seed_ratio } => {
+                let before = self.stop(id);
+                let cancel = Arc::new(AtomicBool::new(false));
+                let spec = torrent::TorrentFetch { id, run, url, folder: PathBuf::from(folder), file_name, files, first, seed_ratio };
+                let (sink, flag) = (self.sink.clone(), cancel.clone());
+                let spawned = std::thread::Builder::new().name(format!("torrent-{}", id.0)).spawn(move || {
+                    if let Some(h) = before {
+                        let _ = h.join();
+                    }
+                    torrent::fetch(&spec, &flag, &sink);
+                });
+                match spawned {
+                    Ok(handle) => {
+                        self.transfers.insert(id, Transfer { cancel, handle });
+                    }
+                    Err(e) => self.sink.send(Event::Failed { id, run, error: format!("couldn't start: {e}") }),
+                }
+            }
             // It stays listed until its thread is gone, so a resume waits for it.
             Job::Stop { id } => {
                 if let Some(t) = self.transfers.get(&id) {
                     t.cancel.store(true, Ordering::Relaxed);
                 }
             }
-            Job::DropPartial { id, folder, file_name, also_file } => {
+            Job::DropPartial { id, folder, file_name, also_file, torrent } => {
                 let before = self.stop(id);
                 let folder = PathBuf::from(folder);
                 let part = folder.join(format!("{file_name}{PARTIAL_SUFFIX}"));
@@ -146,8 +166,9 @@ impl Worker {
                         let _ = h.join();
                     }
                     // Ours, and what yt-dlp leaves part way (`name.f137.mp4.part`, `name.mp4.ytdl`).
-                    let mut gone = vec![http::parts_record(&part), part];
-                    if let Ok(list) = std::fs::read_dir(&folder) {
+                    // A torrent's files are its own, written in place: only `also_file` takes them.
+                    let mut gone = if torrent { Vec::new() } else { vec![http::parts_record(&part), part] };
+                    if !torrent && let Ok(list) = std::fs::read_dir(&folder) {
                         gone.extend(list.flatten().map(|e| e.path()).filter(|p| {
                             let n = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
                             n.starts_with(&format!("{stem}.")) && (n.ends_with(".part") || n.ends_with(".ytdl") || n.contains(".part-Frag"))

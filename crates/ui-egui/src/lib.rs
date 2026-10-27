@@ -49,6 +49,10 @@ pub trait Services {
     fn pick_folder(&self, _start: &str) -> Option<String> {
         None
     }
+    /// A `.torrent` file chosen by the user.
+    fn pick_torrent(&self) -> Option<String> {
+        None
+    }
     /// Open a file with its default app, or a folder in the file manager.
     fn open(&self, _path: &Path) {}
     /// Show a file in the file manager, selected (as a browser's Show in folder does).
@@ -57,7 +61,7 @@ pub trait Services {
             self.open(dir);
         }
     }
-    /// Whether a file is (still) there.
+    /// Whether a file (or a torrent's folder) is still there.
     fn exists(&self, _path: &Path) -> bool {
         true
     }
@@ -257,6 +261,7 @@ impl DownloadApp {
                         self.run("prefs.connections", json!({"count": form.connections}));
                         self.run("prefs.theme", json!({"theme": form.theme}));
                         self.run("prefs.subtitles", json!({"languages": form.subtitles}));
+                        self.run("prefs.seedRatio", json!({"ratio": form.seed_ratio}));
                         self.run("prefs.language", json!({"language": form.language}));
                     }
                 }),
@@ -265,6 +270,18 @@ impl DownloadApp {
             if keep.is_none() {
                 self.dialog = Some(d);
             }
+        }
+        // `.torrent` files dropped on the window go to the Add box, as links handed over do.
+        let dropped: Vec<String> = ctx.input(|i| {
+            i.raw
+                .dropped_files
+                .iter()
+                .map(|f| f.path().to_string_lossy().into_owned())
+                .filter(|p| downloadcraft_engine::model::source::is_torrent_file(p))
+                .collect()
+        });
+        if !dropped.is_empty() {
+            self.hand_over(&dropped);
         }
         if self.dialog.is_none() && !self.handed.is_empty() {
             let links = std::mem::take(&mut self.handed);

@@ -126,6 +126,9 @@ fn progress_and_eta() {
         segments: Vec::new(),
         video: None,
         missing: false,
+        torrent: None,
+        uploaded: 0,
+        seeding: false,
     };
     assert_eq!(d.fraction(), Some(0.25));
     assert_eq!(d.eta(), Some(8));
@@ -243,4 +246,44 @@ fn playlists_list_their_videos() {
     let (_, videos) = crate::probe::playlist(&channel).unwrap();
     let urls: Vec<&str> = videos.iter().map(|v| v.url.as_str()).collect();
     assert_eq!(urls, ["https://www.youtube.com/watch?v=v1", "https://www.youtube.com/watch?v=l3"]);
+}
+
+/// Torrents download from v0.4: magnet links, `.torrent` links and `.torrent` files on this
+/// computer (as dropping one on the window gives them, spaces and all).
+#[test]
+fn torrents_are_taken_from_links_and_files() {
+    use crate::source::{is_torrent_file, normalize, torrent_name};
+    assert!(SourceKind::Magnet.not_yet().is_none() && SourceKind::Torrent.not_yet().is_none());
+    for path in [r"C:\Users\Me\Downloads\ubuntu 24.04.torrent", "D:/t/a.TORRENT", r"\\nas\share\x.torrent", "/home/me/My Files/debian.torrent"] {
+        assert!(is_torrent_file(path), "{path}");
+        assert_eq!(classify(path), Ok(SourceKind::Torrent), "{path}");
+        assert_eq!(normalize(path), path, "a path keeps its spaces: {path}");
+    }
+    for not in [r"C:\notes.txt", "relative/x.torrent", "x.torrent", "C:x.torrent", "/a\nb.torrent"] {
+        assert!(!is_torrent_file(not), "{not:?}");
+    }
+    let magnet = "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel%20(2010)&tr=udp%3A%2F%2Fexplodie.org%3A6969";
+    assert_eq!(torrent_name(magnet), "Sintel (2010)");
+    assert_eq!(torrent_name("magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=a+b%2F..%2Fc"), "a b_.._c", "made safe");
+    assert_eq!(torrent_name("magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10"), "torrent");
+    assert_eq!(torrent_name("https://cdimage.debian.org/x/debian-13.1.0-amd64-netinst.iso.torrent"), "debian-13.1.0-amd64-netinst.iso");
+    assert_eq!(torrent_name(r"C:\t\Big Buck Bunny.torrent"), "Big Buck Bunny");
+}
+
+/// A torrent's paths are written as they are, so a piece that would land elsewhere, or that
+/// Windows can't hold, is caught.
+#[test]
+fn unsafe_parts_of_torrent_paths_are_caught() {
+    use crate::names::unsafe_part;
+    for bad in ["", ".", "..", "a/b", r"a\b", "x\u{0}y", "tab\there"] {
+        assert!(unsafe_part(bad, false) && unsafe_part(bad, true), "{bad:?}");
+    }
+    for windows_only in ["C:", "a:stream", "what?.mp3", "CON", "con.txt", "LPT1.log", "trailing.", "trailing "] {
+        assert!(unsafe_part(windows_only, true), "{windows_only:?}");
+        assert!(!unsafe_part(windows_only, false), "fine elsewhere: {windows_only:?}");
+    }
+    for fine in ["Season 1", "01 - Pilot.mkv", "README", ".hidden", "CONSOLE.txt", "日本.txt"] {
+        assert!(!unsafe_part(fine, true), "{fine:?}");
+    }
+    assert!(unsafe_part(&"a".repeat(256), false));
 }

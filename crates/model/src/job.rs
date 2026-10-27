@@ -19,11 +19,25 @@ pub enum Job {
     /// `connections` parts at once.
     /// `subtitles`: yt-dlp's `--sub-langs`, empty for none.
     FetchVideo { id: DownloadId, run: u64, url: String, folder: String, file_name: String, selector: String, connections: u8, subtitles: String },
+    /// Download a torrent (a magnet link, a `.torrent` file's link or a `.torrent` file on this
+    /// computer) into `folder`: `files` picks which of its files (empty for all). `first` when
+    /// nothing of it has been written yet, so a file already there is never written over. Once
+    /// it's all there it's shared until it has sent `seed_ratio` times its size.
+    FetchTorrent { id: DownloadId, run: u64, url: String, folder: String, file_name: String, files: Vec<usize>, first: bool, seed_ratio: f32 },
     /// Stop the transfer of `id` (whatever run it is on); the partial file stays for a resume.
     Stop { id: DownloadId },
     /// Delete the partial file of `id`, which is being removed, once its transfer has stopped;
     /// with `also_file`, the finished file goes to the Recycle Bin or Trash too.
-    DropPartial { id: DownloadId, folder: String, file_name: String, also_file: bool },
+    /// A torrent's files are written in place, so for one (`torrent`) `also_file` is what takes
+    /// away the part that's there.
+    DropPartial {
+        id: DownloadId,
+        folder: String,
+        file_name: String,
+        also_file: bool,
+        #[serde(default)]
+        torrent: bool,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -57,17 +71,32 @@ pub enum Event {
         run: u64,
         error: String,
     },
+    /// A finished torrent's sharing: bytes sent so far, and whether it's still going.
+    Uploaded {
+        id: DownloadId,
+        run: u64,
+        uploaded: u64,
+        seeding: bool,
+    },
 }
 
 impl Event {
     pub fn id(&self) -> DownloadId {
         match self {
-            Event::Started { id, .. } | Event::Progress { id, .. } | Event::Finished { id, .. } | Event::Failed { id, .. } => *id,
+            Event::Started { id, .. }
+            | Event::Progress { id, .. }
+            | Event::Finished { id, .. }
+            | Event::Failed { id, .. }
+            | Event::Uploaded { id, .. } => *id,
         }
     }
     pub fn run(&self) -> u64 {
         match self {
-            Event::Started { run, .. } | Event::Progress { run, .. } | Event::Finished { run, .. } | Event::Failed { run, .. } => *run,
+            Event::Started { run, .. }
+            | Event::Progress { run, .. }
+            | Event::Finished { run, .. }
+            | Event::Failed { run, .. }
+            | Event::Uploaded { run, .. } => *run,
         }
     }
 }

@@ -90,6 +90,10 @@ fn detail(d: &Download) -> String {
     if let Some(v) = &d.video {
         bits.push(tf!("Video · {quality}", quality = tl!(&v.label)));
     }
+    let torrent = d.torrent.is_some();
+    if torrent {
+        bits.push(tl!("Torrent").into());
+    }
     if !size.is_empty() {
         bits.push(size);
     }
@@ -104,7 +108,10 @@ fn detail(d: &Download) -> String {
                 bits.push(tf!("{n} connections", n = going));
             }
         }
+        State::Downloading if torrent && d.total.is_none() => bits.push(tl!("Getting the torrent's details…").into()),
+        State::Downloading if torrent => bits.push(tl!("Looking for people sharing it…").into()),
         State::Downloading => bits.push(tl!("Connecting…").into()),
+        State::Completed if d.seeding => bits.push(tf!("Sharing · {sent} sent", sent = format::bytes(d.uploaded))),
         State::Queued => bits.push(tl!("Waiting for a free slot").into()),
         State::Failed => bits.push(d.error.clone().unwrap_or_else(|| tl!("Failed").into())),
         State::Paused if d.done > 0 && !d.resumable => bits.push(tl!("starts over when resumed").into()),

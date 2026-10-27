@@ -128,7 +128,7 @@ fn disk(path: &Path, e: std::io::Error) -> NetError {
 
 /// Fails when the disk holding `folder` hasn't `need` bytes free. A disk that can't say how much
 /// it has is let through: a full disk still fails clearly when writing ([`disk`]).
-fn room_for(folder: &Path, need: u64) -> Result<(), NetError> {
+pub(crate) fn room_for(folder: &Path, need: u64) -> Result<(), NetError> {
     match fs4::available_space(folder) {
         Ok(free) => check_room(need, free),
         Err(e) => {

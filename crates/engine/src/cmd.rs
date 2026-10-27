@@ -9,7 +9,7 @@ use serde_json::{Value, json};
 use crate::session::{Filter, MAX_DOWNLOADS};
 use crate::{CmdError, CmdResult, CommandSpec, Registry, Session, p};
 use downloadcraft_model::{
-    Download, DownloadId, Job, MAX_ACTIVE_LIMIT, MAX_CONNECTIONS, SourceKind, State, Theme, VideoChoice, names, probe, source,
+    Download, DownloadId, Job, MAX_ACTIVE_LIMIT, MAX_CONNECTIONS, SourceKind, State, Theme, TorrentChoice, VideoChoice, names, probe, source,
 };
 
 /// The most links one `download.addMany` takes.
@@ -23,7 +23,7 @@ fn has_downloads(s: &Session) -> Option<&'static str> {
 pub fn registry() -> Registry {
     Registry::new(vec![
         CommandSpec::new("download.add", "Add link", "Toolbar", add)
-            .params(r#"{"url": string, "folder"?: string, "name"?: string, "paused"?: bool, "quality"?: {"selector": string, "label": string}}"#),
+            .params(r#"{"url": string, "folder"?: string, "name"?: string, "paused"?: bool, "quality"?: {"selector": string, "label": string}, "files"?: [number]}"#),
         CommandSpec::new("download.addMany", "Add links", "Toolbar › Add link", add_many)
             .params(r#"{"urls": [string], "folder"?: string, "paused"?: bool}"#),
         CommandSpec::new("download.resume", "Resume", "Toolbar", resume).params(r#"{"id"?: number}"#),
@@ -43,6 +43,7 @@ pub fn registry() -> Registry {
         CommandSpec::new("prefs.connections", "Connections per download", "Settings", set_connections).params(r#"{"count": number}"#),
         CommandSpec::new("prefs.theme", "Theme", "Settings › Appearance", set_theme).params(r#"{"theme": "system"|"light"|"dark"}"#),
         CommandSpec::new("prefs.subtitles", "Subtitles", "Settings › Videos", set_subtitles).params(r#"{"languages": "en, es"}"#),
+        CommandSpec::new("prefs.seedRatio", "Share finished torrents", "Settings › Torrents", set_seed_ratio).params(r#"{"ratio": number}"#),
         CommandSpec::new("prefs.language", "Language", "Settings › Appearance", set_language).params(r#"{"language": "auto"|"de"|"pt-br"}"#),
     ])
 }
@@ -63,6 +64,7 @@ fn describe(d: &Download) -> Value {
     json!({
         "id": d.id.0, "url": d.url, "kind": d.kind, "file": d.file_name, "folder": d.folder, "state": d.state,
         "done": d.done, "total": d.total, "speed": d.speed, "resumable": d.resumable, "error": d.error,
+        "uploaded": d.uploaded, "seeding": d.seeding,
     })
 }
 
@@ -74,6 +76,7 @@ fn new_download(
     name: Option<&str>,
     paused: bool,
     quality: Option<&Value>,
+    files: Option<&Value>,
 ) -> Result<DownloadId, CmdError> {
     if s.downloads.len() >= MAX_DOWNLOADS {
         return Err(CmdError::Failed("the list is full; clear completed downloads first".into()));
@@ -88,7 +91,19 @@ fn new_download(
     if folder.is_empty() {
         return Err(CmdError::Params("choose a download folder first (`prefs.folder`)".into()));
     }
-    let file_name = names::sanitize(name.map(str::trim).filter(|n| !n.is_empty()).map_or_else(|| names::from_url(url), str::to_string).as_str());
+    let torrent = matches!(kind, SourceKind::Torrent | SourceKind::Magnet);
+    let guess = || if torrent { source::torrent_name(url) } else { names::from_url(url) };
+    let file_name = names::sanitize(name.map(str::trim).filter(|n| !n.is_empty()).map_or_else(guess, str::to_string).as_str());
+    // A torrent downloads the files picked from it (all of them when none are).
+    let torrent = torrent.then(|| {
+        let mut files: Vec<usize> = files
+            .and_then(Value::as_array)
+            .map(|a| a.iter().filter_map(Value::as_u64).filter_map(|i| usize::try_from(i).ok()).filter(|i| *i < probe::MAX_TORRENT_FILES).collect())
+            .unwrap_or_default();
+        files.sort_unstable();
+        files.dedup();
+        TorrentChoice { files }
+    });
     // A video page downloads through yt-dlp, in the quality picked (the best there is otherwise).
     let video = (kind == SourceKind::VideoPage).then(|| {
         let selector = quality.and_then(|q| p::str(q, "selector")).filter(|s| !s.is_empty() && s.len() < 400).unwrap_or(probe::BEST);
@@ -113,6 +128,9 @@ fn new_download(
         segments: Vec::new(),
         video,
         missing: false,
+        torrent,
+        uploaded: 0,
+        seeding: false,
     });
     s.selection = Some(id);
     s.dirty = true;
@@ -121,7 +139,7 @@ fn new_download(
 
 fn add(s: &mut Session, v: &Value) -> CmdResult {
     let url = p::req_str(v, "url")?;
-    let id = new_download(s, url, p::str(v, "folder"), p::str(v, "name"), p::bool(v, "paused").unwrap_or(false), v.get("quality"))?;
+    let id = new_download(s, url, p::str(v, "folder"), p::str(v, "name"), p::bool(v, "paused").unwrap_or(false), v.get("quality"), v.get("files"))?;
     let name = s.get(id).map(|d| d.file_name.clone()).unwrap_or_default();
     s.status = format!("Added {name}");
     Ok(json!({"id": id.0, "file": name}))
@@ -137,7 +155,7 @@ fn add_many(s: &mut Session, v: &Value) -> CmdResult {
         if u.trim().is_empty() {
             continue;
         }
-        match new_download(s, u, folder, None, paused, None) {
+        match new_download(s, u, folder, None, paused, None, None) {
             Ok(id) => added.push(id.0),
             Err(e) => refused.push(json!({"url": u, "error": e.to_string()})),
         }
@@ -178,13 +196,18 @@ fn remove(s: &mut Session, v: &Value) -> CmdResult {
         s.prefs.delete_files_on_remove = d;
     }
     let delete = delete.unwrap_or(false);
-    if !finished {
+    if finished {
+        s.stop_seeding(id);
+    } else {
         s.stop(id, State::Paused);
     }
     let pos = s.downloads.iter().position(|d| d.id == id).ok_or_else(|| CmdError::Params(format!("no download {}", id.0)))?;
     let d = s.downloads.remove(pos);
-    if !finished || delete {
-        s.push_job(Job::DropPartial { id, folder: d.folder.clone(), file_name: d.file_name.clone(), also_file: finished && delete });
+    // A torrent's part is its files themselves, once it has started writing them.
+    let torrent = d.torrent.is_some();
+    let also_file = if torrent && !finished { d.total.is_some() } else { finished && delete };
+    if (!finished && !torrent) || also_file {
+        s.push_job(Job::DropPartial { id, folder: d.folder.clone(), file_name: d.file_name.clone(), also_file, torrent });
     }
     if s.selection == Some(id) {
         // The next one down the list on screen (which is newest first), else the one above.
@@ -202,12 +225,21 @@ fn again(s: &mut Session, v: &Value) -> CmdResult {
     if d.state.active() {
         return Err(CmdError::Disabled("it is downloading".into()));
     }
+    let torrent = d.torrent.is_some();
+    s.stop_seeding(id);
+    let Some(d) = s.get_mut(id) else { return Err(CmdError::Params(format!("no download {}", id.0))) };
     d.state = State::Queued;
     d.done = 0;
-    d.total = None;
     d.error = None;
     d.missing = false;
-    d.file_name = names::from_url(&d.url);
+    if torrent {
+        // Its files are checked piece by piece and only what's missing or damaged is fetched, so
+        // it keeps its name, and what's there is never taken for someone else's file.
+        d.uploaded = 0;
+    } else {
+        d.total = None;
+        d.file_name = names::from_url(&d.url);
+    }
     s.dirty = true;
     Ok(json!({"id": id.0}))
 }
@@ -233,6 +265,10 @@ fn pause_all(s: &mut Session, _: &Value) -> CmdResult {
 
 fn clear_completed(s: &mut Session, _: &Value) -> CmdResult {
     let before = s.downloads.len();
+    let finished: Vec<DownloadId> = s.downloads.iter().filter(|d| d.state == State::Completed).map(|d| d.id).collect();
+    for id in finished {
+        s.stop_seeding(id);
+    }
     s.downloads.retain(|d| d.state != State::Completed);
     if s.selection.is_some_and(|id| s.get(id).is_none()) {
         s.selection = None;
@@ -318,6 +354,15 @@ fn set_subtitles(s: &mut Session, v: &Value) -> CmdResult {
     s.prefs.subtitles = typed.chars().take(100).collect::<String>().trim().to_string();
     s.dirty = true;
     Ok(json!({"languages": s.prefs.subtitles, "subLangs": downloadcraft_model::probe::subtitle_langs(&s.prefs.subtitles)}))
+}
+
+fn set_seed_ratio(s: &mut Session, v: &Value) -> CmdResult {
+    let r =
+        v.get("ratio").and_then(Value::as_f64).filter(|r| r.is_finite()).ok_or_else(|| CmdError::Params("`ratio` (number) is required".into()))?;
+    let r = (r as f32).clamp(0.0, downloadcraft_model::MAX_SEED_RATIO);
+    s.prefs.seed_ratio = (r * 10.0).round() / 10.0;
+    s.dirty = true;
+    Ok(json!({"ratio": s.prefs.seed_ratio}))
 }
 
 fn set_theme(s: &mut Session, v: &Value) -> CmdResult {

@@ -93,6 +93,11 @@ impl Services for Platform {
         d.pick_folder().map(|p| p.to_string_lossy().into_owned())
     }
 
+    fn pick_torrent(&self) -> Option<String> {
+        let d = rfd::FileDialog::new().set_title("Open a torrent file").add_filter("Torrent", &["torrent"]);
+        d.pick_file().map(|p| p.to_string_lossy().into_owned())
+    }
+
     fn open(&self, path: &Path) {
         open_path(path);
     }
@@ -105,8 +110,9 @@ impl Services for Platform {
         }
     }
 
+    /// A file, or a torrent's folder of files.
     fn exists(&self, path: &Path) -> bool {
-        path.is_file()
+        path.exists()
     }
 
     fn probe(&self, url: &str) -> Probe {

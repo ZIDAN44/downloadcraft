@@ -2,8 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-/// The kinds of link DownloadCraft knows. `Http` and `VideoPage` download; the others are
-/// recognised so the app can say when they arrive (ROADMAP.md).
+/// The kinds of link DownloadCraft knows. `Http`, `VideoPage`, `Torrent` and `Magnet` download;
+/// the others are recognised so the app can say when they arrive (ROADMAP.md).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SourceKind {
@@ -11,7 +11,7 @@ pub enum SourceKind {
     Http,
     /// An `ftp://` or `ftps://` link.
     Ftp,
-    /// A `.torrent` file's link.
+    /// A `.torrent` file: its link, or its path on this computer.
     Torrent,
     /// A `magnet:` link (BEP 9).
     Magnet,
@@ -62,7 +62,7 @@ impl SourceKind {
         match self {
             SourceKind::Http => None,
             SourceKind::Ftp => Some("FTP downloads arrive in v0.5"),
-            SourceKind::Torrent | SourceKind::Magnet => Some("torrents arrive in v0.4"),
+            SourceKind::Torrent | SourceKind::Magnet => None,
             SourceKind::Mega => Some("MEGA links arrive in v0.6"),
             SourceKind::VideoPage => None,
         }
@@ -81,6 +81,9 @@ pub fn classify(text: &str) -> Result<SourceKind, &'static str> {
     }
     if url.len() > MAX_URL {
         return Err("the link is too long");
+    }
+    if is_torrent_file(url) {
+        return Ok(SourceKind::Torrent);
     }
     if url.chars().any(char::is_whitespace) {
         return Err("a link has no spaces");
@@ -118,10 +121,44 @@ pub fn classify(text: &str) -> Result<SourceKind, &'static str> {
 /// is refused.
 pub fn normalize(text: &str) -> String {
     let url = text.trim();
+    if is_torrent_file(url) {
+        return url.to_string();
+    }
     match url.split_once(':') {
         Some((scheme, rest)) if !scheme.contains(' ') && rest.contains(' ') => format!("{scheme}:{}", rest.replace(' ', "%20")),
         _ => url.to_string(),
     }
+}
+
+/// Whether `text` is the path of a `.torrent` file on this computer (`C:\…\x.torrent`,
+/// `\\server\…`, `/home/…/x.torrent`), as a file dropped on the window or opened with the app
+/// gives it. Only the form is looked at, not the disk.
+pub fn is_torrent_file(text: &str) -> bool {
+    let b = text.as_bytes();
+    let drive = b.len() > 3 && b.first().is_some_and(u8::is_ascii_alphabetic) && b.get(1) == Some(&b':') && matches!(b.get(2), Some(b'\\' | b'/'));
+    let rooted = text.starts_with('/') || text.starts_with("\\\\");
+    (drive || rooted) && !text.contains(['\n', '\r', '\t']) && text.to_ascii_lowercase().ends_with(".torrent")
+}
+
+/// The name a magnet link gives (`dn=`, percent-decoded and made safe), if any.
+pub fn magnet_name(url: &str) -> Option<String> {
+    let query = url.split_once('?')?.1;
+    let dn = query.split('&').find_map(|p| p.strip_prefix("dn="))?;
+    let name = crate::names::percent_decode(&dn.replace('+', " "));
+    let name = crate::names::sanitize(&name);
+    (name != crate::names::FALLBACK).then_some(name)
+}
+
+/// What a torrent's download is called before its own name is known: the magnet link's name, a
+/// `.torrent` file's name without `.torrent`, else `torrent`.
+pub fn torrent_name(url: &str) -> String {
+    if let Some(name) = magnet_name(url) {
+        return name;
+    }
+    let last = if is_torrent_file(url) { url.rsplit(['/', '\\']).next().unwrap_or("").to_string() } else { crate::names::from_url(url) };
+    let stem = last.len().checked_sub(8).and_then(|i| last.get(..i)).filter(|_| last.to_ascii_lowercase().ends_with(".torrent")).unwrap_or(&last);
+    let name = crate::names::sanitize(stem);
+    if name == crate::names::FALLBACK { "torrent".into() } else { name }
 }
 
 /// Whether a video page's link is YouTube's, whose pages yt-dlp reads with a JavaScript runtime

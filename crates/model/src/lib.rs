@@ -101,6 +101,22 @@ pub struct Download {
     /// looked (not saved: looked at again each run).
     #[serde(skip)]
     pub missing: bool,
+    /// A torrent or magnet link: the files picked from it.
+    #[serde(default)]
+    pub torrent: Option<TorrentChoice>,
+    /// A torrent's bytes sent to others while it seeds, this run.
+    #[serde(skip)]
+    pub uploaded: u64,
+    /// A finished torrent still being shared with others (not saved: seeding stops on closing).
+    #[serde(skip)]
+    pub seeding: bool,
+}
+
+/// The files picked from a torrent: indexes into its list ([`probe::TorrentFile`]); empty for all.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TorrentChoice {
+    #[serde(default)]
+    pub files: Vec<usize>,
 }
 
 /// The quality chosen for a video download.
@@ -178,7 +194,18 @@ pub struct Prefs {
     /// The interface language: `auto` (the system's) or a language code (`de`, `pt-br`).
     #[serde(default = "default_language")]
     pub language: String,
+    /// A finished torrent is shared until it has sent this many times its size (0: not at all),
+    /// while DownloadCraft is open.
+    #[serde(default = "default_seed_ratio")]
+    pub seed_ratio: f32,
 }
+
+fn default_seed_ratio() -> f32 {
+    1.0
+}
+
+/// The highest seeding ratio anyone can ask for.
+pub const MAX_SEED_RATIO: f32 = 10.0;
 
 fn default_language() -> String {
     "auto".into()
@@ -207,6 +234,7 @@ impl Default for Prefs {
             delete_files_on_remove: false,
             subtitles: String::new(),
             language: default_language(),
+            seed_ratio: default_seed_ratio(),
         }
     }
 }

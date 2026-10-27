@@ -5,7 +5,7 @@ use serde_json::Value;
 
 use crate::cmd;
 use crate::{CmdError, CmdResult, Registry};
-use downloadcraft_model::{Download, DownloadId, Event, Job, Prefs, State};
+use downloadcraft_model::{Download, DownloadId, Event, Job, Prefs, SourceKind, State};
 
 /// Which downloads the list shows.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -170,12 +170,25 @@ impl Session {
             self.next_run = self.next_run.saturating_add(1);
             let connections = self.prefs.connections.clamp(1, downloadcraft_model::MAX_CONNECTIONS);
             let subtitles = downloadcraft_model::probe::subtitle_langs(&self.prefs.subtitles).unwrap_or_default();
+            let seed_ratio = self.prefs.seed_ratio.clamp(0.0, downloadcraft_model::MAX_SEED_RATIO);
             let Some(d) = self.get_mut(id) else { continue };
             d.state = State::Downloading;
             d.run = run;
             d.speed = 0;
             d.error = None;
+            let torrent = matches!(d.kind, SourceKind::Torrent | SourceKind::Magnet);
+            d.seeding = false;
             let job = match &d.video {
+                _ if torrent => Job::FetchTorrent {
+                    id,
+                    run,
+                    url: d.url.clone(),
+                    folder: d.folder.clone(),
+                    file_name: d.file_name.clone(),
+                    files: d.torrent.as_ref().map(|t| t.files.clone()).unwrap_or_default(),
+                    first: d.total.is_none(),
+                    seed_ratio,
+                },
                 Some(v) => Job::FetchVideo {
                     id,
                     run,
@@ -215,6 +228,16 @@ impl Session {
         self.dirty = true;
     }
 
+    /// Stop a finished torrent that is still sharing (it's being removed or fetched again).
+    pub(crate) fn stop_seeding(&mut self, id: DownloadId) {
+        let Some(d) = self.get_mut(id) else { return };
+        if d.state == State::Completed && d.run != 0 {
+            d.run = 0;
+            d.seeding = false;
+            self.jobs.push(Job::Stop { id });
+        }
+    }
+
     /// Queue running transfers again (an update is installing as the app closes): saved as
     /// queued, they start by themselves in the new version and carry on from their partial files.
     pub fn requeue_running(&mut self) {
@@ -239,10 +262,22 @@ impl Session {
     pub fn apply(&mut self, ev: Event) {
         let id = ev.id();
         let Some(d) = self.get_mut(id) else { return };
+        // A finished torrent keeps its run while it seeds.
+        if let Event::Uploaded { run, uploaded, seeding, .. } = ev {
+            if d.run != 0 && d.run == run && d.state == State::Completed {
+                d.uploaded = uploaded;
+                d.seeding = seeding;
+                if !seeding {
+                    d.run = 0;
+                }
+            }
+            return;
+        }
         if d.run == 0 || d.run != ev.run() || d.state != State::Downloading {
             return;
         }
         let mut finished = None;
+        let mut keep_run = false;
         match ev {
             Event::Started { total, resumable, file_name, done, .. } => {
                 d.total = total;
@@ -264,6 +299,7 @@ impl Session {
                     d.total = Some(done);
                 }
                 d.state = State::Completed;
+                keep_run = matches!(d.kind, SourceKind::Torrent | SourceKind::Magnet);
                 finished = Some(format!("{} finished", d.file_name));
             }
             Event::Failed { error, .. } => {
@@ -271,12 +307,15 @@ impl Session {
                 finished = Some(format!("{}: {error}", d.file_name));
                 d.error = Some(error);
             }
+            Event::Uploaded { .. } => return,
         }
         self.dirty = true;
         if let Some(status) = finished {
             if let Some(d) = self.get_mut(id) {
                 d.speed = 0;
-                d.run = 0;
+                if !keep_run {
+                    d.run = 0;
+                }
                 d.segments.clear();
             }
             self.status = status;
@@ -307,6 +346,10 @@ impl Session {
         self.prefs = saved.prefs;
         self.prefs.max_active = self.prefs.max_active.clamp(1, downloadcraft_model::MAX_ACTIVE_LIMIT);
         self.prefs.connections = self.prefs.connections.clamp(1, downloadcraft_model::MAX_CONNECTIONS);
+        if !self.prefs.seed_ratio.is_finite() {
+            self.prefs.seed_ratio = 1.0;
+        }
+        self.prefs.seed_ratio = self.prefs.seed_ratio.clamp(0.0, downloadcraft_model::MAX_SEED_RATIO);
         self.next_id = saved.next_id.max(top.saturating_add(1));
         self.selection = None;
         self.dirty = false;

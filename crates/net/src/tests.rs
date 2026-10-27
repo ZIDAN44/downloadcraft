@@ -289,7 +289,7 @@ fn the_worker_runs_jobs_and_drops_partials() {
     let done = rx.iter().find(|e| !matches!(e, Event::Started { .. } | Event::Progress { .. }));
     assert_eq!(done, Some(Event::Finished { id: DownloadId(4), run: 9, done: 200_000 }));
     std::fs::write(dir.join("gone.bin.dcpart"), b"x").unwrap();
-    w.submit(downloadcraft_model::Job::DropPartial { id: DownloadId(5), folder, file_name: "gone.bin".into(), also_file: false });
+    w.submit(downloadcraft_model::Job::DropPartial { id: DownloadId(5), folder, file_name: "gone.bin".into(), also_file: false, torrent: false });
     for _ in 0..100 {
         if !dir.join("gone.bin.dcpart").exists() {
             break;

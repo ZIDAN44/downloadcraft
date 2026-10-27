@@ -57,6 +57,7 @@
 	Get FFmpeg	Получить FFmpeg
 	Get yt-dlp	Получить yt-dlp
 	Getting it and checking it…	Загрузка и проверка…
+	Getting the torrent's details…	Получение сведений о торренте…
 	Higher qualities come as separate video and sound, which FFmpeg joins into one file.	Высокое качество приходит отдельными видео и звуком, которые FFmpeg соединяет в один файл.
 	Higher qualities need FFmpeg to join video and sound. Install it with brew install ffmpeg (macOS) or sudo apt install ffmpeg (Linux).	Для высокого качества нужен FFmpeg, чтобы соединить видео и звук. Установите его командой brew install ffmpeg (macOS) или sudo apt install ffmpeg (Linux).
 	It comes off the list.	Она уйдёт из списка.
@@ -66,6 +67,7 @@
 	Light	Светлая
 	Link copied	Ссылка скопирована
 	Links	Ссылки
+	Looking for people sharing it…	Поиск тех, кто его раздаёт…
 	MEGA	MEGA
 	MEGA links arrive in v0.6	ссылки MEGA появятся в v0.6
 	Magnet link	Magnet-ссылка
@@ -76,14 +78,17 @@
 	Nothing in this list has that name or link.	В этом списке нет такого имени или ссылки.
 	One file with sound	Один файл со звуком
 	Open	Открыть
+	Open a torrent file…	Открыть торрент-файл…
 	Open folder	Открыть папку
 	Parts of one file fetched at the same time, when the server allows.	Части одного файла, загружаемые одновременно, если сервер позволяет.
 	Paste a link anywhere in this window with Ctrl+V, or add one.	Вставьте ссылку в любом месте окна через Ctrl+V или добавьте её.
-	Paste one link per line: files, or video pages such as YouTube.	По одной ссылке в строке: файлы или страницы с видео, например YouTube.
+	Paste one link per line: files, video pages such as YouTube, or torrents.	По одной ссылке в строке: файлы, страницы с видео, например YouTube, или торренты.
 	Pause	Приостановить
 	Pause (Space)	Приостановить (Пробел)
 	Pause all	Приостановить все
 	Paused	На паузе
+	Pick all	Выбрать все
+	Pick none	Снять выбор
 	Playlist · 1 video	Плейлист · 1 видео
 	Playlist · no videos that can be added	Плейлист · нет видео, которые можно добавить
 	Playlist · {n} videos	Плейлист · видео: {n}
@@ -105,6 +110,8 @@
 	Save to	Сохранить в
 	Search downloads  (Ctrl+F)	Поиск загрузок  (Ctrl+F)
 	Settings	Настройки
+	Share finished torrents	Раздавать готовые торренты
+	Sharing · {sent} sent	Раздаётся · отправлено {sent}
 	Show in folder	Показать в папке
 	Speed	Скорость
 	Start downloading now	Начать загрузку сразу
@@ -118,7 +125,11 @@
 	Theme: Light. Click for Dark	Тема: светлая. Нажмите для тёмной
 	Theme: System. Click for Light	Тема: системная. Нажмите для светлой
 	Torrent	Торрент
+	Torrent · {n} files · {size}	Торрент · файлов: {n} · {size}
+	Torrent · {size}	Торрент · {size}
+	Torrents	Торренты
 	Try again	Повторить
+	Until each has sent this many times its size. 0: not at all.	Пока каждый не отдаст столько своих размеров, сколько указано. 0 — не раздавать.
 	Up to 1080p	До 1080p
 	Up to 480p	До 480p
 	Up to 720p	До 720p
@@ -134,8 +145,8 @@
 	none	нет
 	one per line	по одной в строке
 	starts over when resumed	начнётся заново при продолжении
-	torrents arrive in v0.4	торренты появятся в v0.4
 	{done} of {total}	{done} из {total}
+	{name}: {picked} of {n} files · {size}	{name}: выбрано {picked} из {n} · {size}
 	{n} connections	соединений: {n}
 	{n} downloads	Загрузок: {n}
 	{n} downloads running	Идёт загрузок: {n}

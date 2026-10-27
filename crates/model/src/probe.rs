@@ -48,8 +48,25 @@ pub enum Probe {
         videos: Vec<PlaylistVideo>,
         qualities: Vec<Quality>,
     },
+    /// A torrent or magnet link: its name and the files inside, in the torrent's order.
+    Torrent {
+        name: String,
+        files: Vec<TorrentFile>,
+    },
     Failed(String),
 }
+
+/// One file inside a torrent: its place in the torrent's list (what `download.add`'s `files`
+/// takes), its path within the torrent (`Season 1/01.mkv`) and its size.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TorrentFile {
+    pub index: usize,
+    pub path: String,
+    pub size: u64,
+}
+
+/// The most files listed from one torrent (a torrent can name millions).
+pub const MAX_TORRENT_FILES: usize = 10_000;
 
 /// yt-dlp's `--sub-langs` for the languages typed in Settings (`en, pt-BR`): each code with its
 /// regional variants (`en.*`), live chat left out; `None` when there are none. At most eight

@@ -57,6 +57,7 @@
 	Get FFmpeg	Obter o FFmpeg
 	Get yt-dlp	Obter o yt-dlp
 	Getting it and checking it…	Baixando e verificando…
+	Getting the torrent's details…	Obtendo os dados do torrent…
 	Higher qualities come as separate video and sound, which FFmpeg joins into one file.	As qualidades mais altas vêm com imagem e som separados, que o FFmpeg junta em um só arquivo.
 	Higher qualities need FFmpeg to join video and sound. Install it with brew install ffmpeg (macOS) or sudo apt install ffmpeg (Linux).	As qualidades mais altas precisam do FFmpeg para juntar imagem e som. Instale com brew install ffmpeg (macOS) ou sudo apt install ffmpeg (Linux).
 	It comes off the list.	Ele sai da lista.
@@ -66,6 +67,7 @@
 	Light	Claro
 	Link copied	Link copiado
 	Links	Links
+	Looking for people sharing it…	Procurando quem esteja compartilhando…
 	MEGA	MEGA
 	MEGA links arrive in v0.6	links do MEGA chegam na v0.6
 	Magnet link	Link magnet
@@ -76,14 +78,17 @@
 	Nothing in this list has that name or link.	Nada nesta lista tem esse nome ou link.
 	One file with sound	Um arquivo com som
 	Open	Abrir
+	Open a torrent file…	Abrir um arquivo torrent…
 	Open folder	Abrir pasta
 	Parts of one file fetched at the same time, when the server allows.	Partes de um arquivo baixadas ao mesmo tempo, quando o servidor permite.
 	Paste a link anywhere in this window with Ctrl+V, or add one.	Cole um link em qualquer lugar desta janela com Ctrl+V, ou adicione um.
-	Paste one link per line: files, or video pages such as YouTube.	Um link por linha: arquivos ou páginas de vídeo como o YouTube.
+	Paste one link per line: files, video pages such as YouTube, or torrents.	Cole um link por linha: arquivos, páginas de vídeo como o YouTube ou torrents.
 	Pause	Pausar
 	Pause (Space)	Pausar (Espaço)
 	Pause all	Pausar tudo
 	Paused	Pausados
+	Pick all	Escolher todos
+	Pick none	Não escolher nenhum
 	Playlist · 1 video	Playlist · 1 vídeo
 	Playlist · no videos that can be added	Playlist · nenhum vídeo que possa ser adicionado
 	Playlist · {n} videos	Playlist · {n} vídeos
@@ -105,6 +110,8 @@
 	Save to	Salvar em
 	Search downloads  (Ctrl+F)	Buscar downloads  (Ctrl+F)
 	Settings	Configurações
+	Share finished torrents	Compartilhar torrents concluídos
+	Sharing · {sent} sent	Compartilhando · {sent} enviados
 	Show in folder	Mostrar na pasta
 	Speed	Velocidade
 	Start downloading now	Começar a baixar agora
@@ -118,7 +125,11 @@
 	Theme: Light. Click for Dark	Tema: claro. Clique para Escuro
 	Theme: System. Click for Light	Tema: Sistema. Clique para Claro
 	Torrent	Torrent
+	Torrent · {n} files · {size}	Torrent · {n} arquivos · {size}
+	Torrent · {size}	Torrent · {size}
+	Torrents	Torrents
 	Try again	Tentar de novo
+	Until each has sent this many times its size. 0: not at all.	Até cada um ter enviado esse número de vezes o seu tamanho. 0: nada.
 	Up to 1080p	Até 1080p
 	Up to 480p	Até 480p
 	Up to 720p	Até 720p
@@ -134,8 +145,8 @@
 	none	nenhum
 	one per line	um por linha
 	starts over when resumed	recomeça do zero ao retomar
-	torrents arrive in v0.4	torrents chegam na v0.4
 	{done} of {total}	{done} de {total}
+	{name}: {picked} of {n} files · {size}	{name}: {picked} de {n} arquivos · {size}
 	{n} connections	{n} conexões
 	{n} downloads	{n} downloads
 	{n} downloads running	{n} downloads em andamento

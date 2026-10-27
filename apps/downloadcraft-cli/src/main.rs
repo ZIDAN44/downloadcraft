@@ -16,10 +16,15 @@ const USAGE: &str = "\
 usage: downloadcraft-cli <command>
 
   get <url>… [--dir <folder>] [--connections <n>] [--subtitles <langs>]
+      [--files <list>] [--seed <ratio>]
                                 download links into a folder (default: the current one),
                                 each on up to n connections (default 8); a playlist or
                                 channel link becomes its videos; videos with subtitles in
-                                langs (such as en,es)
+                                langs (such as en,es). Magnet links and .torrent files or
+                                links download as torrents: --files picks files by number
+                                (1,3-5, as `files` lists them), --seed shares a finished
+                                torrent until it has sent ratio times its size (default 0)
+  files <torrent>               the files inside a torrent or magnet link, numbered
   tools [get]                   where yt-dlp and FFmpeg stand; `get` fetches what's missing
   commands                      every engine command, as JSON
   run <id> [<json>]             run one command on an empty list and print its answer
@@ -40,12 +45,18 @@ fn get(args: &[String]) -> Result<(), String> {
     let mut dir = std::env::current_dir().map(|d| d.to_string_lossy().into_owned()).unwrap_or_else(|_| ".".into());
     let mut connections = None;
     let mut subtitles = None;
+    let mut files = Vec::new();
+    let mut seed = 0.0;
     let mut it = args.iter();
     while let Some(a) = it.next() {
         if a == "--dir" {
             dir = it.next().ok_or("--dir needs a folder")?.clone();
         } else if a == "--subtitles" {
             subtitles = Some(it.next().ok_or("--subtitles needs languages, such as en,es")?.clone());
+        } else if a == "--files" {
+            files = numbers(it.next().ok_or("--files needs numbers, such as 1,3-5")?)?;
+        } else if a == "--seed" {
+            seed = it.next().and_then(|n| n.parse::<f64>().ok()).filter(|r| r.is_finite() && *r >= 0.0).ok_or("--seed needs a ratio, such as 1")?;
         } else if a == "--connections" {
             connections = Some(it.next().and_then(|n| n.parse::<u64>().ok()).ok_or("--connections needs a number")?);
         } else {
@@ -81,9 +92,15 @@ fn get(args: &[String]) -> Result<(), String> {
     if let Some(l) = subtitles {
         s.run("prefs.subtitles", &json!({"languages": l})).map_err(|e| e.to_string())?;
     }
-    let added = s.run("download.addMany", &json!({"urls": urls})).map_err(|e| e.to_string())?;
-    for r in added["refused"].as_array().into_iter().flatten() {
-        say(&format!("skipped {}: {}", r["url"].as_str().unwrap_or(""), r["error"].as_str().unwrap_or("")));
+    s.run("prefs.seedRatio", &json!({"ratio": seed})).map_err(|e| e.to_string())?;
+    for u in &urls {
+        let mut params = json!({"url": u});
+        if !files.is_empty() {
+            params["files"] = json!(files);
+        }
+        if let Err(e) = s.run("download.add", &params) {
+            say(&format!("skipped {u}: {e}"));
+        }
     }
     if s.downloads.is_empty() {
         return Err("nothing to download".into());
@@ -94,12 +111,12 @@ fn get(args: &[String]) -> Result<(), String> {
         for job in s.take_jobs() {
             w.submit(job);
         }
-        if s.downloads.iter().all(|d| !d.state.active()) {
+        if s.downloads.iter().all(|d| !d.state.active() && !d.seeding) && w.running() == 0 {
             break;
         }
         let Ok(ev) = rx.recv() else { break };
         let id = ev.id();
-        let progress = matches!(ev, Event::Progress { .. });
+        let progress = matches!(ev, Event::Progress { .. } | Event::Uploaded { seeding: true, .. });
         s.apply(ev);
         if let Some(d) = s.get(id) {
             let line = match (d.state, d.total) {
@@ -107,6 +124,7 @@ fn get(args: &[String]) -> Result<(), String> {
                     format!("{}: {} of {} at {}", d.file_name, format::bytes(d.done), format::bytes(t), format::speed(d.speed))
                 }
                 (State::Downloading, None) => format!("{}: {} at {}", d.file_name, format::bytes(d.done), format::speed(d.speed)),
+                (State::Completed, _) if d.seeding => format!("{}: sharing, {} sent", d.file_name, format::bytes(d.uploaded)),
                 (State::Completed, _) => format!("{}: done ({})", d.file_name, format::bytes(d.done)),
                 (State::Failed, _) => format!("{}: {}", d.file_name, d.error.as_deref().unwrap_or("failed")),
                 _ => continue,
@@ -116,6 +134,39 @@ fn get(args: &[String]) -> Result<(), String> {
     }
     let failed = s.downloads.iter().filter(|d| d.state == State::Failed).count();
     if failed > 0 { Err(format!("{failed} download(s) failed")) } else { Ok(()) }
+}
+
+/// `1,3-5` as file numbers counted from 1, into indexes counted from 0.
+fn numbers(list: &str) -> Result<Vec<usize>, String> {
+    let bad = || format!("--files takes numbers such as 1,3-5, not {list}");
+    let mut out = Vec::new();
+    for part in list.split(',').map(str::trim).filter(|p| !p.is_empty()) {
+        let (a, b) = part.split_once('-').unwrap_or((part, part));
+        let (a, b) = (a.trim().parse::<usize>().map_err(|_| bad())?, b.trim().parse::<usize>().map_err(|_| bad())?);
+        if a == 0 || b < a || b > downloadcraft_engine::model::probe::MAX_TORRENT_FILES {
+            return Err(bad());
+        }
+        out.extend((a..=b).map(|n| n - 1));
+    }
+    Ok(out)
+}
+
+/// List a torrent's files, numbered as `get --files` takes them.
+fn files(url: Option<&str>) -> Result<(), String> {
+    let url = url.ok_or("files needs a magnet link or a torrent")?;
+    say("Getting the torrent's details…");
+    match downloadcraft_net::probe(url) {
+        Probe::Torrent { name, files } => {
+            let total = files.iter().fold(0u64, |a, f| a.saturating_add(f.size));
+            let _ = writeln!(std::io::stdout(), "{name}: {} files, {}", files.len(), format::bytes(total));
+            for f in &files {
+                let _ = writeln!(std::io::stdout(), "{:>5}  {:>10}  {}", f.index + 1, format::bytes(f.size), f.path);
+            }
+            Ok(())
+        }
+        Probe::Failed(e) => Err(e),
+        _ => Err("that isn't a torrent or magnet link".into()),
+    }
 }
 
 /// `DOWNLOADCRAFT_LOG=1`: what the network layer does, on standard error.
@@ -181,11 +232,13 @@ fn main() -> ExitCode {
             base.join(".local/share/DownloadCraft")
         };
         downloadcraft_net::video::tools::set_dir(dir.join("tools"));
+        downloadcraft_net::torrent::set_dir(dir.join("torrents"));
     }
     let args: Vec<String> = std::env::args().skip(1).collect();
     let r = match args.first().map(String::as_str) {
         Some("get") => get(args.get(1..).unwrap_or_default()),
         Some("tools") => tools(args.get(1).map(String::as_str)),
+        Some("files") => files(args.get(1).map(String::as_str)),
         Some("commands") => {
             out(&Session::new().registry().describe());
             Ok(())

@@ -1,9 +1,10 @@
 //! The Add link dialog: links pasted one per line, each looked at as it's typed (the name its file
-//! will get and its size, or a video page's title and qualities), the folder, and Add.
+//! will get and its size, a video page's title and qualities, or a torrent's files to pick from),
+//! the folder, and Add.
 
 use std::collections::HashMap;
 
-use downloadcraft_engine::model::probe::{Probe, Quality, Tool, ToolState};
+use downloadcraft_engine::model::probe::{Probe, Quality, Tool, ToolState, TorrentFile};
 use downloadcraft_engine::model::{SourceKind, format, names, source};
 use egui::{Rect, RichText, Sense, Ui, vec2};
 use serde_json::{Value, json};
@@ -20,11 +21,13 @@ pub struct AddForm {
     pub start: bool,
     /// The quality picked for each video link (an index into its qualities).
     quality: HashMap<String, usize>,
+    /// The files left out of each torrent link (indexes in the torrent's list); none by default.
+    left_out: HashMap<String, Vec<usize>>,
 }
 
 impl AddForm {
     pub fn new(text: &str, folder: &str) -> Self {
-        AddForm { links: text.trim().to_string(), folder: folder.to_string(), start: true, quality: HashMap::new() }
+        AddForm { links: text.trim().to_string(), folder: folder.to_string(), start: true, quality: HashMap::new(), left_out: HashMap::new() }
     }
     fn links(&self) -> Vec<String> {
         self.links.lines().map(source::normalize).filter(|l| !l.is_empty()).collect()
@@ -41,6 +44,9 @@ struct Row {
 impl Row {
     fn addable(&self, ytdlp_ready: bool) -> bool {
         if matches!(&self.probe, Probe::Playlist { videos, .. } if videos.is_empty()) {
+            return false;
+        }
+        if matches!(&self.probe, Probe::Torrent { files, .. } if files.is_empty()) {
             return false;
         }
         match self.check {
@@ -68,7 +74,8 @@ fn quality_text(q: &Quality) -> String {
 fn link_row(ui: &mut Ui, t: &Tokens, row: &Row, choice: &mut usize, ffmpeg: bool, ytdlp_ready: bool) {
     let (rect, _) = ui.allocate_exact_size(vec2(ui.available_width(), 48.0), Sense::hover());
     ui.painter().rect_filled(rect, 8.0, t.card);
-    let fallback = || names::from_url(&row.link);
+    let torrent = matches!(row.check, Ok(SourceKind::Torrent | SourceKind::Magnet));
+    let fallback = || if torrent { source::torrent_name(&row.link) } else { names::from_url(&row.link) };
     let (name, chip, color) = match (&row.check, &row.probe) {
         (Err(e), _) => (row.link.chars().take(60).collect(), (*e).to_string(), t.danger),
         (Ok(k), _) if k.not_yet().is_some() => {
@@ -77,7 +84,18 @@ fn link_row(ui: &mut Ui, t: &Tokens, row: &Row, choice: &mut usize, ffmpeg: bool
         (Ok(SourceKind::VideoPage), _) if !ytdlp_ready => {
             (row.link.chars().take(60).collect(), tl!("Video page · needs yt-dlp (below)").into(), t.warning)
         }
+        (Ok(SourceKind::Torrent | SourceKind::Magnet), Probe::Pending) => {
+            (source::torrent_name(&row.link), tl!("Getting the torrent's details…").into(), t.muted)
+        }
         (Ok(_), Probe::Pending) => (fallback(), tl!("Checking the link…").into(), t.muted),
+        (Ok(_), Probe::Torrent { name, files }) => {
+            let total = files.iter().fold(0u64, |a, f| a.saturating_add(f.size));
+            let chip = match files.len() {
+                1 => tf!("Torrent · {size}", size = format::bytes(total)),
+                n => tf!("Torrent · {n} files · {size}", n = n, size = format::bytes(total)),
+            };
+            (name.clone(), chip, t.success)
+        }
         (Ok(_), Probe::File { name, size, note: Some(n) }) => {
             (name.clone(), format!("{}{n}", size.map(|s| format!("{} · ", format::bytes(s))).unwrap_or_default()), t.warning)
         }
@@ -125,6 +143,48 @@ fn link_row(ui: &mut Ui, t: &Tokens, row: &Row, choice: &mut usize, ffmpeg: bool
             });
         });
     }
+}
+
+/// Bytes in the files of a torrent not left out.
+fn picked_size(files: &[TorrentFile], left_out: &[usize]) -> u64 {
+    files.iter().filter(|f| !left_out.contains(&f.index)).fold(0u64, |a, f| a.saturating_add(f.size))
+}
+
+/// The files of a torrent of several, each with a tick (all ticked at first), folded away under a
+/// line saying how many are picked.
+fn torrent_files(ui: &mut Ui, t: &Tokens, link: &str, name: &str, files: &[TorrentFile], left_out: &mut Vec<usize>) {
+    let picked = files.len().saturating_sub(left_out.len());
+    let size = format::bytes(picked_size(files, left_out));
+    let title = tf!("{name}: {picked} of {n} files · {size}", name = name, picked = picked, n = files.len(), size = size);
+    let color = if picked == 0 { t.warning } else { t.text };
+    egui::CollapsingHeader::new(RichText::new(title).size(12.5).color(color)).id_salt(("torrent-files", link)).show(ui, |ui| {
+        ui.horizontal(|ui| {
+            if ui.small_button(tl!("Pick all")).clicked() {
+                left_out.clear();
+            }
+            if ui.small_button(tl!("Pick none")).clicked() {
+                *left_out = files.iter().map(|f| f.index).collect();
+            }
+        });
+        // Compact rows, so a few show at once without making the dialog taller than the window.
+        ui.spacing_mut().item_spacing.y = 2.0;
+        ui.spacing_mut().interact_size.y = 18.0;
+        let row_h = 18.0;
+        let list = egui::ScrollArea::vertical().id_salt(("torrent-files-list", link)).max_height(100.0).auto_shrink([false, true]);
+        list.show_rows(ui, row_h, files.len(), |ui, range| {
+            for f in files.get(range).unwrap_or_default() {
+                let mut on = !left_out.contains(&f.index);
+                let text = RichText::new(format!("{}  ·  {}", f.path, format::bytes(f.size))).size(12.5);
+                if ui.checkbox(&mut on, text).changed() {
+                    if on {
+                        left_out.retain(|i| *i != f.index);
+                    } else {
+                        left_out.push(f.index);
+                    }
+                }
+            }
+        });
+    });
 }
 
 /// What video downloads need, when a video link is in the box and something's missing.
@@ -224,13 +284,23 @@ fn line_color(line: &str, t: &Tokens) -> Option<egui::Color32> {
 
 /// The links box: one link per line, never wrapped (a long one scrolls sideways), each line
 /// numbered with a dot saying whether it can be added; a count and Clear above it.
-fn links_box(ui: &mut Ui, t: &Tokens, links: &mut String) {
+fn links_box(ui: &mut Ui, t: &Tokens, links: &mut String, services: &dyn Services) {
     let count = links.lines().filter(|l| !l.trim().is_empty()).count();
     ui.horizontal(|ui| {
         widgets::field_label(ui, t, "Links");
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             if count > 0 && ui.add(egui::Button::new(RichText::new(tl!("Clear")).size(12.5).color(t.accent)).frame(false)).clicked() {
                 links.clear();
+            }
+            let open = ui.add(egui::Button::new(RichText::new(tl!("Open a torrent file…")).size(12.5).color(t.accent)).frame(false));
+            if open.clicked()
+                && let Some(path) = services.pick_torrent()
+                && !links.lines().any(|l| l.trim() == path)
+            {
+                if !links.is_empty() && !links.ends_with('\n') {
+                    links.push('\n');
+                }
+                links.push_str(&path);
             }
             let text = match count {
                 0 => tl!("one per line").to_string(),
@@ -307,10 +377,10 @@ pub fn add(ctx: &egui::Context, f: &mut AddForm, t: &Tokens, services: &dyn Serv
     let modal = egui::Modal::new(egui::Id::unique("add-dialog")).frame(frame(t)).show(ctx, |ui| {
         let width = 600.0;
         ui.set_width(width);
-        if header(ui, t, "Add link", "Paste one link per line: files, or video pages such as YouTube.") {
+        if header(ui, t, "Add link", "Paste one link per line: files, video pages such as YouTube, or torrents.") {
             out = Some(None);
         }
-        links_box(ui, t, &mut f.links);
+        links_box(ui, t, &mut f.links, services);
         let tools = services.video_tools();
         let (ytdlp, ffmpeg) = (tools.ytdlp == ToolState::Ready, tools.ffmpeg == ToolState::Ready);
         let rows: Vec<Row> = f
@@ -320,7 +390,7 @@ pub fn add(ctx: &egui::Context, f: &mut AddForm, t: &Tokens, services: &dyn Serv
             .map(|link| {
                 let check = source::classify(&link);
                 let looked = match check {
-                    Ok(SourceKind::Http) => true,
+                    Ok(SourceKind::Http | SourceKind::Torrent | SourceKind::Magnet) => true,
                     Ok(SourceKind::VideoPage) => ytdlp,
                     _ => false,
                 };
@@ -348,6 +418,15 @@ pub fn add(ctx: &egui::Context, f: &mut AddForm, t: &Tokens, services: &dyn Serv
                 }
             });
         }
+        // A torrent of several files: which of them to download.
+        for r in &rows {
+            if let Probe::Torrent { name, files } = &r.probe
+                && files.len() > 1
+            {
+                let left_out = f.left_out.entry(r.link.clone()).or_default();
+                torrent_files(ui, t, &r.link, name, files, left_out);
+            }
+        }
         if has_video {
             ui.add_space(6.0);
             let wants_deno = rows.iter().any(|r| r.check == Ok(SourceKind::VideoPage) && source::needs_js_runtime(&r.link));
@@ -360,9 +439,13 @@ pub fn add(ctx: &egui::Context, f: &mut AddForm, t: &Tokens, services: &dyn Serv
         ui.checkbox(&mut f.start, tl!("Start downloading now"));
         ui.add_space(14.0);
         // A playlist adds each of its videos.
+        let none_picked = |r: &Row| match &r.probe {
+            Probe::Torrent { files, .. } => f.left_out.get(&r.link).is_some_and(|out| files.iter().all(|x| out.contains(&x.index))),
+            _ => false,
+        };
         let ok: usize = rows
             .iter()
-            .filter(|r| r.addable(ytdlp))
+            .filter(|r| r.addable(ytdlp) && !none_picked(r))
             .map(|r| match &r.probe {
                 Probe::Playlist { videos, .. } => videos.len(),
                 _ => 1,
@@ -376,13 +459,25 @@ pub fn add(ctx: &egui::Context, f: &mut AddForm, t: &Tokens, services: &dyn Serv
                 let enter = ui.input(|i| i.key_pressed(egui::Key::Enter) && i.modifiers.command);
                 if widgets::button(ui, t, Kind::Primary, Some(Icon::Download), &label, can).clicked() || (can && enter) {
                     let mut list = Vec::new();
-                    for r in rows.iter().filter(|r| r.addable(ytdlp)) {
+                    for r in rows.iter().filter(|r| r.addable(ytdlp) && !none_picked(r)) {
                         let mut v = json!({"url": r.link, "folder": f.folder.trim(), "paused": !f.start});
                         let quality = |qualities: &[Quality]| {
                             f.quality.get(&r.link).and_then(|i| qualities.get(*i)).map(|q| json!({"selector": q.selector, "label": q.label}))
                         };
                         match &r.probe {
                             Probe::File { name, .. } => v["name"] = json!(name),
+                            Probe::Torrent { name, files } => {
+                                // Its one file's name, or the folder its files go in.
+                                let top = match files.as_slice() {
+                                    [one] if !one.path.contains('/') => one.path.clone(),
+                                    _ => name.clone(),
+                                };
+                                v["name"] = json!(top);
+                                if let Some(out) = f.left_out.get(&r.link).filter(|o| !o.is_empty()) {
+                                    let picked: Vec<usize> = files.iter().map(|x| x.index).filter(|i| !out.contains(i)).collect();
+                                    v["files"] = json!(picked);
+                                }
+                            }
                             Probe::Video { file_name, qualities, .. } => {
                                 v["name"] = json!(file_name);
                                 if let Some(q) = quality(qualities) {
