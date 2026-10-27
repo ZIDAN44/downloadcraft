@@ -779,7 +779,9 @@ dependencies = [
  "log",
  "open",
  "rfd",
+ "ring",
  "serde_json",
+ "uds_windows",
  "winresource",
 ]
 

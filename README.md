@@ -52,7 +52,8 @@
   that don't take ranges get one connection and start over, and the list says so.
 - **A queue**: up to 3 downloads at once by default (1–16 in Settings); the rest wait their turn.
 - **Paste anywhere**: Ctrl+V in the window opens Add link with what you copied; several links,
-  one per line, add as many downloads.
+  one per line, add as many downloads. `downloadcraft <link>…` while it's open hands the links to
+  the window already running instead of opening a second one.
 - **The server's file name** (`Content-Disposition`), made safe for every file system, and
   `name (1).ext` when the name is taken.
 - **Categories**: All, Downloading, Paused, Completed, Failed, with counts.

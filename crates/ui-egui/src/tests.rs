@@ -72,6 +72,34 @@ fn pasting_a_link_opens_the_add_dialog() {
 }
 
 #[test]
+fn links_from_another_launch_join_the_add_box() {
+    let ctx = egui::Context::default();
+    let mut app = DownloadApp::new(sample(), Box::new(NoServices));
+    let add = |app: &DownloadApp| match &app.dialog {
+        Some(crate::Dialog::Add(f)) => Some(f.links.clone()),
+        _ => None,
+    };
+    app.hand_over(&["https://e.com/a.zip".into()]);
+    assert_eq!(add(&app).as_deref(), Some("https://e.com/a.zip"));
+    app.hand_over(&["https://e.com/b.zip".into(), "https://e.com/a.zip".into()]);
+    assert_eq!(
+        add(&app).as_deref(),
+        Some(
+            "https://e.com/a.zip
+https://e.com/b.zip"
+        ),
+        "added once each"
+    );
+    // Settings open: the links wait for it to close, then open the Add box.
+    app.open_settings();
+    app.hand_over(&["https://e.com/c.zip".into()]);
+    assert!(add(&app).is_none());
+    app.dialog = None;
+    frame(&mut app, &ctx, vec![]);
+    assert_eq!(add(&app).as_deref(), Some("https://e.com/c.zip"));
+}
+
+#[test]
 fn the_update_bar_and_progress_draw() {
     let ctx = egui::Context::default();
     let mut app = DownloadApp::new(sample(), Box::new(NoServices));

@@ -73,3 +73,6 @@ next version: the version is raised and the Progress log gains its entry before 
   fills while writing says so and keeps the partial file for Resume.
 - **2026-10-27** — **v0.3**: a server that turns connections away is remembered for half an hour:
   the next downloads from it open only as many connections as it served.
+- **2026-10-27** — **v0.3**: one window per data folder, from MailCraft: starting DownloadCraft
+  again, with or without links, brings the running window forward and its Add box takes the links,
+  instead of a second window writing the same list.

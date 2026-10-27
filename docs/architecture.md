@@ -55,6 +55,14 @@ depends on the network layer: the apps wire the two together.
 - Where every part is goes to `name.dcpart.parts` once a second and on stopping, so Resume carries
   on each part. The record is checked to cover the file exactly once before it is trusted.
 
+## One window per data folder (`apps/downloadcraft/src/single_instance.rs`)
+
+From MailCraft (and PdfCraft before it). The first launch listens on a Unix domain socket in a
+folder of the user's own (`uds_windows` on Windows), named for the data folder and the screen; a
+later launch on the same folder sends it a keyed JSON line with its links and exits before it
+reads or writes the list, so two windows never overwrite `downloads.json`. The links join the Add
+box (a new one, the open one, or once another dialog closes).
+
 ## The saved list (`apps/downloadcraft/src/store.rs`)
 
 `Session::save` → `downloads.json` (written beside and renamed into place) every couple of seconds

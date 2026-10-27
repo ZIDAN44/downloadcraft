@@ -8,6 +8,7 @@
 
 mod platform;
 mod self_update;
+mod single_instance;
 mod store;
 #[cfg(test)]
 mod windows_manifest;
@@ -39,6 +40,8 @@ struct App {
     store: Option<store::Store>,
     last_save: Instant,
     updater: Option<self_update::Updater>,
+    /// Answering later launches on the same data folder (`single_instance.rs`).
+    instance: Option<single_instance::Server>,
 }
 
 fn now() -> u64 {
@@ -79,6 +82,12 @@ impl eframe::App for App {
         }
     }
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        if let Some(links) = self.instance.as_ref().and_then(single_instance::Server::take) {
+            single_instance::show(ui.ctx(), native_wayland());
+            if !links.is_empty() {
+                self.app.hand_over(&links);
+            }
+        }
         if let Some(u) = &self.updater {
             self.app.update = u.state();
         }
@@ -92,6 +101,9 @@ impl eframe::App for App {
         self.save(false);
     }
     fn on_exit(&mut self) {
+        if let Some(server) = &self.instance {
+            server.close();
+        }
         // Transfers stop; their partial files stay, and they come back paused. When an update
         // installs now, they come back queued instead, so they carry on in the new version.
         if self.updater.as_ref().is_some_and(self_update::Updater::installs_on_close) {
@@ -104,6 +116,11 @@ impl eframe::App for App {
             u.closing();
         }
     }
+}
+
+/// A Wayland window can't bring itself forward: it asks for attention instead.
+fn native_wayland() -> bool {
+    cfg!(all(unix, not(target_os = "macos"))) && std::env::var_os("WAYLAND_DISPLAY").is_some_and(|v| !v.is_empty())
 }
 
 fn app_icon() -> egui::IconData {
@@ -162,7 +179,24 @@ fn main() -> eframe::Result {
             std::process::exit(2);
         }
     };
-    let store = args.data.or_else(store::default_dir).map(store::Store::new);
+    let store = args.data.clone().or_else(store::default_dir).map(store::Store::new);
+    // One DownloadCraft per data folder: started again, it hands its links to the running one and
+    // leaves before reading or writing anything there (`single_instance.rs`).
+    let instance = match store.as_ref().map(|s| single_instance::claim(s.dir(), &args.links)) {
+        Some(single_instance::Claim::Shown) => {
+            println!(
+                "{}",
+                if args.links.is_empty() {
+                    "DownloadCraft is already running: its window is brought forward"
+                } else {
+                    "DownloadCraft is already running: the links open in its Add box"
+                }
+            );
+            return Ok(());
+        }
+        Some(single_instance::Claim::Primary(server)) => Some(server),
+        _ => None,
+    };
     let mut session = Session::new();
     if let Some(s) = &store {
         match s.load() {
@@ -217,12 +251,15 @@ fn main() -> eframe::Result {
             if !args.links.is_empty() {
                 app.open_add(&args.links.join("\n"));
             }
+            if let Some(server) = &instance {
+                server.connect(&cc.egui_ctx);
+            }
             let updater = store.as_ref().and_then(|s| self_update::Updater::start(s.dir().to_path_buf()));
             if let Some(u) = &updater {
                 let ctx = cc.egui_ctx.clone();
                 u.set_waker(Arc::new(move || ctx.request_repaint()));
             }
-            Ok(Box::new(App { app, worker, events: rx, store, last_save: Instant::now(), updater }))
+            Ok(Box::new(App { app, worker, events: rx, store, last_save: Instant::now(), updater, instance }))
         }),
     )
 }

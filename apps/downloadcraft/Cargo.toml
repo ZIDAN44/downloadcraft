@@ -28,6 +28,12 @@ rfd = "0.17"
 open = "5"
 # Decodes the window icon (assets/app-icon).
 image = { version = "0.25", default-features = false, features = ["png"] }
+# The single-instance key, from the system's secure random source (already the network crate's).
+ring = "0.17"
+
+[target.'cfg(windows)'.dependencies]
+# One DownloadCraft per data folder (`single_instance.rs`): Unix sockets on Windows, which std lacks.
+uds_windows = "1.2"
 
 [build-dependencies]
 # Icon + VERSIONINFO for downloadcraft.exe; build.rs only uses it when the target is Windows.

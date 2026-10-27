@@ -93,6 +93,8 @@ pub struct DownloadApp {
     update_choice: Option<UpdateChoice>,
     /// The version whose bar Later hid.
     update_dismissed: Option<String>,
+    /// Links another launch handed over while another dialog was open (`hand_over`).
+    handed: Vec<String>,
 }
 
 fn filter_icon(f: Filter) -> Icon {
@@ -118,6 +120,7 @@ impl DownloadApp {
             update: UpdateState::None,
             update_choice: None,
             update_dismissed: None,
+            handed: Vec::new(),
         }
     }
 
@@ -131,6 +134,25 @@ impl DownloadApp {
     /// Open the Add link dialog with `text` in it (a paste, a link handed to the app).
     pub fn open_add(&mut self, text: &str) {
         self.dialog = Some(Dialog::Add(dialogs::AddForm::new(text, &self.session.prefs.folder)));
+    }
+
+    /// Links another launch handed over: added to the Add box when it's open (one per line, none
+    /// twice), else in a new one. Another dialog open stays; the links wait for it to close.
+    pub fn hand_over(&mut self, links: &[String]) {
+        match &mut self.dialog {
+            None => self.open_add(&links.join("\n")),
+            Some(Dialog::Add(form)) => {
+                for l in links {
+                    if !form.links.lines().any(|have| have.trim() == l.trim()) {
+                        if !form.links.is_empty() && !form.links.ends_with('\n') {
+                            form.links.push('\n');
+                        }
+                        form.links.push_str(l.trim());
+                    }
+                }
+            }
+            Some(_) => self.handed.extend(links.iter().cloned()),
+        }
     }
 
     pub fn open_settings(&mut self) {
@@ -220,6 +242,13 @@ impl DownloadApp {
             if keep.is_none() {
                 self.dialog = Some(d);
             }
+        }
+        if self.dialog.is_none() && !self.handed.is_empty() {
+            let links = std::mem::take(&mut self.handed);
+            self.open_add(&links.join(
+                "
+",
+            ));
         }
     }
 
