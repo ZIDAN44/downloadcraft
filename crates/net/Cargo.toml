@@ -18,7 +18,7 @@ serde_json = { workspace = true }
 ring = "0.17"
 # Removed files go to the Recycle Bin or Trash rather than vanishing (MIT).
 trash = "5"
-# Unpacking FFmpeg's Windows build for video downloads (MIT); deflate only, pure Rust.
-zip = { version = "2", default-features = false, features = ["deflate"] }
+# Unpacking FFmpeg's Windows build for video downloads (MIT): reading only, pure-Rust deflate.
+zip = { version = "9", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 log = { workspace = true }
 thiserror = { workspace = true }

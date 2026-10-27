@@ -190,7 +190,7 @@ fn unzip_programs(zip: &Path, dir: &Path, wanted: &[&str]) -> Result<(), NetErro
     let mut found = 0;
     for i in 0..archive.len() {
         let mut entry = archive.by_index(i).map_err(|e| NetError::Disk(e.to_string()))?;
-        let name = entry.name().rsplit('/').next().unwrap_or("").to_string();
+        let name = entry.name().map(|n| n.rsplit('/').next().unwrap_or("").to_string()).unwrap_or_default();
         if !wanted.contains(&name.as_str()) || entry.size() > MAX_TOOL {
             continue;
         }
