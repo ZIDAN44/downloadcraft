@@ -14,6 +14,10 @@ pub enum Action {
     Select(DownloadId),
     Run(&'static str, DownloadId),
     Open(PathBuf),
+    /// Show the file in the file manager, selected (its folder when the file has gone).
+    Reveal(PathBuf),
+    /// Ask before removing.
+    Remove(DownloadId),
     CopyLink(String),
     Add,
 }
@@ -69,6 +73,9 @@ fn empty(s: &Session, searching: bool, ui: &mut Ui, t: &Tokens, act: &mut Option
 
 /// What the second line says: how far, how fast, how long, on how many connections.
 fn detail(d: &Download) -> String {
+    if d.missing {
+        return "Deleted or moved  ·  Download again fetches it once more".into();
+    }
     let size = match d.total {
         Some(t) if d.state != State::Completed => format!("{} of {}", format::bytes(d.done), format::bytes(t)),
         Some(t) => format::bytes(t),
@@ -76,6 +83,9 @@ fn detail(d: &Download) -> String {
         None => String::new(),
     };
     let mut bits = vec![];
+    if let Some(v) = &d.video {
+        bits.push(format!("Video · {}", v.label));
+    }
     if !size.is_empty() {
         bits.push(size);
     }
@@ -100,6 +110,9 @@ fn detail(d: &Download) -> String {
 }
 
 fn state_color(d: &Download, t: &Tokens) -> Color32 {
+    if d.missing {
+        return t.faint;
+    }
     match d.state {
         State::Completed => t.success,
         State::Failed => t.danger,
@@ -168,8 +181,20 @@ fn row(d: &Download, selected: bool, ui: &mut Ui, t: &Tokens, act: &mut Option<A
             p.rect_filled(rect, 10.0, t.hover);
         }
         icons::file_badge(p, Rect::from_min_size(rect.min + vec2(12.0, 12.0), vec2(40.0, 40.0)), &d.file_name, t.dark);
+        // A file that's gone is shown faded, as a browser's downloads page does.
+        if d.missing {
+            let veil = if selected {
+                t.selected
+            } else if hovered {
+                t.hover
+            } else {
+                t.surface
+            };
+            p.rect_filled(Rect::from_min_size(rect.min + vec2(12.0, 12.0), vec2(40.0, 40.0)), 8.0, veil.gamma_multiply(0.65));
+        }
     }
 
+    let file = Path::new(&d.folder).join(&d.file_name);
     let actions_w = if hovered { 124.0 } else { 0.0 };
     let right = rect.right() - 16.0;
     let label_w = 92.0;
@@ -188,7 +213,13 @@ fn row(d: &Download, selected: bool, ui: &mut Ui, t: &Tokens, act: &mut Option<A
         text_w,
         egui::TextStyle::Body,
     );
-    ui.painter().galley(pos2(text_x, rect.top() + 14.0), name, t.text);
+    ui.painter().galley(pos2(text_x, rect.top() + 14.0), name, if d.missing { t.faint } else { t.text });
+    if d.missing {
+        // The name struck through.
+        let w = ui.painter().layout_no_wrap(d.file_name.clone(), FontId::proportional(14.5), t.faint).size().x.min(text_w);
+        let y = rect.top() + 14.0 + 10.0;
+        ui.painter().hline(text_x..=text_x + w, y, egui::Stroke::new(1.0, t.faint));
+    }
     ui.painter().galley(pos2(text_x, rect.top() + 37.0), info, if d.state == State::Failed { t.danger } else { t.muted });
 
     let bar_rect = Rect::from_min_size(pos2(right - label_w - bar_w - actions_w, rect.center().y - 3.0), vec2(bar_w, 6.0));
@@ -196,24 +227,27 @@ fn row(d: &Download, selected: bool, ui: &mut Ui, t: &Tokens, act: &mut Option<A
     let label = match (d.state, d.fraction()) {
         (State::Downloading, Some(f)) => format!("{:.0}%", f * 100.0),
         (State::Downloading, None) => format::bytes(d.done),
+        _ if d.missing => "Deleted".to_string(),
         (s, _) => s.label().to_string(),
     };
     ui.painter().text(pos2(right - actions_w, rect.center().y), Align2::RIGHT_CENTER, label, FontId::proportional(13.0), state_color(d, t));
 
-    let file = Path::new(&d.folder).join(&d.file_name);
     if hovered {
         let y = rect.center().y;
         let mut x = right - 16.0;
         let id = ui.scope_id().with(("row", d.id.0));
         if row_button(ui, id.with("remove"), pos2(x, y), Icon::Remove, "Remove (Delete)", t) {
-            *act = Some(Action::Run("download.remove", d.id));
+            *act = Some(Action::Remove(d.id));
         }
         x -= 40.0;
-        if row_button(ui, id.with("folder"), pos2(x, y), Icon::Folder, "Open folder", t) {
-            *act = Some(Action::Open(PathBuf::from(&d.folder)));
+        let folder_tip = if d.state == State::Completed && !d.missing { "Show in folder" } else { "Open folder" };
+        if row_button(ui, id.with("folder"), pos2(x, y), Icon::Folder, folder_tip, t) {
+            *act = Some(Action::Reveal(file.clone()));
         }
         x -= 40.0;
-        let (icon, tip, cmd) = if d.state.active() {
+        let (icon, tip, cmd) = if d.missing {
+            (Icon::Download, "Download again", Some("download.again"))
+        } else if d.state.active() {
             (Icon::Pause, "Pause", Some("download.pause"))
         } else if d.state.startable() {
             (Icon::Resume, "Resume", Some("download.resume"))
@@ -232,7 +266,9 @@ fn row(d: &Download, selected: bool, ui: &mut Ui, t: &Tokens, act: &mut Option<A
         *act = Some(Action::Select(d.id));
     }
     if resp.double_clicked() {
-        *act = Some(if d.state == State::Completed {
+        *act = Some(if d.missing {
+            Action::Run("download.again", d.id)
+        } else if d.state == State::Completed {
             Action::Open(file.clone())
         } else if d.state.active() {
             Action::Run("download.pause", d.id)
@@ -247,18 +283,22 @@ fn row(d: &Download, selected: bool, ui: &mut Ui, t: &Tokens, act: &mut Option<A
         if d.state.active() && ui.button("Pause").clicked() {
             *act = Some(Action::Run("download.pause", d.id));
         }
-        if d.state == State::Completed && ui.button("Open").clicked() {
+        if d.state == State::Completed && !d.missing && ui.button("Open").clicked() {
             *act = Some(Action::Open(file.clone()));
         }
-        if ui.button("Open folder").clicked() {
-            *act = Some(Action::Open(PathBuf::from(&d.folder)));
+        if d.missing && ui.button("Download again").clicked() {
+            *act = Some(Action::Run("download.again", d.id));
+        }
+        let folder = if d.state == State::Completed && !d.missing { "Show in folder" } else { "Open folder" };
+        if ui.button(folder).clicked() {
+            *act = Some(Action::Reveal(file.clone()));
         }
         if ui.button("Copy link").clicked() {
             *act = Some(Action::CopyLink(d.url.clone()));
         }
         ui.separator();
-        if ui.button("Remove").clicked() {
-            *act = Some(Action::Run("download.remove", d.id));
+        if ui.button("Remove…").clicked() {
+            *act = Some(Action::Remove(d.id));
         }
     });
 }

@@ -14,6 +14,8 @@ pub enum Kind {
     Secondary,
     /// No frame until hovered (toolbars).
     Ghost,
+    /// Filled red: an action that deletes.
+    Danger,
 }
 
 /// A button with an optional icon; `label` may be empty for an icon-only one.
@@ -21,7 +23,7 @@ pub fn button(ui: &mut Ui, t: &Tokens, kind: Kind, icon: Option<Icon>, label: &s
     let font = FontId::proportional(14.0);
     let fg = match (enabled, kind) {
         (false, _) => t.faint,
-        (true, Kind::Primary) => Color32::WHITE,
+        (true, Kind::Primary | Kind::Danger) => Color32::WHITE,
         (true, _) => t.text,
     };
     let galley = ui.painter().layout_no_wrap(label.to_string(), font, fg);
@@ -43,6 +45,9 @@ pub fn button(ui: &mut Ui, t: &Tokens, kind: Kind, icon: Option<Icon>, label: &s
             };
             p.rect_filled(rect, 8.0, fill);
         }
+        Kind::Danger => {
+            p.rect_filled(rect, 8.0, if hovered { t.danger.gamma_multiply(0.88) } else { t.danger });
+        }
         Kind::Secondary => {
             p.rect_filled(rect, 8.0, if hovered { t.hover } else { t.card });
             p.rect_stroke(rect, 8.0, Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
@@ -60,7 +65,7 @@ pub fn button(ui: &mut Ui, t: &Tokens, kind: Kind, icon: Option<Icon>, label: &s
     if let Some(i) = icon {
         let color = match (enabled, kind) {
             (false, _) => t.faint,
-            (true, Kind::Primary) => Color32::WHITE,
+            (true, Kind::Primary | Kind::Danger) => Color32::WHITE,
             (true, Kind::Ghost) => t.accent,
             (true, Kind::Secondary) => t.text,
         };

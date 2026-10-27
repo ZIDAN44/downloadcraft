@@ -6,19 +6,20 @@
 // No console window behind the app on Windows (release builds).
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
+mod platform;
 mod self_update;
 mod store;
 #[cfg(test)]
 mod windows_manifest;
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, channel};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use downloadcraft_engine::{Event, Session};
 use downloadcraft_net::{Sink, Worker};
-use downloadcraft_ui_egui::{DownloadApp, Services};
+use downloadcraft_ui_egui::DownloadApp;
 
 const USAGE: &str = "\
 usage: downloadcraft [links…] [options]
@@ -30,23 +31,6 @@ usage: downloadcraft [links…] [options]
   --version            print the version
   --help               this text
 ";
-
-struct Platform;
-
-impl Services for Platform {
-    fn pick_folder(&self, start: &str) -> Option<String> {
-        let mut d = rfd::FileDialog::new().set_title("Choose a download folder");
-        if !start.is_empty() && Path::new(start).is_dir() {
-            d = d.set_directory(start);
-        }
-        d.pick_folder().map(|p| p.to_string_lossy().into_owned())
-    }
-    fn open(&self, path: &Path) {
-        if let Err(e) = open::that_detached(path) {
-            log::warn!("couldn't open {}: {e}", path.display());
-        }
-    }
-}
 
 struct App {
     app: DownloadApp,
@@ -215,7 +199,12 @@ fn main() -> eframe::Result {
             let (tx, rx) = channel();
             let ctx = cc.egui_ctx.clone();
             let worker = Worker::new(Sink::new(tx, Arc::new(move || ctx.request_repaint())));
-            let mut app = DownloadApp::new(session, Box::new(Platform));
+            if let Some(s) = &store {
+                downloadcraft_net::video::tools::set_dir(s.dir().join("tools"));
+            }
+            let repaint = cc.egui_ctx.clone();
+            let platform = platform::Platform::new(Arc::new(move || repaint.request_repaint()));
+            let mut app = DownloadApp::new(session, Box::new(platform));
             app.force_dark = args.dark;
             for (id, v) in &args.cmds {
                 // `ui.*` opens a dialog (for scripting and screenshots); the rest are engine commands.

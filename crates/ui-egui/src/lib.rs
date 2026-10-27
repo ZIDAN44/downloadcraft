@@ -18,6 +18,7 @@ mod widgets;
 use std::path::{Path, PathBuf};
 
 use downloadcraft_engine::model::Theme;
+use downloadcraft_engine::model::probe::{Probe, VideoTools};
 use downloadcraft_engine::{Filter, Session, State};
 use egui::{Margin, Rect, RichText, Ui, vec2};
 use serde_json::{Value, json};
@@ -35,6 +36,30 @@ pub trait Services {
     }
     /// Open a file with its default app, or a folder in the file manager.
     fn open(&self, _path: &Path) {}
+    /// Show a file in the file manager, selected (as a browser's Show in folder does).
+    fn reveal(&self, path: &Path) {
+        if let Some(dir) = path.parent() {
+            self.open(dir);
+        }
+    }
+    /// Whether a file is (still) there.
+    fn exists(&self, _path: &Path) -> bool {
+        true
+    }
+    /// What a link turns out to be: asked for in the background, `Pending` until it's known.
+    fn probe(&self, _url: &str) -> Probe {
+        Probe::Pending
+    }
+    /// Where yt-dlp and FFmpeg stand, for video links.
+    fn video_tools(&self) -> VideoTools {
+        VideoTools::default()
+    }
+    /// Fetch yt-dlp, or FFmpeg with `ffmpeg`, in the background.
+    fn fetch_tool(&self, _ffmpeg: bool) {}
+    /// Whether FFmpeg can be fetched here (else the system's package manager has it).
+    fn can_fetch_ffmpeg(&self) -> bool {
+        false
+    }
 }
 
 /// No platform: the tests and anything headless.
@@ -45,7 +70,11 @@ impl Services for NoServices {}
 pub(crate) enum Dialog {
     Add(dialogs::AddForm),
     Settings(dialogs::SettingsForm),
+    Remove(dialogs::RemoveForm),
 }
+
+/// How often finished downloads' files are looked for (a deleted or moved one shows as Deleted).
+const LOOK_EVERY: f64 = 2.0;
 
 pub struct DownloadApp {
     pub session: Session,
@@ -56,6 +85,8 @@ pub struct DownloadApp {
     dialog: Option<Dialog>,
     /// What the search box holds.
     search: String,
+    /// When finished files were last looked for.
+    looked: f64,
     /// Where the updater is (the app keeps it current).
     pub update: UpdateState,
     /// What the update bar's buttons asked for, for the app to act on (`take_update_choice`).
@@ -83,6 +114,7 @@ impl DownloadApp {
             tokens: None,
             dialog: None,
             search: String::new(),
+            looked: f64::NEG_INFINITY,
             update: UpdateState::None,
             update_choice: None,
             update_dismissed: None,
@@ -130,6 +162,7 @@ impl DownloadApp {
         let ctx = ui.ctx().clone();
         let t = self.tokens(&ctx);
         self.shortcuts(&ctx);
+        self.look_for_files(&ctx);
 
         egui::Panel::left("sidebar")
             .exact_size(236.0)
@@ -165,8 +198,13 @@ impl DownloadApp {
         if let Some(mut d) = self.dialog.take() {
             let keep = match &mut d {
                 Dialog::Add(form) => dialogs::add(&ctx, form, &t, &*self.services).map(|done| {
-                    if let Some(params) = done {
-                        self.add(params);
+                    if let Some(list) = done {
+                        self.add(list);
+                    }
+                }),
+                Dialog::Remove(form) => dialogs::remove(&ctx, form, &t).map(|done| {
+                    if let Some(delete) = done {
+                        self.run("download.remove", json!({"id": form.id.0, "deleteFile": delete}));
                     }
                 }),
                 Dialog::Settings(form) => dialogs::settings(&ctx, form, &t, &*self.services, env!("CARGO_PKG_VERSION")).map(|save| {
@@ -185,14 +223,48 @@ impl DownloadApp {
         }
     }
 
-    /// Add what the dialog asked for: one link or many.
-    fn add(&mut self, params: Value) {
-        let many = params.get("urls").and_then(Value::as_array).map_or(0, Vec::len);
-        let id = if many > 0 { "download.addMany" } else { "download.add" };
-        if let Some(folder) = params.get("folder").and_then(Value::as_str).filter(|f| !f.is_empty() && self.session.prefs.folder.is_empty()) {
+    /// Add what the dialog asked for, one link at a time (each with its own name and quality).
+    fn add(&mut self, list: Vec<Value>) {
+        let folder = list.first().and_then(|p| p.get("folder")).and_then(Value::as_str).unwrap_or("").to_string();
+        if !folder.is_empty() && self.session.prefs.folder.is_empty() {
             self.run("prefs.folder", json!({"folder": folder}));
         }
-        self.run(id, params);
+        let n = list.len();
+        for params in list {
+            self.run("download.add", params);
+        }
+        if n > 1 {
+            self.session.status = format!("Added {n} downloads");
+        }
+    }
+
+    /// Ask before removing download `id` (the selected one when `None`).
+    pub fn ask_remove(&mut self, id: Option<downloadcraft_engine::DownloadId>) {
+        let Some(d) = id.or(self.session.selection).and_then(|id| self.session.get(id)) else { return };
+        let finished = d.state == State::Completed && !d.missing;
+        self.dialog = Some(Dialog::Remove(dialogs::RemoveForm {
+            id: d.id,
+            name: d.file_name.clone(),
+            finished,
+            delete_file: self.session.prefs.delete_files_on_remove,
+        }));
+    }
+
+    /// Every couple of seconds, whether each finished download's file is still where it was saved
+    /// (as a browser's downloads page shows a deleted file).
+    fn look_for_files(&mut self, ctx: &egui::Context) {
+        let now = ctx.input(|i| i.time);
+        if now - self.looked < LOOK_EVERY {
+            return;
+        }
+        self.looked = now;
+        let done: Vec<(downloadcraft_engine::DownloadId, PathBuf)> =
+            self.session.downloads.iter().filter(|d| d.state == State::Completed).map(|d| (d.id, Path::new(&d.folder).join(&d.file_name))).collect();
+        for (id, path) in done {
+            let missing = !self.services.exists(&path);
+            self.session.set_missing(id, missing);
+        }
+        ctx.request_repaint_after(std::time::Duration::from_secs_f64(LOOK_EVERY));
     }
 
     fn shortcuts(&mut self, ctx: &egui::Context) {
@@ -223,7 +295,7 @@ impl DownloadApp {
             ctx.memory_mut(|m| m.request_focus(egui::Id::unique("search")));
         }
         if delete {
-            self.run("download.remove", Value::Null);
+            self.ask_remove(None);
         }
         if down {
             self.run("list.selectNext", Value::Null);
@@ -370,7 +442,7 @@ impl DownloadApp {
                 .on_hover_text("Remove from the list (Delete)")
                 .clicked()
             {
-                self.run("download.remove", Value::Null);
+                self.ask_remove(None);
             }
             let (r, _) = ui.allocate_exact_size(vec2(17.0, 24.0), egui::Sense::hover());
             ui.painter().vline(r.center().x, r.y_range(), egui::Stroke::new(1.0, t.border));
@@ -402,6 +474,15 @@ impl DownloadApp {
             list::Action::Select(id) => self.run("list.select", json!({"id": id.0})),
             list::Action::Run(cmd, id) => self.run(cmd, json!({"id": id.0})),
             list::Action::Open(path) => self.services.open(&path),
+            list::Action::Reveal(path) => {
+                // A file that's gone opens its folder instead.
+                if self.services.exists(&path) {
+                    self.services.reveal(&path);
+                } else if let Some(dir) = path.parent() {
+                    self.services.open(dir);
+                }
+            }
+            list::Action::Remove(id) => self.ask_remove(Some(id)),
             list::Action::CopyLink(url) => {
                 ctx.copy_text(url);
                 self.session.status = "Link copied".into();
