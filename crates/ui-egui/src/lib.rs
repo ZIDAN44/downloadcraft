@@ -1,10 +1,11 @@
 //! DownloadCraft's egui front end.
 //!
-//! [`DownloadApp`] draws the window around an engine [`Session`]: the toolbar, the categories on
-//! the left, the download list and the status bar, and the Add link and Settings dialogs. Every
-//! button runs an engine command by id; the jobs those queue are the app's to hand to the
-//! network layer (`session.take_jobs()` after each frame). What only the platform can do (a
-//! folder picker, opening files) comes through [`Services`].
+//! [`DownloadApp`] draws the window around an engine [`Session`]: the sidebar (Add link, the
+//! categories, Settings), the header with the search and the theme switch, the actions, the
+//! download list and the status bar, and the Add link and Settings dialogs. Every button runs an
+//! engine command by id; the jobs those queue are the app's to hand to the network layer
+//! (`session.take_jobs()` after each frame). What only the platform can do (a folder picker,
+//! opening files) comes through [`Services`].
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 mod dialogs;
@@ -16,13 +17,15 @@ mod widgets;
 
 use std::path::{Path, PathBuf};
 
+use downloadcraft_engine::model::Theme;
 use downloadcraft_engine::{Filter, Session, State};
-use egui::{Margin, Ui};
+use egui::{Margin, Rect, RichText, Ui, vec2};
 use serde_json::{Value, json};
 
 use icons::Icon;
 use theme::Tokens;
 pub use updates::{UpdateChoice, UpdateState};
+use widgets::Kind;
 
 /// What the platform does for the UI.
 pub trait Services {
@@ -41,22 +44,34 @@ impl Services for NoServices {}
 /// A dialog over the window.
 pub(crate) enum Dialog {
     Add(dialogs::AddForm),
-    Settings { folder: String, max_active: usize },
+    Settings(dialogs::SettingsForm),
 }
 
 pub struct DownloadApp {
     pub session: Session,
     services: Box<dyn Services>,
-    /// `Some(dark)` forces a mode; `None` follows the system.
+    /// `Some(dark)` forces a mode for this run (`--light` / `--dark`), over the saved theme.
     pub force_dark: Option<bool>,
     tokens: Option<Tokens>,
     dialog: Option<Dialog>,
-    /// Where the test builds' updater is (the app keeps it current; `None` when it doesn't run).
+    /// What the search box holds.
+    search: String,
+    /// Where the updater is (the app keeps it current).
     pub update: UpdateState,
     /// What the update bar's buttons asked for, for the app to act on (`take_update_choice`).
     update_choice: Option<UpdateChoice>,
     /// The version whose bar Later hid.
     update_dismissed: Option<String>,
+}
+
+fn filter_icon(f: Filter) -> Icon {
+    match f {
+        Filter::All => Icon::List,
+        Filter::Active => Icon::Download,
+        Filter::Paused => Icon::Pause,
+        Filter::Completed => Icon::Check,
+        Filter::Failed => Icon::Alert,
+    }
 }
 
 impl DownloadApp {
@@ -67,6 +82,7 @@ impl DownloadApp {
             force_dark: None,
             tokens: None,
             dialog: None,
+            search: String::new(),
             update: UpdateState::None,
             update_choice: None,
             update_dismissed: None,
@@ -86,11 +102,21 @@ impl DownloadApp {
     }
 
     pub fn open_settings(&mut self) {
-        self.dialog = Some(Dialog::Settings { folder: self.session.prefs.folder.clone(), max_active: self.session.prefs.max_active });
+        self.dialog = Some(Dialog::Settings(dialogs::SettingsForm::new(&self.session.prefs)));
     }
 
+    /// The theme in force: `--light`/`--dark`, else the one being picked in Settings, else the
+    /// saved one (System following the system).
     fn tokens(&mut self, ctx: &egui::Context) -> Tokens {
-        let dark = self.force_dark.unwrap_or_else(|| ctx.system_theme() == Some(egui::Theme::Dark));
+        let theme = match &self.dialog {
+            Some(Dialog::Settings(f)) => f.theme,
+            _ => self.session.prefs.theme,
+        };
+        let dark = self.force_dark.unwrap_or(match theme {
+            Theme::Dark => true,
+            Theme::Light => false,
+            Theme::System => ctx.system_theme() == Some(egui::Theme::Dark),
+        });
         let want = Tokens::for_mode(dark);
         if self.tokens != Some(want) {
             theme::apply(ctx, &want);
@@ -105,28 +131,36 @@ impl DownloadApp {
         let t = self.tokens(&ctx);
         self.shortcuts(&ctx);
 
-        egui::Panel::top("toolbar")
-            .frame(egui::Frame::new().fill(t.chrome).inner_margin(Margin::symmetric(10, 6)))
-            .show(ui, |ui| self.toolbar(ui, &t));
+        egui::Panel::left("sidebar")
+            .exact_size(236.0)
+            .frame(egui::Frame::new().fill(t.bg).inner_margin(Margin::symmetric(14, 16)).stroke(egui::Stroke::new(1.0, t.border)))
+            .show(ui, |ui| self.sidebar(ui, &t));
+        egui::Panel::top("header").frame(egui::Frame::new().fill(t.surface).inner_margin(Margin { left: 24, right: 20, top: 18, bottom: 8 })).show(
+            ui,
+            |ui| {
+                self.header(ui, &t);
+                ui.add_space(8.0);
+                self.actions(ui, &t);
+            },
+        );
         if self.update_bar_wanted() {
             egui::Panel::top("update-bar")
-                .frame(egui::Frame::new().fill(t.selected).inner_margin(Margin::symmetric(12, 6)).stroke(egui::Stroke::new(1.0, t.border)))
+                .frame(egui::Frame::new().fill(t.accent_soft).inner_margin(Margin::symmetric(20, 8)).stroke(egui::Stroke::new(1.0, t.border)))
                 .show(ui, |ui| self.update_bar(ui, &t));
         }
         egui::Panel::bottom("status")
-            .frame(egui::Frame::new().fill(t.chrome).inner_margin(Margin::symmetric(12, 4)))
+            .frame(egui::Frame::new().fill(t.surface).inner_margin(Margin::symmetric(20, 6)).stroke(egui::Stroke::new(1.0, t.border)))
             .show(ui, |ui| self.status_bar(ui, &t));
-        egui::Panel::left("categories")
-            .exact_size(190.0)
-            .frame(egui::Frame::new().fill(t.bg).inner_margin(Margin::symmetric(8, 10)))
-            .show(ui, |ui| self.categories(ui, &t));
-        egui::CentralPanel::default().frame(egui::Frame::new().fill(t.surface)).show(ui, |ui| {
-            let mut act = None;
-            list::show(&self.session, ui, &t, &mut act);
-            if let Some(a) = act {
-                self.list_action(&ctx, a);
-            }
-        });
+        egui::CentralPanel::default().frame(egui::Frame::new().fill(t.surface).inner_margin(Margin { left: 8, right: 8, top: 4, bottom: 4 })).show(
+            ui,
+            |ui| {
+                let mut act = None;
+                list::show(&self.session, &self.search, ui, &t, &mut act);
+                if let Some(a) = act {
+                    self.list_action(&ctx, a);
+                }
+            },
+        );
 
         if let Some(mut d) = self.dialog.take() {
             let keep = match &mut d {
@@ -135,10 +169,12 @@ impl DownloadApp {
                         self.add(params);
                     }
                 }),
-                Dialog::Settings { folder, max_active } => dialogs::settings(&ctx, folder, max_active, &t, &*self.services).map(|done| {
-                    if done {
-                        self.run("prefs.folder", json!({"folder": folder}));
-                        self.run("prefs.maxActive", json!({"count": max_active}));
+                Dialog::Settings(form) => dialogs::settings(&ctx, form, &t, &*self.services, env!("CARGO_PKG_VERSION")).map(|save| {
+                    if save {
+                        self.run("prefs.folder", json!({"folder": form.folder}));
+                        self.run("prefs.maxActive", json!({"count": form.max_active}));
+                        self.run("prefs.connections", json!({"count": form.connections}));
+                        self.run("prefs.theme", json!({"theme": form.theme}));
                     }
                 }),
             };
@@ -169,9 +205,10 @@ impl DownloadApp {
             self.open_add(&text);
             return;
         }
-        let (add, delete, down, up, space, enter) = ctx.input_mut(|i| {
+        let (add, find, delete, down, up, space, enter) = ctx.input_mut(|i| {
             (
                 i.consume_key(egui::Modifiers::COMMAND, egui::Key::N),
+                i.consume_key(egui::Modifiers::COMMAND, egui::Key::F),
                 i.consume_key(egui::Modifiers::NONE, egui::Key::Delete),
                 i.consume_key(egui::Modifiers::NONE, egui::Key::ArrowDown),
                 i.consume_key(egui::Modifiers::NONE, egui::Key::ArrowUp),
@@ -181,6 +218,9 @@ impl DownloadApp {
         });
         if add {
             self.open_add("");
+        }
+        if find {
+            ctx.memory_mut(|m| m.request_focus(egui::Id::unique("search")));
         }
         if delete {
             self.run("download.remove", Value::Null);
@@ -212,70 +252,147 @@ impl DownloadApp {
         (d.state == State::Completed).then(|| Path::new(&d.folder).join(&d.file_name))
     }
 
-    fn toolbar(&mut self, ui: &mut Ui, t: &Tokens) {
-        let sel = self.session.selection.and_then(|id| self.session.get(id)).map(|d| d.state);
-        let any = !self.session.downloads.is_empty();
+    fn sidebar(&mut self, ui: &mut Ui, t: &Tokens) {
+        // The app's mark and name.
         ui.horizontal(|ui| {
-            ui.spacing_mut().item_spacing.x = 4.0;
-            if widgets::tool_button(ui, t, Icon::Add, "Add link", true, true).on_hover_text("Add a link (Ctrl+N, or paste one)").clicked() {
-                self.open_add("");
+            let (r, _) = ui.allocate_exact_size(vec2(34.0, 34.0), egui::Sense::hover());
+            ui.painter().rect_filled(r, 9.0, t.accent);
+            icons::paint(ui.painter(), Rect::from_center_size(r.center(), vec2(20.0, 20.0)), Icon::Download, egui::Color32::WHITE);
+            ui.add_space(4.0);
+            ui.label(RichText::new("DownloadCraft").size(17.0).strong());
+        });
+        ui.add_space(18.0);
+        if widgets::button(ui, t, Kind::Primary, Some(Icon::Add), "Add link", true)
+            .on_hover_text("Add a link (Ctrl+N), or paste one anywhere (Ctrl+V)")
+            .clicked()
+        {
+            self.open_add("");
+        }
+        ui.add_space(18.0);
+        widgets::section(ui, t, "Downloads");
+        ui.spacing_mut().item_spacing.y = 2.0;
+        for f in Filter::ALL {
+            let n = self.session.count(f);
+            if widgets::nav_row(ui, t, filter_icon(f), f.label(), n, self.session.filter == f).clicked() {
+                let name = serde_json::to_value(f).unwrap_or(Value::Null);
+                self.run("list.filter", json!({"filter": name}));
             }
-            widgets::separator(ui, t);
-            if widgets::tool_button(ui, t, Icon::Resume, "Resume", sel.is_some_and(State::startable), false).clicked() {
-                self.run("download.resume", Value::Null);
+        }
+        ui.with_layout(egui::Layout::bottom_up(egui::Align::Min), |ui| {
+            if widgets::nav_row(ui, t, Icon::Settings, "Settings", 0, matches!(self.dialog, Some(Dialog::Settings(_)))).clicked() {
+                self.open_settings();
             }
-            if widgets::tool_button(ui, t, Icon::Pause, "Pause", sel.is_some_and(State::active), false).clicked() {
-                self.run("download.pause", Value::Null);
+            let folder = self.session.prefs.folder.clone();
+            if widgets::nav_row(ui, t, Icon::Folder, "Download folder", 0, false).on_hover_text(&folder).clicked() && !folder.is_empty() {
+                self.services.open(Path::new(&folder));
             }
-            if widgets::tool_button(ui, t, Icon::Remove, "Remove", sel.is_some(), false).on_hover_text("Remove from the list (Delete)").clicked() {
-                self.run("download.remove", Value::Null);
-            }
-            widgets::separator(ui, t);
-            if widgets::tool_button(ui, t, Icon::ResumeAll, "Resume all", any, false).clicked() {
-                self.run("download.resumeAll", Value::Null);
-            }
-            if widgets::tool_button(ui, t, Icon::PauseAll, "Pause all", any, false).clicked() {
-                self.run("download.pauseAll", Value::Null);
-            }
-            if widgets::tool_button(ui, t, Icon::Clear, "Clear completed", self.session.count(Filter::Completed) > 0, false).clicked() {
-                self.run("download.clearCompleted", Value::Null);
-            }
+            ui.add_space(8.0);
+            self.speed_card(ui, t);
+        });
+    }
+
+    /// How fast everything is going, at the foot of the sidebar.
+    fn speed_card(&self, ui: &mut Ui, t: &Tokens) {
+        let running = self.session.downloads.iter().filter(|d| d.state == State::Downloading).count();
+        egui::Frame::new().fill(t.card).corner_radius(10).inner_margin(12).stroke(egui::Stroke::new(1.0, t.border)).show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.spacing_mut().item_spacing.y = 2.0;
+            // The sidebar's foot is laid out from the bottom up, so the lines go in last first.
+            let text = match running {
+                0 => "Nothing downloading".to_string(),
+                1 => "1 download running".to_string(),
+                n => format!("{n} downloads running"),
+            };
+            ui.label(RichText::new(text).size(12.0).color(t.muted));
+            let speed = downloadcraft_engine::model::format::speed(self.session.total_speed());
+            ui.label(RichText::new(speed).size(18.0).strong().color(if running > 0 { t.accent } else { t.muted }));
+            ui.label(RichText::new("SPEED").size(11.0).color(t.faint).strong());
+        });
+    }
+
+    fn header(&mut self, ui: &mut Ui, t: &Tokens) {
+        ui.horizontal(|ui| {
+            ui.vertical(|ui| {
+                ui.spacing_mut().item_spacing.y = 0.0;
+                ui.label(RichText::new(self.session.filter.label()).size(22.0).strong());
+                let n = list::visible(&self.session, &self.search).len();
+                ui.label(RichText::new(if n == 1 { "1 download".to_string() } else { format!("{n} downloads") }).size(13.0).color(t.muted));
+            });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if widgets::tool_button(ui, t, Icon::Settings, "Settings", true, false).clicked() {
-                    self.open_settings();
+                let (icon, next, tip) = match self.session.prefs.theme {
+                    Theme::System => (Icon::Monitor, Theme::Light, "Theme: System. Click for Light"),
+                    Theme::Light => (Icon::Sun, Theme::Dark, "Theme: Light. Click for Dark"),
+                    Theme::Dark => (Icon::Moon, Theme::System, "Theme: Dark. Click for System"),
+                };
+                if widgets::button(ui, t, Kind::Secondary, Some(icon), "", true).on_hover_text(tip).clicked() {
+                    self.force_dark = None;
+                    self.run("prefs.theme", json!({"theme": next}));
                 }
-                let folder = self.session.prefs.folder.clone();
-                if widgets::tool_button(ui, t, Icon::Folder, "Open folder", !folder.is_empty(), false).on_hover_text(&folder).clicked() {
-                    self.services.open(Path::new(&folder));
+                // The search box, with its icon drawn inside.
+                let resp = ui.add(
+                    egui::TextEdit::singleline(&mut self.search)
+                        .id(egui::Id::unique("search"))
+                        .hint_text("Search downloads  (Ctrl+F)")
+                        .desired_width(260.0)
+                        .margin(Margin { left: 32, right: 10, top: 8, bottom: 8 }),
+                );
+                icons::paint(
+                    ui.painter(),
+                    Rect::from_center_size(resp.rect.left_center() + vec2(17.0, 0.0), vec2(15.0, 15.0)),
+                    Icon::Search,
+                    t.faint,
+                );
+                if resp.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+                    self.search.clear();
                 }
             });
         });
     }
 
-    fn categories(&mut self, ui: &mut Ui, t: &Tokens) {
-        ui.label(egui::RichText::new("DownloadCraft").strong().size(15.0).color(t.accent));
-        ui.add_space(8.0);
-        for f in Filter::ALL {
-            let n = self.session.count(f);
-            if widgets::category(ui, t, f.label(), n, self.session.filter == f).clicked() {
-                let name = serde_json::to_value(f).unwrap_or(Value::Null);
-                self.run("list.filter", json!({"filter": name}));
+    fn actions(&mut self, ui: &mut Ui, t: &Tokens) {
+        let sel = self.session.selection.and_then(|id| self.session.get(id)).map(|d| d.state);
+        let any = !self.session.downloads.is_empty();
+        ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = 2.0;
+            if widgets::button(ui, t, Kind::Ghost, Some(Icon::Resume), "Resume", sel.is_some_and(State::startable))
+                .on_hover_text("Resume (Space)")
+                .clicked()
+            {
+                self.run("download.resume", Value::Null);
             }
-        }
+            if widgets::button(ui, t, Kind::Ghost, Some(Icon::Pause), "Pause", sel.is_some_and(State::active))
+                .on_hover_text("Pause (Space)")
+                .clicked()
+            {
+                self.run("download.pause", Value::Null);
+            }
+            if widgets::button(ui, t, Kind::Ghost, Some(Icon::Remove), "Remove", sel.is_some())
+                .on_hover_text("Remove from the list (Delete)")
+                .clicked()
+            {
+                self.run("download.remove", Value::Null);
+            }
+            let (r, _) = ui.allocate_exact_size(vec2(17.0, 24.0), egui::Sense::hover());
+            ui.painter().vline(r.center().x, r.y_range(), egui::Stroke::new(1.0, t.border));
+            if widgets::button(ui, t, Kind::Ghost, Some(Icon::ResumeAll), "Resume all", any).clicked() {
+                self.run("download.resumeAll", Value::Null);
+            }
+            if widgets::button(ui, t, Kind::Ghost, Some(Icon::PauseAll), "Pause all", any).clicked() {
+                self.run("download.pauseAll", Value::Null);
+            }
+            if widgets::button(ui, t, Kind::Ghost, Some(Icon::Clear), "Clear completed", self.session.count(Filter::Completed) > 0).clicked() {
+                self.run("download.clearCompleted", Value::Null);
+            }
+        });
     }
 
     fn status_bar(&mut self, ui: &mut Ui, t: &Tokens) {
         ui.horizontal(|ui| {
-            ui.label(egui::RichText::new(&self.session.status).color(t.muted));
+            ui.label(RichText::new(&self.session.status).size(12.5).color(t.muted));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 self.update_status(ui, t);
-                let running = self.session.downloads.iter().filter(|d| d.state == State::Downloading).count();
-                if running > 0 {
-                    let speed = downloadcraft_engine::model::format::speed(self.session.total_speed());
-                    ui.label(egui::RichText::new(format!("{speed} · {running} downloading")).color(t.text));
-                } else {
-                    ui.label(egui::RichText::new(format!("{} downloads", self.session.downloads.len())).color(t.muted));
-                }
+                let n = self.session.downloads.len();
+                ui.label(RichText::new(format!("{n} in the list · {} connections each", self.session.prefs.connections)).size(12.5).color(t.faint));
             });
         });
     }

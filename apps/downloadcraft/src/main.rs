@@ -23,7 +23,8 @@ use downloadcraft_ui_egui::{DownloadApp, Services};
 const USAGE: &str = "\
 usage: downloadcraft [links…] [options]
 
-  --cmd <id>[=<json>]  run an engine command at start-up (repeatable)
+  --cmd <id>[=<json>]  run an engine command at start-up (repeatable); ui.settings and
+                       ui.add={\"links\": \"…\"} open those dialogs
   --light | --dark     force light or dark mode
   --data <folder>      keep the download list here instead of the user's data folder
   --version            print the version
@@ -217,7 +218,12 @@ fn main() -> eframe::Result {
             let mut app = DownloadApp::new(session, Box::new(Platform));
             app.force_dark = args.dark;
             for (id, v) in &args.cmds {
-                app.run(id, v.clone());
+                // `ui.*` opens a dialog (for scripting and screenshots); the rest are engine commands.
+                match id.as_str() {
+                    "ui.settings" => app.open_settings(),
+                    "ui.add" => app.open_add(v.get("links").and_then(serde_json::Value::as_str).unwrap_or("")),
+                    _ => app.run(id, v.clone()),
+                }
             }
             if !args.links.is_empty() {
                 app.open_add(&args.links.join("\n"));

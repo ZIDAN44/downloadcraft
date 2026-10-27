@@ -25,7 +25,7 @@ fn sample() -> Session {
         let Job::Fetch { id, run, .. } = job else { continue };
         s.apply(Event::Started { id, run, total: (i != 1).then_some(1_000_000), resumable: true, file_name: String::new(), done: 0 });
         match i {
-            0 => s.apply(Event::Progress { id, run, done: 420_000, speed: 1_300_000 }),
+            0 => s.apply(Event::Progress { id, run, done: 420_000, speed: 1_300_000, segments: Vec::new() }),
             2 => s.apply(Event::Finished { id, run, done: 1_000_000 }),
             3 => s.apply(Event::Failed { id, run, error: "the file isn't there any more (404)".into() }),
             _ => {}

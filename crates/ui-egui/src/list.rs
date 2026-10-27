@@ -1,12 +1,13 @@
-//! The download list: one row per download, newest first.
+//! The download list: one row per download, newest first, with a bar that shows each part a
+//! connection is fetching (as IDM does), and the row's actions when the pointer is over it.
 
 use std::path::{Path, PathBuf};
 
 use downloadcraft_engine::model::format;
 use downloadcraft_engine::{Download, DownloadId, Session, State};
-use egui::{Align2, FontId, Rect, Sense, Ui, pos2, vec2};
+use egui::{Align2, Color32, FontId, Rect, Sense, Ui, pos2, vec2};
 
-use crate::icons;
+use crate::icons::{self, Icon};
 use crate::theme::Tokens;
 
 pub enum Action {
@@ -17,12 +18,18 @@ pub enum Action {
     Add,
 }
 
-const ROW: f32 = 54.0;
+const ROW: f32 = 72.0;
 
-pub fn show(s: &Session, ui: &mut Ui, t: &Tokens, act: &mut Option<Action>) {
-    let rows: Vec<&Download> = s.visible().collect();
+/// The downloads the filter and the search show.
+pub fn visible<'a>(s: &'a Session, search: &str) -> Vec<&'a Download> {
+    let needle = search.trim().to_lowercase();
+    s.visible().filter(|d| needle.is_empty() || d.file_name.to_lowercase().contains(&needle) || d.url.to_lowercase().contains(&needle)).collect()
+}
+
+pub fn show(s: &Session, search: &str, ui: &mut Ui, t: &Tokens, act: &mut Option<Action>) {
+    let rows = visible(s, search);
     if rows.is_empty() {
-        empty(s, ui, t, act);
+        empty(s, !search.trim().is_empty(), ui, t, act);
         return;
     }
     egui::ScrollArea::vertical().auto_shrink([false, false]).show_rows(ui, ROW, rows.len(), |ui, range| {
@@ -32,27 +39,35 @@ pub fn show(s: &Session, ui: &mut Ui, t: &Tokens, act: &mut Option<Action>) {
     });
 }
 
-fn empty(s: &Session, ui: &mut Ui, t: &Tokens, act: &mut Option<Action>) {
+fn empty(s: &Session, searching: bool, ui: &mut Ui, t: &Tokens, act: &mut Option<Action>) {
+    let (title, hint) = if searching {
+        ("No matches", "Nothing in this list has that name or link.")
+    } else if s.downloads.is_empty() {
+        ("No downloads yet", "Paste a link anywhere in this window with Ctrl+V, or add one.")
+    } else {
+        ("Nothing here", "Downloads in this category show up here.")
+    };
     ui.vertical_centered(|ui| {
-        ui.add_space(ui.available_height() * 0.3);
-        let (title, hint) = if s.downloads.is_empty() {
-            ("No downloads yet", "Paste a link anywhere in the window (Ctrl+V), or add one.")
-        } else {
-            ("Nothing here", "Downloads in this category show up here.")
-        };
-        ui.label(egui::RichText::new(title).size(18.0).strong());
-        ui.add_space(4.0);
+        ui.add_space((ui.available_height() * 0.5 - 130.0).max(24.0));
+        let (r, _) = ui.allocate_exact_size(vec2(88.0, 88.0), Sense::hover());
+        ui.painter().circle_filled(r.center(), 44.0, t.accent_soft);
+        icons::paint(ui.painter(), Rect::from_center_size(r.center(), vec2(40.0, 40.0)), Icon::Download, t.accent);
+        ui.add_space(14.0);
+        ui.label(egui::RichText::new(title).size(20.0).strong());
+        ui.add_space(2.0);
         ui.label(egui::RichText::new(hint).color(t.muted));
-        if s.downloads.is_empty() {
-            ui.add_space(12.0);
-            if ui.button("Add link").clicked() {
+        if s.downloads.is_empty() && !searching {
+            ui.add_space(16.0);
+            if crate::widgets::button(ui, t, crate::widgets::Kind::Primary, Some(Icon::Add), "Add link", true).clicked() {
                 *act = Some(Action::Add);
             }
+            ui.add_space(18.0);
+            ui.label(egui::RichText::new("Direct links download now · torrents, magnet links and MEGA are on the way").size(12.0).color(t.faint));
         }
     });
 }
 
-/// What the second line says: how far, how fast, how long.
+/// What the second line says: how far, how fast, how long, on how many connections.
 fn detail(d: &Download) -> String {
     let size = match d.total {
         Some(t) if d.state != State::Completed => format!("{} of {}", format::bytes(d.done), format::bytes(t)),
@@ -70,76 +85,152 @@ fn detail(d: &Download) -> String {
             if let Some(eta) = d.eta() {
                 bits.push(format!("{} left", format::duration(eta)));
             }
+            let going = d.segments.iter().filter(|s| !s.finished()).count();
+            if going > 1 {
+                bits.push(format!("{going} connections"));
+            }
         }
         State::Downloading => bits.push("Connecting…".into()),
+        State::Queued => bits.push("Waiting for a free slot".into()),
         State::Failed => bits.push(d.error.clone().unwrap_or_else(|| "Failed".into())),
         State::Paused if d.done > 0 && !d.resumable => bits.push("starts over when resumed".into()),
         _ => {}
     }
-    bits.join(" · ")
+    bits.join("  ·  ")
 }
 
-fn row(d: &Download, selected: bool, ui: &mut Ui, t: &Tokens, act: &mut Option<Action>) {
-    let (rect, resp) = ui.allocate_exact_size(vec2(ui.available_width(), ROW), Sense::click());
-    let p = ui.painter_at(rect);
-    if selected {
-        p.rect_filled(rect, 0.0, t.selected);
-    } else if resp.hovered() {
-        p.rect_filled(rect, 0.0, t.hover);
-    }
-    p.hline(rect.x_range(), rect.bottom() - 0.5, egui::Stroke::new(1.0, t.border));
-    icons::file_badge(&p, Rect::from_min_size(rect.min + vec2(14.0, 11.0), vec2(32.0, 32.0)), &d.file_name, t.dark);
-
-    let bar_w = (rect.width() * 0.28).clamp(120.0, 260.0);
-    let text_right = rect.right() - bar_w - 120.0;
-    let name_w = (text_right - rect.left() - 60.0).max(40.0);
-    let name = egui::WidgetText::from(egui::RichText::new(&d.file_name).size(14.0).strong()).into_galley(
-        ui,
-        Some(egui::TextWrapMode::Truncate),
-        name_w,
-        egui::TextStyle::Body,
-    );
-    p.galley(pos2(rect.left() + 58.0, rect.top() + 9.0), name, t.text);
-    let info = egui::WidgetText::from(egui::RichText::new(detail(d)).size(12.0)).into_galley(
-        ui,
-        Some(egui::TextWrapMode::Truncate),
-        name_w,
-        egui::TextStyle::Body,
-    );
-    let info_color = if d.state == State::Failed { t.danger } else { t.muted };
-    p.galley(pos2(rect.left() + 58.0, rect.top() + 30.0), info, info_color);
-
-    // The bar and the state.
-    let bar = Rect::from_min_size(pos2(rect.right() - bar_w - 110.0, rect.center().y - 4.0), vec2(bar_w, 8.0));
-    p.rect_filled(bar, 4.0, t.chrome);
-    let color = match d.state {
+fn state_color(d: &Download, t: &Tokens) -> Color32 {
+    match d.state {
         State::Completed => t.success,
         State::Failed => t.danger,
         State::Paused => t.warning,
-        _ => t.accent,
-    };
-    match d.fraction() {
-        Some(f) => {
-            let w = (bar.width() * f).max(if f > 0.0 { 8.0 } else { 0.0 });
-            p.rect_filled(Rect::from_min_size(bar.min, vec2(w, bar.height())), 4.0, color);
+        State::Queued => t.muted,
+        State::Downloading => t.accent,
+    }
+}
+
+/// The progress bar: one thin bar, filled part by part when connections fetch parts.
+fn bar(d: &Download, rect: Rect, ui: &Ui, t: &Tokens) {
+    let p = ui.painter();
+    p.rect_filled(rect, rect.height() / 2.0, t.chrome);
+    let color = state_color(d, t);
+    let total = d.total.unwrap_or(0);
+    if !d.segments.is_empty() && total > 0 && d.state == State::Downloading {
+        let x = |b: u64| rect.left() + rect.width() * (b as f64 / total as f64) as f32;
+        for s in &d.segments {
+            let (a, b) = (x(s.start), x(s.start.saturating_add(s.done)));
+            if b > a {
+                p.rect_filled(Rect::from_x_y_ranges(a..=b, rect.y_range()), 1.5, color);
+            }
+            // Where each part starts, as a hairline.
+            if s.start > 0 {
+                p.vline(x(s.start), rect.y_range(), egui::Stroke::new(1.0, t.surface));
+            }
         }
-        // An unknown size: a sliding stripe while it runs.
+        return;
+    }
+    match d.fraction() {
+        Some(f) if f > 0.0 => {
+            let w = (rect.width() * f).max(rect.height());
+            p.rect_filled(Rect::from_min_size(rect.min, vec2(w, rect.height())), rect.height() / 2.0, color);
+        }
         None if d.state == State::Downloading => {
+            // An unknown size: a sliding stripe while it runs.
             let time = ui.input(|i| i.time) as f32;
-            let x = bar.left() + (time * 0.6).fract() * (bar.width() - 40.0);
-            p.rect_filled(Rect::from_min_size(pos2(x, bar.top()), vec2(40.0, bar.height())), 4.0, color);
+            let x = rect.left() + (time * 0.6).fract() * (rect.width() - 60.0);
+            p.rect_filled(Rect::from_min_size(pos2(x, rect.top()), vec2(60.0, rect.height())), rect.height() / 2.0, color);
             ui.ctx().request_repaint();
         }
-        None => {}
+        _ => {}
     }
-    let pct = d.fraction().map(|f| format!("{:.0}%", f * 100.0)).unwrap_or_default();
-    let label = if d.state == State::Downloading { pct } else { d.state.label().to_string() };
-    p.text(pos2(rect.right() - 14.0, rect.center().y), Align2::RIGHT_CENTER, label, FontId::proportional(12.5), color);
+}
 
-    if resp.clicked() {
+/// A small round button drawn at `center`; true when clicked.
+fn row_button(ui: &mut Ui, id: egui::Id, center: egui::Pos2, icon: Icon, tip: &str, t: &Tokens) -> bool {
+    let r = Rect::from_center_size(center, vec2(32.0, 32.0));
+    let resp = ui.interact(r, id, Sense::click()).on_hover_text(tip).on_hover_cursor(egui::CursorIcon::PointingHand);
+    let p = ui.painter();
+    p.rect_filled(r, 8.0, if resp.hovered() { t.surface } else { t.card });
+    p.rect_stroke(r, 8.0, egui::Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
+    icons::paint(p, Rect::from_center_size(center, vec2(15.0, 15.0)), icon, if icon == Icon::Remove { t.danger } else { t.text });
+    resp.clicked()
+}
+
+fn row(d: &Download, selected: bool, ui: &mut Ui, t: &Tokens, act: &mut Option<Action>) {
+    let (outer, resp) = ui.allocate_exact_size(vec2(ui.available_width(), ROW), Sense::click());
+    let rect = outer.shrink2(vec2(12.0, 4.0));
+    let hovered = ui.rect_contains_pointer(outer);
+    {
+        let p = ui.painter();
+        if selected {
+            p.rect_filled(rect, 10.0, t.selected);
+        } else if hovered {
+            p.rect_filled(rect, 10.0, t.hover);
+        }
+        icons::file_badge(p, Rect::from_min_size(rect.min + vec2(12.0, 12.0), vec2(40.0, 40.0)), &d.file_name, t.dark);
+    }
+
+    let actions_w = if hovered { 124.0 } else { 0.0 };
+    let right = rect.right() - 16.0;
+    let label_w = 92.0;
+    let bar_w = (rect.width() * 0.26).clamp(110.0, 280.0);
+    let text_x = rect.left() + 66.0;
+    let text_w = (right - label_w - bar_w - 24.0 - text_x - actions_w).max(60.0);
+    let name = egui::WidgetText::from(egui::RichText::new(&d.file_name).size(14.5).strong()).into_galley(
+        ui,
+        Some(egui::TextWrapMode::Truncate),
+        text_w,
+        egui::TextStyle::Body,
+    );
+    let info = egui::WidgetText::from(egui::RichText::new(detail(d)).size(12.5)).into_galley(
+        ui,
+        Some(egui::TextWrapMode::Truncate),
+        text_w,
+        egui::TextStyle::Body,
+    );
+    ui.painter().galley(pos2(text_x, rect.top() + 14.0), name, t.text);
+    ui.painter().galley(pos2(text_x, rect.top() + 37.0), info, if d.state == State::Failed { t.danger } else { t.muted });
+
+    let bar_rect = Rect::from_min_size(pos2(right - label_w - bar_w - actions_w, rect.center().y - 3.0), vec2(bar_w, 6.0));
+    bar(d, bar_rect, ui, t);
+    let label = match (d.state, d.fraction()) {
+        (State::Downloading, Some(f)) => format!("{:.0}%", f * 100.0),
+        (State::Downloading, None) => format::bytes(d.done),
+        (s, _) => s.label().to_string(),
+    };
+    ui.painter().text(pos2(right - actions_w, rect.center().y), Align2::RIGHT_CENTER, label, FontId::proportional(13.0), state_color(d, t));
+
+    let file = Path::new(&d.folder).join(&d.file_name);
+    if hovered {
+        let y = rect.center().y;
+        let mut x = right - 16.0;
+        let id = ui.scope_id().with(("row", d.id.0));
+        if row_button(ui, id.with("remove"), pos2(x, y), Icon::Remove, "Remove (Delete)", t) {
+            *act = Some(Action::Run("download.remove", d.id));
+        }
+        x -= 40.0;
+        if row_button(ui, id.with("folder"), pos2(x, y), Icon::Folder, "Open folder", t) {
+            *act = Some(Action::Open(PathBuf::from(&d.folder)));
+        }
+        x -= 40.0;
+        let (icon, tip, cmd) = if d.state.active() {
+            (Icon::Pause, "Pause", Some("download.pause"))
+        } else if d.state.startable() {
+            (Icon::Resume, "Resume", Some("download.resume"))
+        } else {
+            (Icon::Check, "Open", None)
+        };
+        if row_button(ui, id.with("main"), pos2(x, y), icon, tip, t) {
+            *act = Some(match cmd {
+                Some(c) => Action::Run(c, d.id),
+                None => Action::Open(file.clone()),
+            });
+        }
+    }
+
+    if resp.clicked() && act.is_none() {
         *act = Some(Action::Select(d.id));
     }
-    let file = Path::new(&d.folder).join(&d.file_name);
     if resp.double_clicked() {
         *act = Some(if d.state == State::Completed {
             Action::Open(file.clone())
