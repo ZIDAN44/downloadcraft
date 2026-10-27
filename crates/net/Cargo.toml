@@ -24,6 +24,10 @@ zip = { version = "9", default-features = false, features = ["deflate-flate2-zli
 fs4 = { version = "1", default-features = false }
 log = { workspace = true }
 thiserror = { workspace = true }
+
+# Torrents, everywhere but FreeBSD: librqbit-dualstack-sockets 0.7 (through librqbit) asks socket2
+# for `bind_device`, which FreeBSD hasn't got, so it doesn't build there (src/torrent_off.rs).
+[target.'cfg(not(target_os = "freebsd"))'.dependencies]
 # Torrents and magnet links (BEP 3, 5, 9, 10): rqbit's engine (Apache-2.0), on rustls like the rest.
 librqbit = { version = "9", default-features = false, features = ["rust-tls"] }
 tokio = { version = "1", features = ["rt-multi-thread"] }

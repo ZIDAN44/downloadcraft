@@ -89,7 +89,8 @@ Download only videos you have the right to. DRM-protected videos aren't supporte
 - Peers are found through trackers, the DHT and peer exchange, with
   [librqbit](https://github.com/ikatson/rqbit).
 
-Download and share only what you have the right to.
+Download and share only what you have the right to. (Not on FreeBSD yet: a library the torrent
+engine needs doesn't build there.)
 
 ### The window
 

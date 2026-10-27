@@ -8,6 +8,12 @@
 
 pub mod http;
 pub mod probe;
+#[cfg(not(target_os = "freebsd"))]
+pub mod torrent;
+/// On FreeBSD, where librqbit doesn't build: the same calls, each saying torrents aren't
+/// available there yet.
+#[cfg(target_os = "freebsd")]
+#[path = "torrent_off.rs"]
 pub mod torrent;
 pub mod updates;
 pub mod video;

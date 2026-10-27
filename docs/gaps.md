@@ -4,6 +4,10 @@ The work for the next milestone and the known gaps, most important first. When a
 remove it and record it in the [Progress log](../ROADMAP.md#progress-log).
 
 1. **More from torrents.**
+   - FreeBSD has no torrents: `librqbit-dualstack-sockets` 0.7 (through librqbit) asks for a
+     socket option FreeBSD hasn't got (`SO_BINDTODEVICE`) and doesn't build there, so the FreeBSD
+     packages leave librqbit out and say so (`crates/net/src/torrent_off.rs`). The fix belongs in
+     that crate: `bind_device` only where socket2 has it (Linux, Android, Fuchsia).
    - Web seeds and peers take turns rather than working at once: the web seeds go first, then
      peers fill in. The HTTP downloader has no speed limit yet, so a torrent under a download
      limit (its own or the overall one) leaves its web seeds unused.
