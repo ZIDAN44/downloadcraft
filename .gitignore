@@ -5,3 +5,5 @@ plan/
 *.tmp*
 .DS_Store
 /.claude/
+/result
+/result-*

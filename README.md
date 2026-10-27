@@ -91,6 +91,7 @@ Test builds are on the [releases page](https://github.com/ZIDAN44/downloadcraft/
 | macOS (Apple silicon and Intel) | `.dmg` |
 | Linux x86_64 / aarch64 | `.AppImage`, `.deb`, `.rpm`, `.flatpak`, `.tar.gz` |
 | Linux riscv64, FreeBSD | `.deb`, `.rpm`, `.tar.gz` |
+| Nix (Linux, Apple silicon) | `nix run github:ZIDAN44/downloadcraft`, or the flake's package and overlay |
 
 Installed from the `.msi`, the portable zip, the `.dmg` or the `.AppImage`, DownloadCraft updates
 itself: it downloads the next version in the background, checks its SHA-256, and installs it when

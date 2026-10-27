@@ -93,3 +93,7 @@ next version: the version is raised and the Progress log gains its entry before 
   JavaScript runtime and offers fewer formats without one (53 against 61 on a 4K video). Add link
   offers to fetch Deno's official build when a YouTube link is in the box, checked against its
   published checksum, and yt-dlp is pointed at it.
+- **2026-10-27** — **v0.3**: a Nix flake (`nix build`, `nix run`, a dev shell, an overlay; from
+  LightCraft's), evaluated in CI by the shared workflow and built once in a container, its tests
+  passing in the sandbox. Show in folder checked against real Linux file managers: Nautilus and
+  Thunar open the folder with the file selected, a name with spaces and accents included.
