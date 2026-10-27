@@ -23,7 +23,7 @@
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/add-link.png" alt="The Add link dialog with four links pasted: two direct links shown with their file names, a magnet link marked as arriving in v0.3, the folder to save to, Start downloading now, and Add 2 downloads" width="100%"><p align="center"><sub><b>Paste several links at once.</b> Each is checked as you type, with the file name it will get.</sub></p></td>
+<td width="50%"><img src="docs/images/add-link.png" alt="The Add link dialog with four links pasted, one per numbered line with a dot for each: two direct links in green, shown below with their file names; a magnet link and a YouTube page in amber, as kinds that arrive in later versions; the folder to save to, Start downloading now, and Add 2 downloads" width="100%"><p align="center"><sub><b>Paste several links at once.</b> Each line is checked as you type: green downloads now, amber comes in a later version, red isn't a link.</sub></p></td>
 <td width="50%"><img src="docs/images/settings.png" alt="Settings in the light theme: Theme with Dark, Light and System, the download folder, downloads at once and connections per download" width="100%"><p align="center"><sub><b>Light, dark or the system's</b> theme, and how many connections each download may open.</sub></p></td>
 </tr>
 </table>

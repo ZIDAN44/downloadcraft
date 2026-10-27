@@ -132,9 +132,10 @@ fn links_box(ui: &mut Ui, t: &Tokens, links: &mut String) {
             ui.label(RichText::new(text).size(12.5).color(t.faint));
         });
     });
-    let font = egui::FontId::monospace(LINK_FONT);
-    let row = ui.fonts_mut(|fonts| fonts.row_height(&font));
-    let rows = links.lines().count().max(1);
+    // A row as the text box lays it out (taller than the font's own row height).
+    let probe = egui::text::LayoutJob::simple("X".into(), egui::FontId::monospace(LINK_FONT), t.text, f32::INFINITY);
+    let row = ui.fonts_mut(|f| f.layout_job(probe)).rows.first().map_or(18.0, |r| r.rect().height());
+    let rows = links.split('\n').count().max(1);
     // Four lines tall at first, growing to seven; past that it scrolls.
     let visible = rows.clamp(4, 7) as f32;
     let height = visible * row + 2.0 * LINK_PAD;
@@ -149,41 +150,43 @@ fn links_box(ui: &mut Ui, t: &Tokens, links: &mut String) {
         egui::ScrollArea::vertical().id_salt("links-v").max_height(height).min_scrolled_height(height).show(ui, |ui| {
             ui.horizontal_top(|ui| {
                 ui.spacing_mut().item_spacing.x = 0.0;
-                // The gutter: a number and a dot per line.
-                let lines: Vec<&str> = if links.is_empty() { vec![""] } else { links.split('\n').collect() };
-                let (gutter, _) =
-                    ui.allocate_exact_size(vec2(GUTTER, (lines.len().max(visible as usize)) as f32 * row + 2.0 * LINK_PAD), Sense::hover());
-                let p = ui.painter();
-                p.vline(gutter.right() - 0.5, gutter.y_range(), egui::Stroke::new(1.0, t.border));
-                for (i, line) in lines.iter().enumerate() {
-                    let y = gutter.top() + LINK_PAD + row * (i as f32 + 0.5);
-                    if let Some(c) = line_color(line, t) {
-                        p.circle_filled(egui::pos2(gutter.left() + 11.0, y), 3.5, c);
-                    }
-                    let number = (i + 1).to_string();
-                    p.text(egui::pos2(gutter.right() - 9.0, y), egui::Align2::RIGHT_CENTER, number, egui::FontId::monospace(11.5), t.faint);
-                }
+                // The gutter's place; its numbers and dots are drawn once the text is laid out, at
+                // the text's own rows, so they stay beside their lines however far it scrolls.
+                let (gutter, _) = ui.allocate_exact_size(vec2(GUTTER, height), Sense::hover());
+                let painter = ui.painter().clone();
                 // The text: laid out without wrapping, so each link stays on its own line.
                 let text_color = t.text;
                 let mut layouter = |ui: &Ui, buf: &dyn egui::TextBuffer, _wrap: f32| {
                     let job = egui::text::LayoutJob::simple(buf.as_str().to_string(), egui::FontId::monospace(LINK_FONT), text_color, f32::INFINITY);
                     ui.fonts_mut(|f| f.layout_job(job))
                 };
-                egui::ScrollArea::horizontal().id_salt("links-h").show(ui, |ui| {
-                    let edit = ui.add(
-                        egui::TextEdit::multiline(links)
-                            .id(id)
-                            .frame(egui::Frame::new())
-                            .desired_rows(visible as usize)
-                            .desired_width(f32::INFINITY)
-                            .margin(egui::Margin { left: 12, right: LINK_PAD as i8, top: LINK_PAD as i8, bottom: LINK_PAD as i8 })
-                            .layouter(&mut layouter)
-                            .hint_text(RichText::new("https://example.com/file.zip").font(egui::FontId::monospace(LINK_FONT)).color(t.faint)),
-                    );
-                    if ui.memory(|m| m.focused().is_none()) {
-                        edit.request_focus();
-                    }
+                let shown = egui::ScrollArea::horizontal().id_salt("links-h").show(ui, |ui| {
+                    egui::TextEdit::multiline(links)
+                        .id(id)
+                        .frame(egui::Frame::new())
+                        .desired_rows(visible as usize)
+                        .desired_width(f32::INFINITY)
+                        .margin(egui::Margin { left: 12, right: LINK_PAD as i8, top: LINK_PAD as i8, bottom: LINK_PAD as i8 })
+                        .layouter(&mut layouter)
+                        .hint_text(RichText::new("https://example.com/file.zip").font(egui::FontId::monospace(LINK_FONT)).color(t.faint))
+                        .show(ui)
                 });
+                let out = shown.inner;
+                if ui.memory(|m| m.focused().is_none()) {
+                    out.response.response.request_focus();
+                }
+                let bottom = gutter.bottom().max(out.galley_pos.y + out.galley.size().y + LINK_PAD);
+                painter.vline(gutter.right() - 0.5, gutter.top()..=bottom, egui::Stroke::new(1.0, t.border));
+                // With no wrapping, the galley's rows are the lines, in order.
+                let lines: Vec<&str> = links.split('\n').collect();
+                for (i, placed) in out.galley.rows.iter().enumerate() {
+                    let y = out.galley_pos.y + placed.rect().center().y;
+                    if let Some(c) = lines.get(i).and_then(|l| line_color(l, t)) {
+                        painter.circle_filled(egui::pos2(gutter.left() + 11.0, y), 3.5, c);
+                    }
+                    let number = (i + 1).to_string();
+                    painter.text(egui::pos2(gutter.right() - 9.0, y), egui::Align2::RIGHT_CENTER, number, egui::FontId::monospace(11.5), t.faint);
+                }
             });
         });
     });
@@ -292,7 +295,11 @@ pub fn settings(ctx: &egui::Context, f: &mut SettingsForm, t: &Tokens, services:
         ui.separator();
         widgets::section(ui, t, "About");
         ui.label(RichText::new(format!("DownloadCraft {version}")).size(13.5));
-        ui.label(RichText::new("Updates install by themselves: a bar says when one is ready.").size(12.0).color(t.muted));
+        ui.label(
+            RichText::new("DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.")
+                .size(12.0)
+                .color(t.muted),
+        );
         ui.add_space(14.0);
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
             if widgets::button(ui, t, Kind::Primary, None, "Save", !f.folder.trim().is_empty()).clicked() {
