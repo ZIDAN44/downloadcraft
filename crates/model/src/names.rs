@@ -49,15 +49,16 @@ pub fn sanitize(name: &str) -> String {
     let cleaned: String =
         name.chars().map(|c| if c.is_control() || matches!(c, '/' | '\\' | ':' | '*' | '?' | '"' | '<' | '>' | '|') { '_' } else { c }).collect();
     let trimmed = cleaned.trim_matches(|c: char| c == '.' || c.is_whitespace());
-    if trimmed.is_empty() || trimmed.chars().all(|c| c == '_') {
+    // Checked after cutting to length: a long run of replaced characters can be all that's left.
+    let mut out = cap(trimmed);
+    if out.is_empty() || out.chars().all(|c| c == '_') {
         return FALLBACK.to_string();
     }
-    let mut out = cap(trimmed);
     let stem = out.split('.').next().unwrap_or("").trim_end().to_ascii_uppercase();
     const RESERVED: &[&str] = &["CON", "PRN", "AUX", "NUL"];
     let numbered = (stem.starts_with("COM") || stem.starts_with("LPT")) && stem.len() == 4 && stem.as_bytes().get(3).is_some_and(u8::is_ascii_digit);
     if RESERVED.contains(&stem.as_str()) || numbered {
-        out.insert(0, '_');
+        out = cap(&format!("_{out}"));
     }
     out
 }
@@ -73,7 +74,8 @@ fn cap(name: &str) -> String {
     while end > 0 && !name.is_char_boundary(end) {
         end -= 1;
     }
-    let stem = name.get(..end).unwrap_or("").trim_end_matches(['.', ' ']);
+    // Any whitespace, as `sanitize` trims: a cut can end on a no-break space (found by fuzzing).
+    let stem = name.get(..end).unwrap_or("").trim_end_matches(|c: char| c == '.' || c.is_whitespace());
     if ext.is_empty() { stem.to_string() } else { format!("{stem}.{ext}") }
 }
 

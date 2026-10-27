@@ -58,6 +58,18 @@ fn sanitizes_for_every_file_system() {
     let s = sanitize(&long);
     assert!(s.len() <= crate::names::MAX_NAME, "{}", s.len());
     assert!(s.ends_with(".zip"));
+    // Found by the `names` fuzz target: control characters cut to length left only underscores,
+    // which a second pass turned into the fallback; and a reserved name at full length grew a byte.
+    let replaced = format!("{}a///", "\u{0}".repeat(300));
+    assert_eq!(sanitize(&replaced), "download");
+    let con = format!("CON.{}", "x".repeat(196));
+    assert_eq!(sanitize(&con).len(), crate::names::MAX_NAME);
+    assert!(sanitize(&con).starts_with("_CON."));
+    let nbsp = format!("{}\u{a0}{}", "a".repeat(199), "b".repeat(10));
+    assert_eq!(sanitize(&nbsp), "a".repeat(199), "cut on a no-break space, which goes too");
+    for s in [&replaced, &con, &long, &nbsp] {
+        assert_eq!(sanitize(&sanitize(s)), sanitize(s));
+    }
     assert_eq!(numbered("a.tar.gz", 2), "a.tar (2).gz");
     assert_eq!(numbered("README", 1), "README (1)");
     assert_eq!(numbered(".bashrc", 1), ".bashrc (1)");
