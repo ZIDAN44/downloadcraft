@@ -98,6 +98,14 @@ A download manager that crashes loses hours of downloading. **This outranks feat
   follow releases, test builds follow test builds too (`apps/downloadcraft/src/self_update.rs`,
   `docs/updates.md`).
 
+## Versions and the changelog
+- The version lives only in `[workspace.package]`: `cargo xtask version set X.Y.Z`.
+- The changelog is `ROADMAP.md`'s **Progress log** (dated entries, each naming its version) and its
+  **Stage** line, as in MailCraft.
+- Once a test build of a version has been published, everything after it is the next version:
+  raise the version and add its Progress log entry in a "Docs and version" commit before the next
+  test build, so no two different builds carry the same version.
+
 ## Quality gates
 Before every commit: `cargo xtask ci`. Commit after every arc of work that builds.
 The version lives only in `[workspace.package]` (`cargo xtask version [set X.Y.Z]`). Keep the app
