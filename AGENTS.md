@@ -81,6 +81,15 @@ A download manager that crashes loses hours of downloading. **This outranks feat
   the pieces go in `foo/bar.rs` (modern layout, never `mod.rs`).
 - `xtask/sizes.txt` may shrink, never grow, and nothing is ever added to it.
 
+## Packaging, releases and updates
+- `packaging/` holds the installer scripts (Windows MSI and portable zip, macOS dmg, Linux
+  AppImage/deb/rpm/tar/Flatpak, FreeBSD); `.github/workflows/release.yml` (signed, through
+  `storytold/craft-common-actions`) and `release-wip.yml` (unsigned test builds, run by hand)
+  call them. Keep the app id, binary names and the WiX `UpgradeCode` stable.
+- The Windows MSI installs **per user** (no administrator); don't switch it to per-machine
+  without reading `docs/updates.md`.
+- Test builds update themselves (`apps/downloadcraft/src/self_update.rs`, `docs/updates.md`).
+
 ## Quality gates
 Before every commit: `cargo xtask ci`. Commit after every arc of work that builds.
 The version lives only in `[workspace.package]` (`cargo xtask version [set X.Y.Z]`). Keep the app

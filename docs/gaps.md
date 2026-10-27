@@ -13,7 +13,8 @@ Missing features and known problems in v0.1, most important first. Remove an ite
    renderer fallback on Windows and a message box when the window can't open.
 5. **One instance per data folder** (`single_instance.rs`), so a second launch with a link hands
    it to the running window.
-6. **Packaging and release workflows** (`packaging/`, `release.yml`) through
-   `storytold/craft-common-actions`, and the craft-launcher catalog entry.
+6. **The craft-launcher catalog entry**, and the Windows ARM64 install test MailCraft runs
+   (`windows-arm64.yml`): the shared workflow looks for the app in Program Files, and
+   DownloadCraft's MSI installs per user.
 7. **Free-space check** before a start, and a clear message when the disk fills.
 8. **Fuzz targets** for `Content-Range`, `Content-Disposition` and `source::classify`.

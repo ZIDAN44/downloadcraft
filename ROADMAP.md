@@ -28,8 +28,8 @@ named for what it adds. The ranked work list for the current milestone is
    computer, the key never leaves it); video pages where the site permits downloading. Never
    around DRM, paywalls or sign-in walls.
 6. **v0.6 — Everywhere** A browser extension (Chrome, Firefox, Edge) that hands links and
-   downloads to the app; the clipboard watched for links; installers (MSI, dmg, AppImage, deb,
-   rpm, Flatpak) through `storytold/craft-common-actions`; the Craft launcher catalog.
+   downloads to the app; the clipboard watched for links; the Craft launcher catalog.
+   (Installers and self-updating test builds landed early, in v0.1.)
 7. **v0.7 — Polish** Fourteen languages through craft-i18n, right-to-left layouts, the list
    sortable and searchable, a details pane with the response headers, checksums (SHA-256)
    checked after download.

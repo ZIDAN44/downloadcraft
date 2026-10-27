@@ -48,7 +48,22 @@
 Torrent, magnet, MEGA and FTP links are recognised now, and the Add dialog says which version
 brings each.
 
-## Running it
+## Installing
+
+Test builds are on the [releases page](https://github.com/ZIDAN44/downloadcraft/releases):
+
+| Platform | Files |
+|---|---|
+| Windows x64 / x86 / ARM64 | `.msi` (installs for you only, no administrator needed) or the `-portable.zip` |
+| macOS (Apple silicon and Intel) | `.dmg` |
+| Linux x86_64 / aarch64 | `.AppImage`, `.deb`, `.rpm`, `.flatpak`, `.tar.gz` |
+| Linux riscv64, FreeBSD | `.deb`, `.rpm`, `.tar.gz` |
+
+Installed from the `.msi`, the portable zip, the `.dmg` or the `.AppImage`, a test build updates
+itself: it downloads the next one in the background, checks its SHA-256, and installs it when you
+restart. See [docs/updates.md](docs/updates.md).
+
+## Running it from source
 
 ```bash
 cargo run -p downloadcraft
