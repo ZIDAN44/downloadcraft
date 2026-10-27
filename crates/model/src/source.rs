@@ -111,6 +111,18 @@ pub fn classify(text: &str) -> Result<SourceKind, &'static str> {
     }
 }
 
+/// Whether a video page's link may be a playlist or a channel rather than one video: a `list=`
+/// without a `v=`, or a path naming a playlist, a channel or a user. A guess, used to decide whether
+/// to look before downloading; the look (yt-dlp) says for sure.
+pub fn may_be_playlist(url: &str) -> bool {
+    let Some((_, rest)) = url.split_once("//") else { return false };
+    let lower = path_of(rest).to_ascii_lowercase();
+    let query = rest.split_once('?').map_or("", |(_, q)| q).to_ascii_lowercase();
+    let has = |k: &str| query.split('&').any(|p| p.starts_with(k));
+    (has("list=") && !has("v="))
+        || ["/playlist", "/channel/", "/c/", "/user/", "/@", "/videos", "/showcase/", "/album/"].iter().any(|p| lower.contains(p))
+}
+
 /// The host of `after` (what follows `scheme://`), lowercased, without user info or port.
 fn host_of(after: &str) -> String {
     let authority = after.split(['/', '?', '#']).next().unwrap_or("");

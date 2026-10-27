@@ -172,6 +172,9 @@ pub struct Prefs {
     /// Whether Remove also deletes the file, as last chosen in its question.
     #[serde(default)]
     pub delete_files_on_remove: bool,
+    /// The languages whose subtitles come with a video, as typed (`en, es`); empty for none.
+    #[serde(default)]
+    pub subtitles: String,
 }
 
 fn default_max_active() -> usize {
@@ -195,6 +198,7 @@ impl Default for Prefs {
             connections: default_connections(),
             theme: Theme::System,
             delete_files_on_remove: false,
+            subtitles: String::new(),
         }
     }
 }

@@ -40,6 +40,8 @@ pub(crate) struct VideoFetch {
     pub file_name: String,
     pub selector: String,
     pub connections: u8,
+    /// yt-dlp's `--sub-langs`, empty for no subtitles.
+    pub subtitles: String,
 }
 
 fn command(ytdlp: &Path) -> Command {
@@ -76,11 +78,14 @@ fn drain(mut r: impl Read + Send + 'static, max: usize) -> mpsc::Receiver<Vec<u8
     rx
 }
 
-/// Look at a video page: its title, the name the file will get, and its qualities.
+/// Look at a video page: its title, the name the file will get, and its qualities; or, for a
+/// playlist or channel page, its videos (`--flat-playlist`: listed without opening each one). A
+/// video link that also names a playlist (`watch?v=…&list=…`) is the one video.
 pub fn probe_video(url: &str) -> Probe {
     let Some(ytdlp) = tools::ytdlp() else { return Probe::Failed("video downloads need yt-dlp".into()) };
     let mut cmd = command(&ytdlp);
-    cmd.args(["-J", "--no-playlist", "--no-warnings", "--skip-download", "--", url]);
+    let items = format!("1:{}", probe::MAX_PLAYLIST);
+    cmd.args(["-J", "--no-playlist", "--flat-playlist", "--playlist-items", &items, "--no-warnings", "--skip-download", "--", url]);
     let mut child = match cmd.spawn() {
         Ok(c) => c,
         Err(e) => return Probe::Failed(format!("yt-dlp didn't start ({e})")),
@@ -110,6 +115,9 @@ pub fn probe_video(url: &str) -> Probe {
         Ok(v) => v,
         Err(_) => return Probe::Failed("yt-dlp's answer couldn't be read".into()),
     };
+    if let Some((title, videos)) = probe::playlist(&info) {
+        return Probe::Playlist { title, videos, qualities: probe::playlist_qualities() };
+    }
     let (title, file_name) = probe::title_and_name(&info);
     Probe::Video { title, file_name, qualities: probe::qualities(&info) }
 }
@@ -160,6 +168,14 @@ fn run_ytdlp(f: &VideoFetch, cancel: &AtomicBool, sink: &Sink) -> Result<Option<
     cmd.args(["--print", &format!("after_move:{FILE} %(filepath)s")]);
     if let Some(dir) = tools::own_ffmpeg_dir() {
         cmd.arg("--ffmpeg-location").arg(dir);
+    }
+    // Subtitles in the languages asked for (those the page has): inside the video when FFmpeg can
+    // put them there, else as files beside it.
+    if !f.subtitles.is_empty() {
+        cmd.args(["--write-subs", "--sub-langs", &f.subtitles]);
+        if tools::ffmpeg().is_some() {
+            cmd.arg("--embed-subs");
+        }
     }
     cmd.arg("-o").arg(&template).arg("--").arg(&f.url);
     let mut child = cmd.spawn().map_err(|e| NetError::Http(format!("yt-dlp didn't start ({e})")))?;

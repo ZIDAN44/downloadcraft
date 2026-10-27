@@ -235,6 +235,7 @@ impl DownloadApp {
                         self.run("prefs.maxActive", json!({"count": form.max_active}));
                         self.run("prefs.connections", json!({"count": form.connections}));
                         self.run("prefs.theme", json!({"theme": form.theme}));
+                        self.run("prefs.subtitles", json!({"languages": form.subtitles}));
                     }
                 }),
             };

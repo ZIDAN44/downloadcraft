@@ -40,6 +40,9 @@ struct Row {
 
 impl Row {
     fn addable(&self, ytdlp_ready: bool) -> bool {
+        if matches!(&self.probe, Probe::Playlist { videos, .. } if videos.is_empty()) {
+            return false;
+        }
         match self.check {
             Ok(SourceKind::VideoPage) => ytdlp_ready,
             Ok(k) => k.not_yet().is_none(),
@@ -82,13 +85,21 @@ fn link_row(ui: &mut Ui, t: &Tokens, row: &Row, choice: &mut usize, ffmpeg: bool
             (name.clone(), size.map_or_else(|| "Direct link · size not given".into(), |s| format!("Direct link · {}", format::bytes(s))), t.success)
         }
         (Ok(_), Probe::Video { title, .. }) => (title.clone(), "Video".into(), t.success),
+        (Ok(_), Probe::Playlist { title, videos, .. }) if videos.is_empty() => {
+            (title.clone(), "Playlist · no videos that can be added".into(), t.warning)
+        }
+        (Ok(_), Probe::Playlist { title, videos, .. }) => {
+            let n = videos.len();
+            (title.clone(), if n == 1 { "Playlist · 1 video".into() } else { format!("Playlist · {n} videos") }, t.success)
+        }
         (Ok(_), Probe::Failed(e)) => (fallback(), e.clone(), t.warning),
     };
     let video = match &row.probe {
-        Probe::Video { qualities, file_name, .. } if row.addable(ytdlp_ready) => Some((qualities, file_name)),
+        Probe::Video { qualities, file_name, .. } if row.addable(ytdlp_ready) => Some((qualities, file_name.clone())),
+        Probe::Playlist { qualities, .. } if row.addable(ytdlp_ready) => Some((qualities, "playlist.mp4".to_string())),
         _ => None,
     };
-    let badge = video.map_or(name.clone(), |(_, f)| f.clone());
+    let badge = video.as_ref().map_or(name.clone(), |(_, f)| f.clone());
     icons::file_badge(ui.painter(), Rect::from_min_size(rect.min + vec2(9.0, 9.0), vec2(30.0, 30.0)), &badge, t.dark);
     let picker_w = if video.is_some() { 190.0 } else { 0.0 };
     let w = rect.width() - 62.0 - picker_w;
@@ -300,12 +311,14 @@ pub fn add(ctx: &egui::Context, f: &mut AddForm, t: &Tokens, services: &dyn Serv
             .collect();
         // A video's quality starts at the best that can be had, once its qualities are known.
         for r in &rows {
-            if let Probe::Video { qualities, .. } = &r.probe {
+            if let Probe::Video { qualities, .. } | Probe::Playlist { qualities, .. } = &r.probe {
                 f.quality.entry(r.link.clone()).or_insert_with(|| default_quality(qualities, ffmpeg));
             }
         }
         let has_video = rows.iter().any(|r| r.check == Ok(SourceKind::VideoPage));
-        let wants_ffmpeg = rows.iter().any(|r| matches!(&r.probe, Probe::Video { qualities, .. } if qualities.iter().any(|q| q.needs_ffmpeg)));
+        let wants_ffmpeg = rows.iter().any(
+            |r| matches!(&r.probe, Probe::Video { qualities, .. } | Probe::Playlist { qualities, .. } if qualities.iter().any(|q| q.needs_ffmpeg)),
+        );
         if !rows.is_empty() {
             ui.add_space(4.0);
             egui::ScrollArea::vertical().max_height(170.0).show(ui, |ui| {
@@ -326,7 +339,15 @@ pub fn add(ctx: &egui::Context, f: &mut AddForm, t: &Tokens, services: &dyn Serv
         ui.add_space(4.0);
         ui.checkbox(&mut f.start, "Start downloading now");
         ui.add_space(14.0);
-        let ok = rows.iter().filter(|r| r.addable(ytdlp)).count();
+        // A playlist adds each of its videos.
+        let ok: usize = rows
+            .iter()
+            .filter(|r| r.addable(ytdlp))
+            .map(|r| match &r.probe {
+                Probe::Playlist { videos, .. } => videos.len(),
+                _ => 1,
+            })
+            .sum();
         ui.horizontal(|ui| {
             ui.label(RichText::new("Ctrl+Enter adds").size(12.0).color(t.faint));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -334,24 +355,35 @@ pub fn add(ctx: &egui::Context, f: &mut AddForm, t: &Tokens, services: &dyn Serv
                 let label = if ok > 1 { format!("Add {ok} downloads") } else { "Add download".to_string() };
                 let enter = ui.input(|i| i.key_pressed(egui::Key::Enter) && i.modifiers.command);
                 if widgets::button(ui, t, Kind::Primary, Some(Icon::Download), &label, can).clicked() || (can && enter) {
-                    let list = rows
-                        .iter()
-                        .filter(|r| r.addable(ytdlp))
-                        .map(|r| {
-                            let mut v = json!({"url": r.link, "folder": f.folder.trim(), "paused": !f.start});
-                            match &r.probe {
-                                Probe::File { name, .. } => v["name"] = json!(name),
-                                Probe::Video { file_name, qualities, .. } => {
-                                    v["name"] = json!(file_name);
-                                    if let Some(q) = f.quality.get(&r.link).and_then(|i| qualities.get(*i)) {
-                                        v["quality"] = json!({"selector": q.selector, "label": q.label});
-                                    }
+                    let mut list = Vec::new();
+                    for r in rows.iter().filter(|r| r.addable(ytdlp)) {
+                        let mut v = json!({"url": r.link, "folder": f.folder.trim(), "paused": !f.start});
+                        let quality = |qualities: &[Quality]| {
+                            f.quality.get(&r.link).and_then(|i| qualities.get(*i)).map(|q| json!({"selector": q.selector, "label": q.label}))
+                        };
+                        match &r.probe {
+                            Probe::File { name, .. } => v["name"] = json!(name),
+                            Probe::Video { file_name, qualities, .. } => {
+                                v["name"] = json!(file_name);
+                                if let Some(q) = quality(qualities) {
+                                    v["quality"] = q;
                                 }
-                                _ => {}
                             }
-                            v
-                        })
-                        .collect();
+                            Probe::Playlist { videos, qualities, .. } => {
+                                let q = quality(qualities);
+                                for video in videos {
+                                    let mut one = json!({"url": video.url, "folder": f.folder.trim(), "paused": !f.start, "name": video.file_name});
+                                    if let Some(q) = &q {
+                                        one["quality"] = q.clone();
+                                    }
+                                    list.push(one);
+                                }
+                                continue;
+                            }
+                            _ => {}
+                        }
+                        list.push(v);
+                    }
                     out = Some(Some(list));
                 }
                 if widgets::button(ui, t, Kind::Secondary, None, "Cancel", true).clicked() {

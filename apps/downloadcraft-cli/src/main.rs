@@ -7,6 +7,7 @@ use std::sync::Arc;
 use std::sync::mpsc::channel;
 
 use downloadcraft_engine::model::format;
+use downloadcraft_engine::model::probe::Probe;
 use downloadcraft_engine::{Event, Session, State};
 use downloadcraft_net::{Sink, Worker};
 use serde_json::{Value, json};
@@ -14,9 +15,11 @@ use serde_json::{Value, json};
 const USAGE: &str = "\
 usage: downloadcraft-cli <command>
 
-  get <url>… [--dir <folder>] [--connections <n>]
+  get <url>… [--dir <folder>] [--connections <n>] [--subtitles <langs>]
                                 download links into a folder (default: the current one),
-                                each on up to n connections (default 8)
+                                each on up to n connections (default 8); a playlist or
+                                channel link becomes its videos; videos with subtitles in
+                                langs (such as en,es)
   tools [get]                   where yt-dlp and FFmpeg stand; `get` fetches what's missing
   commands                      every engine command, as JSON
   run <id> [<json>]             run one command on an empty list and print its answer
@@ -36,10 +39,13 @@ fn get(args: &[String]) -> Result<(), String> {
     let mut urls = Vec::new();
     let mut dir = std::env::current_dir().map(|d| d.to_string_lossy().into_owned()).unwrap_or_else(|_| ".".into());
     let mut connections = None;
+    let mut subtitles = None;
     let mut it = args.iter();
     while let Some(a) = it.next() {
         if a == "--dir" {
             dir = it.next().ok_or("--dir needs a folder")?.clone();
+        } else if a == "--subtitles" {
+            subtitles = Some(it.next().ok_or("--subtitles needs languages, such as en,es")?.clone());
         } else if a == "--connections" {
             connections = Some(it.next().and_then(|n| n.parse::<u64>().ok()).ok_or("--connections needs a number")?);
         } else {
@@ -49,10 +55,31 @@ fn get(args: &[String]) -> Result<(), String> {
     if urls.is_empty() {
         return Err("get needs a link".into());
     }
+    // A playlist or channel link becomes its videos, each a download of its own.
+    let mut links = Vec::new();
+    for u in urls {
+        let list = downloadcraft_engine::model::source::classify(&u) == Ok(downloadcraft_engine::SourceKind::VideoPage)
+            && downloadcraft_engine::model::source::may_be_playlist(&u);
+        match list.then(|| downloadcraft_net::probe(&u)) {
+            Some(Probe::Playlist { title, videos, .. }) => {
+                say(&format!("{title}: {} videos", videos.len()));
+                links.extend(videos.into_iter().map(|v| v.url));
+            }
+            Some(Probe::Failed(e)) => say(&format!("skipped {u}: {e}")),
+            _ => links.push(u),
+        }
+    }
+    let urls = links;
+    if urls.is_empty() {
+        return Err("nothing to download".into());
+    }
     let mut s = Session::new();
     s.prefs.folder = dir;
     if let Some(n) = connections {
         s.run("prefs.connections", &json!({"count": n})).map_err(|e| e.to_string())?;
+    }
+    if let Some(l) = subtitles {
+        s.run("prefs.subtitles", &json!({"languages": l})).map_err(|e| e.to_string())?;
     }
     let added = s.run("download.addMany", &json!({"urls": urls})).map_err(|e| e.to_string())?;
     for r in added["refused"].as_array().into_iter().flatten() {

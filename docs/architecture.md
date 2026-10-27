@@ -55,6 +55,18 @@ depends on the network layer: the apps wire the two together.
 - Where every part is goes to `name.dcpart.parts` once a second and on stopping, so Resume carries
   on each part. The record is checked to cover the file exactly once before it is trusted.
 
+## Video pages (`crates/net/src/video.rs`, `crates/model/src/probe.rs`)
+
+- A link is looked at with `yt-dlp -J --no-playlist --flat-playlist`: one video gives its title
+  and qualities; a playlist or channel gives its videos (a channel's tabs one level down), each
+  added as a download of its own at the quality picked for the whole list. A `watch?v=…&list=…`
+  link is the one video.
+- A download runs yt-dlp with the quality's selector, `-S res,vcodec:h264,acodec:m4a`, MP4 output,
+  and `--write-subs --sub-langs <langs>` (plus `--embed-subs` when FFmpeg is there) when Settings
+  names subtitle languages.
+- yt-dlp and FFmpeg come from the system's `PATH` or the tools folder, fetched from their GitHub
+  releases and checked against the published SHA-256 (FFmpeg: zip on Windows, `.tar.xz` on Linux).
+
 ## Start-up (`apps/downloadcraft/src/{graphics,logfile}.rs`)
 
 From MailCraft. `downloadcraft.log` in the data folder, new each run (the last kept as

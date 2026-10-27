@@ -42,6 +42,7 @@ pub fn registry() -> Registry {
         CommandSpec::new("prefs.maxActive", "Downloads at once", "Settings", set_max_active).params(r#"{"count": number}"#),
         CommandSpec::new("prefs.connections", "Connections per download", "Settings", set_connections).params(r#"{"count": number}"#),
         CommandSpec::new("prefs.theme", "Theme", "Settings › Appearance", set_theme).params(r#"{"theme": "system"|"light"|"dark"}"#),
+        CommandSpec::new("prefs.subtitles", "Subtitles", "Settings › Videos", set_subtitles).params(r#"{"languages": "en, es"}"#),
     ])
 }
 
@@ -297,6 +298,13 @@ fn set_connections(s: &mut Session, v: &Value) -> CmdResult {
     s.prefs.connections = n;
     s.dirty = true;
     Ok(json!({"count": n}))
+}
+
+fn set_subtitles(s: &mut Session, v: &Value) -> CmdResult {
+    let typed = v.get("languages").and_then(Value::as_str).ok_or_else(|| CmdError::Params("`languages` (text) is required".into()))?;
+    s.prefs.subtitles = typed.chars().take(100).collect::<String>().trim().to_string();
+    s.dirty = true;
+    Ok(json!({"languages": s.prefs.subtitles, "subLangs": downloadcraft_model::probe::subtitle_langs(&s.prefs.subtitles)}))
 }
 
 fn set_theme(s: &mut Session, v: &Value) -> CmdResult {

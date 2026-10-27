@@ -146,4 +146,73 @@ fn video_qualities_come_from_yt_dlp_s_answer() {
     assert_eq!(title, "Big Buck Bunny: 60fps/4K");
     assert_eq!(name, "Big Buck Bunny_ 60fps_4K.mp4");
     assert_eq!(crate::probe::qualities(&serde_json::json!({})).first().map(|q| q.selector.as_str()), Some(crate::probe::BEST));
+    assert!(crate::probe::playlist(&info).is_none(), "a single video");
+}
+
+#[test]
+fn subtitle_languages_become_ytdlp_languages() {
+    use crate::probe::subtitle_langs;
+    assert_eq!(subtitle_langs(""), None);
+    assert_eq!(subtitle_langs(" , ; "), None);
+    assert_eq!(subtitle_langs("en"), Some("en.*,-live_chat".into()));
+    assert_eq!(subtitle_langs("EN, pt-BR;bn"), Some("en.*,pt-br.*,bn.*,-live_chat".into()));
+    assert_eq!(subtitle_langs("en,all,-live_chat,../x,e"), Some("en.*,all.*,-live_chat".into()), "codes only");
+    assert_eq!(subtitle_langs(&"en ".repeat(20)).map(|s| s.matches("en.*").count()), Some(8));
+}
+
+#[test]
+fn playlist_links_are_told_from_video_links() {
+    use crate::source::may_be_playlist;
+    for list in [
+        "https://www.youtube.com/playlist?list=PL123",
+        "https://www.youtube.com/@channel/videos",
+        "https://www.youtube.com/channel/UC1",
+        "https://vimeo.com/showcase/42",
+    ] {
+        assert!(may_be_playlist(list), "{list}");
+    }
+    for one in ["https://www.youtube.com/watch?v=a1&list=PL123", "https://youtu.be/a1", "https://vimeo.com/42", "not a link"] {
+        assert!(!may_be_playlist(one), "{one}");
+    }
+}
+
+#[test]
+fn playlists_list_their_videos() {
+    // As `yt-dlp --flat-playlist -J` answers for a playlist.
+    let info = serde_json::json!({
+        "_type": "playlist", "title": "Talks: 2026",
+        "entries": [
+            {"_type": "url", "ie_key": "Youtube", "id": "a1", "url": "https://www.youtube.com/watch?v=a1", "title": "One / two"},
+            {"_type": "url", "ie_key": "Youtube", "id": "b2", "url": "https://www.youtube.com/watch?v=b2", "title": "[Private video]"},
+            {"_type": "url", "ie_key": "Youtube", "id": "c3", "url": "https://www.youtube.com/watch?v=c3"},
+            {"_type": "url", "ie_key": "YoutubeTab", "url": "https://www.youtube.com/@x/shorts", "title": "Shorts"},
+            {"_type": "url", "url": "file:///etc/passwd", "title": "not a page"}
+        ]
+    });
+    let (title, videos) = crate::probe::playlist(&info).unwrap();
+    assert_eq!(title, "Talks: 2026");
+    let got: Vec<(&str, &str)> = videos.iter().map(|v| (v.url.as_str(), v.file_name.as_str())).collect();
+    assert_eq!(got, [("https://www.youtube.com/watch?v=a1", "One _ two.mp4"), ("https://www.youtube.com/watch?v=c3", "c3.mp4")]);
+    let q = crate::probe::playlist_qualities();
+    assert_eq!(q.first().map(|q| q.selector.as_str()), Some(crate::probe::BEST));
+    assert!(q.iter().any(|q| !q.needs_ffmpeg && q.selector == "b"), "one choice works without FFmpeg");
+
+    // A channel's page: its tabs, each a playlist; live and coming streams left out, each video once.
+    let channel = serde_json::json!({
+        "_type": "playlist", "title": "NASA",
+        "entries": [
+            {"_type": "playlist", "title": "NASA - Videos", "entries": [
+                {"_type": "url", "ie_key": "Youtube", "url": "https://www.youtube.com/watch?v=v1", "title": "Launch"}
+            ]},
+            {"_type": "playlist", "title": "NASA - Live", "entries": [
+                {"_type": "url", "ie_key": "Youtube", "url": "https://www.youtube.com/watch?v=l1", "title": "Now", "live_status": "is_live"},
+                {"_type": "url", "ie_key": "Youtube", "url": "https://www.youtube.com/watch?v=l2", "title": "Soon", "live_status": "is_upcoming"},
+                {"_type": "url", "ie_key": "Youtube", "url": "https://www.youtube.com/watch?v=l3", "title": "Earlier", "live_status": "was_live"},
+                {"_type": "url", "ie_key": "Youtube", "url": "https://www.youtube.com/watch?v=v1", "title": "Launch"}
+            ]}
+        ]
+    });
+    let (_, videos) = crate::probe::playlist(&channel).unwrap();
+    let urls: Vec<&str> = videos.iter().map(|v| v.url.as_str()).collect();
+    assert_eq!(urls, ["https://www.youtube.com/watch?v=v1", "https://www.youtube.com/watch?v=l3"]);
 }

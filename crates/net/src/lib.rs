@@ -112,10 +112,10 @@ impl Worker {
                     Err(e) => self.sink.send(Event::Failed { id, run, error: format!("couldn't start: {e}") }),
                 }
             }
-            Job::FetchVideo { id, run, url, folder, file_name, selector, connections } => {
+            Job::FetchVideo { id, run, url, folder, file_name, selector, connections, subtitles } => {
                 let before = self.stop(id);
                 let cancel = Arc::new(AtomicBool::new(false));
-                let spec = video::VideoFetch { id, run, url, folder: PathBuf::from(folder), file_name, selector, connections };
+                let spec = video::VideoFetch { id, run, url, folder: PathBuf::from(folder), file_name, selector, connections, subtitles };
                 let (sink, flag) = (self.sink.clone(), cancel.clone());
                 let spawned = std::thread::Builder::new().name(format!("video-{}", id.0)).spawn(move || {
                     if let Some(h) = before {

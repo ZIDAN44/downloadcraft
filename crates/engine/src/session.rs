@@ -169,6 +169,7 @@ impl Session {
             let run = self.next_run;
             self.next_run = self.next_run.saturating_add(1);
             let connections = self.prefs.connections.clamp(1, downloadcraft_model::MAX_CONNECTIONS);
+            let subtitles = downloadcraft_model::probe::subtitle_langs(&self.prefs.subtitles).unwrap_or_default();
             let Some(d) = self.get_mut(id) else { continue };
             d.state = State::Downloading;
             d.run = run;
@@ -183,6 +184,7 @@ impl Session {
                     file_name: d.file_name.clone(),
                     selector: v.selector.clone(),
                     connections,
+                    subtitles,
                 },
                 None => Job::Fetch {
                     id,

@@ -13,8 +13,8 @@ next version: the version is raised and the Progress log gains its entry before 
 | | |
 |---|---|
 | Crates | 4 libraries + 2 apps + xtask |
-| Commands | 18 (`downloadcraft-cli commands`) |
-| Tests | 77 (unit, a local HTTP server for single and multi-part downloads and the updater's download, headless UI frames) |
+| Commands | 19 (`downloadcraft-cli commands`) |
+| Tests | 103 (unit, a local HTTP server for single and multi-part downloads and the updater's download, headless UI frames) |
 | Platforms | Windows, macOS, Linux |
 
 ## Milestones
@@ -83,3 +83,9 @@ next version: the version is raised and the Progress log gains its entry before 
   ranges and parts records, the updater's lists, yt-dlp's answers and the saved list. They found two
   file-name bugs at once, now fixed: a long name of odd characters cut down to nothing usable, and
   a cut ending on a no-break space.
+- **2026-10-27** — **v0.3**: video pages, more of them: FFmpeg fetched and checked on Linux too
+  (yt-dlp's Linux build, unpacked with the system's `tar`) and on 32-bit Windows; playlist and
+  channel links list their videos (`--flat-playlist`, up to 500, a channel's tabs taken in turn,
+  private, deleted and live ones left out) and add each at one quality, in the window and in
+  `downloadcraft-cli get`; subtitles in the languages set in Settings (`--subtitles` in the CLI),
+  inside the video when FFmpeg is there. 103 tests.

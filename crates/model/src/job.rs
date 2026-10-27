@@ -17,7 +17,8 @@ pub enum Job {
     Fetch { id: DownloadId, run: u64, url: String, folder: String, file_name: String, may_rename: bool, connections: u8 },
     /// Download a video page through yt-dlp, in the quality `selector` picks, with up to
     /// `connections` parts at once.
-    FetchVideo { id: DownloadId, run: u64, url: String, folder: String, file_name: String, selector: String, connections: u8 },
+    /// `subtitles`: yt-dlp's `--sub-langs`, empty for none.
+    FetchVideo { id: DownloadId, run: u64, url: String, folder: String, file_name: String, selector: String, connections: u8, subtitles: String },
     /// Stop the transfer of `id` (whatever run it is on); the partial file stays for a resume.
     Stop { id: DownloadId },
     /// Delete the partial file of `id`, which is being removed, once its transfer has stopped;

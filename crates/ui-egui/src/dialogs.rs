@@ -21,11 +21,18 @@ pub struct SettingsForm {
     pub max_active: usize,
     pub connections: usize,
     pub theme: Theme,
+    pub subtitles: String,
 }
 
 impl SettingsForm {
     pub fn new(p: &Prefs) -> Self {
-        SettingsForm { folder: p.folder.clone(), max_active: p.max_active, connections: usize::from(p.connections), theme: p.theme }
+        SettingsForm {
+            folder: p.folder.clone(),
+            max_active: p.max_active,
+            connections: usize::from(p.connections),
+            theme: p.theme,
+            subtitles: p.subtitles.clone(),
+        }
     }
 }
 
@@ -105,6 +112,12 @@ pub fn settings(ctx: &egui::Context, f: &mut SettingsForm, t: &Tokens, services:
         ui.add_space(4.0);
         setting(ui, t, "Connections per download", "Parts of one file fetched at the same time, when the server allows.", |ui| {
             widgets::stepper(ui, t, &mut f.connections, 1, usize::from(MAX_CONNECTIONS));
+        });
+        ui.add_space(8.0);
+        ui.separator();
+        widgets::section(ui, t, "Videos");
+        setting(ui, t, "Subtitles", "Languages to save with videos, such as en, es. Empty: none.", |ui| {
+            ui.add(egui::TextEdit::singleline(&mut f.subtitles).desired_width(150.0).hint_text("none").char_limit(100));
         });
         ui.add_space(8.0);
         ui.separator();
