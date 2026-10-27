@@ -161,6 +161,17 @@ fn subtitle_languages_become_ytdlp_languages() {
 }
 
 #[test]
+fn youtube_links_want_a_javascript_runtime() {
+    use crate::source::needs_js_runtime;
+    for yt in ["https://www.youtube.com/watch?v=a", "https://youtu.be/a", "https://m.youtube.com/@x", "https://music.youtube.com/watch?v=a"] {
+        assert!(needs_js_runtime(yt), "{yt}");
+    }
+    for other in ["https://vimeo.com/1", "https://notyoutube.com/watch?v=a", "https://youtube.com.evil.example/a", "youtube.com"] {
+        assert!(!needs_js_runtime(other), "{other}");
+    }
+}
+
+#[test]
 fn playlist_links_are_told_from_video_links() {
     use crate::source::may_be_playlist;
     for list in [

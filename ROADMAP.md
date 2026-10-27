@@ -89,3 +89,7 @@ next version: the version is raised and the Progress log gains its entry before 
   private, deleted and live ones left out) and add each at one quality, in the window and in
   `downloadcraft-cli get`; subtitles in the languages set in Settings (`--subtitles` in the CLI),
   inside the video when FFmpeg is there. 103 tests.
+- **2026-10-27** — **v0.3**: Deno for YouTube: yt-dlp now solves YouTube's challenges with a
+  JavaScript runtime and offers fewer formats without one (53 against 61 on a 4K video). Add link
+  offers to fetch Deno's official build when a YouTube link is in the box, checked against its
+  published checksum, and yt-dlp is pointed at it.

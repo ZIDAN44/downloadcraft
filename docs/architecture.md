@@ -64,8 +64,10 @@ depends on the network layer: the apps wire the two together.
 - A download runs yt-dlp with the quality's selector, `-S res,vcodec:h264,acodec:m4a`, MP4 output,
   and `--write-subs --sub-langs <langs>` (plus `--embed-subs` when FFmpeg is there) when Settings
   names subtitle languages.
-- yt-dlp and FFmpeg come from the system's `PATH` or the tools folder, fetched from their GitHub
-  releases and checked against the published SHA-256 (FFmpeg: zip on Windows, `.tar.xz` on Linux).
+- yt-dlp, FFmpeg and Deno come from the system's `PATH` or the tools folder, fetched from their
+  GitHub releases and checked against the published SHA-256 (FFmpeg: zip on Windows, `.tar.xz` on
+  Linux; Deno: a checksum file per asset, PowerShell's form on Windows). yt-dlp gets
+  `--js-runtimes deno:<path>` for a fetched Deno, which YouTube's pages need.
 
 ## Start-up (`apps/downloadcraft/src/{graphics,logfile}.rs`)
 

@@ -13,7 +13,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use downloadcraft_engine::model::probe::{Probe, VideoTools};
+use downloadcraft_engine::model::probe::{Probe, Tool, VideoTools};
 use downloadcraft_net::video::tools;
 use downloadcraft_ui_egui::Services;
 
@@ -135,22 +135,23 @@ impl Services for Platform {
         tools::status()
     }
 
-    fn fetch_tool(&self, ffmpeg: bool) {
+    fn fetch_tool(&self, tool: Tool) {
         let (wake, probes) = (self.wake.clone(), self.probes.clone());
         let _ = std::thread::Builder::new().name("fetch-tool".into()).spawn(move || {
-            let result = if ffmpeg { tools::fetch_ffmpeg() } else { tools::fetch_ytdlp() };
+            let result = tools::fetch(tool);
             if let Err(e) = &result {
-                log::warn!("fetching {}: {e}", if ffmpeg { "FFmpeg" } else { "yt-dlp" });
+                log::warn!("fetching {}: {e}", tool.name());
             }
-            // Video links looked at before the tool was there are looked at again.
-            probes.lock().unwrap_or_else(PoisonError::into_inner).retain(|_, p| !matches!(p, Probe::Failed(_)));
+            // Video links looked at before the tool was there are looked at again; with Deno,
+            // all of them, as YouTube then offers more qualities.
+            probes.lock().unwrap_or_else(PoisonError::into_inner).retain(|_, p| tool != Tool::Deno && !matches!(p, Probe::Failed(_)));
             wake();
         });
         (self.wake)();
     }
 
-    fn can_fetch_ffmpeg(&self) -> bool {
-        tools::can_fetch_ffmpeg()
+    fn can_fetch(&self, tool: Tool) -> bool {
+        tools::can_fetch(tool)
     }
 }
 

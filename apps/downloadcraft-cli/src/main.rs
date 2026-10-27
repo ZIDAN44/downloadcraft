@@ -148,6 +148,10 @@ fn tools(action: Option<&str>) -> Result<(), String> {
             let p = tools::fetch_ffmpeg().map_err(|e| format!("FFmpeg: {e}"))?;
             say(&format!("FFmpeg: fetched and checked: {}", p.display()));
         }
+        if tools::deno().is_none() && tools::can_fetch(downloadcraft_engine::model::probe::Tool::Deno) {
+            let p = tools::fetch_deno().map_err(|e| format!("Deno: {e}"))?;
+            say(&format!("Deno: fetched and checked: {}", p.display()));
+        }
     }
     let s = tools::status();
     let show = |name: &str, state: &ToolState, path: Option<std::path::PathBuf>| match state {
@@ -156,6 +160,7 @@ fn tools(action: Option<&str>) -> Result<(), String> {
     };
     show("yt-dlp", &s.ytdlp, tools::ytdlp());
     show("FFmpeg", &s.ffmpeg, tools::ffmpeg());
+    show("Deno", &s.deno, tools::deno());
     Ok(())
 }
 

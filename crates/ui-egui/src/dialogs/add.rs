@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use downloadcraft_engine::model::probe::{Probe, Quality, ToolState};
+use downloadcraft_engine::model::probe::{Probe, Quality, Tool, ToolState};
 use downloadcraft_engine::model::{SourceKind, format, names, source};
 use egui::{Rect, RichText, Sense, Ui, vec2};
 use serde_json::{Value, json};
@@ -126,11 +126,12 @@ fn link_row(ui: &mut Ui, t: &Tokens, row: &Row, choice: &mut usize, ffmpeg: bool
 }
 
 /// What video downloads need, when a video link is in the box and something's missing.
-fn tools_banner(ui: &mut Ui, t: &Tokens, services: &dyn Services, wants_ffmpeg: bool) {
+fn tools_banner(ui: &mut Ui, t: &Tokens, services: &dyn Services, wants_ffmpeg: bool, wants_deno: bool) {
     let tools = services.video_tools();
     let ytdlp_missing = tools.ytdlp != ToolState::Ready;
     let ffmpeg_missing = wants_ffmpeg && tools.ffmpeg != ToolState::Ready;
-    if !ytdlp_missing && !ffmpeg_missing {
+    let deno_missing = wants_deno && !ytdlp_missing && tools.deno != ToolState::Ready;
+    if !ytdlp_missing && !ffmpeg_missing && !deno_missing {
         return;
     }
     egui::Frame::new().fill(t.accent_soft).corner_radius(8).inner_margin(12).show(ui, |ui| {
@@ -143,13 +144,27 @@ fn tools_banner(ui: &mut Ui, t: &Tokens, services: &dyn Services, wants_ffmpeg: 
                 "Video links use yt-dlp, a free, open-source program that finds the video in a page. DownloadCraft fetches its official build and checks it before use.",
                 &tools.ytdlp,
                 "Get yt-dlp",
-                || services.fetch_tool(false),
+                || services.fetch_tool(Tool::YtDlp),
             );
         }
+        if deno_missing {
+            if services.can_fetch(Tool::Deno) {
+                tool_line(
+                    ui,
+                    t,
+                    "YouTube also needs Deno, a free JavaScript runtime yt-dlp reads its pages with; without it some qualities are missing. DownloadCraft fetches its official build and checks it before use.",
+                    &tools.deno,
+                    "Get Deno",
+                    || services.fetch_tool(Tool::Deno),
+                );
+            } else {
+                ui.add(egui::Label::new(RichText::new("YouTube also needs Deno (deno.com) for every quality; install it to get them.").size(12.5)).wrap());
+            }
+        }
         if ffmpeg_missing {
-            if services.can_fetch_ffmpeg() {
+            if services.can_fetch(Tool::Ffmpeg) {
                 tool_line(ui, t, "Higher qualities come as separate video and sound, which FFmpeg joins into one file.", &tools.ffmpeg, "Get FFmpeg", || {
-                    services.fetch_tool(true)
+                    services.fetch_tool(Tool::Ffmpeg)
                 });
             } else {
                 ui.label(
@@ -331,7 +346,8 @@ pub fn add(ctx: &egui::Context, f: &mut AddForm, t: &Tokens, services: &dyn Serv
         }
         if has_video {
             ui.add_space(6.0);
-            tools_banner(ui, t, services, wants_ffmpeg);
+            let wants_deno = rows.iter().any(|r| r.check == Ok(SourceKind::VideoPage) && source::needs_js_runtime(&r.link));
+            tools_banner(ui, t, services, wants_ffmpeg, wants_deno);
         }
         ui.add_space(10.0);
         widgets::field_label(ui, t, "Save to");

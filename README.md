@@ -35,7 +35,8 @@
   resolution, H.264 video and AAC audio are preferred, so the file plays nearly everywhere; it's
   saved as MP4 under the video's title. This uses [yt-dlp](https://github.com/yt-dlp/yt-dlp), which
   DownloadCraft fetches on request from its official release and checks against its published
-  SHA-256 (FFmpeg too, on Windows and Linux, to join video and sound). A playlist or channel link
+  SHA-256 (FFmpeg too, on Windows and Linux, to join video and sound, and for YouTube Deno, the
+  JavaScript runtime yt-dlp reads its pages with). A playlist or channel link
   lists its videos (up to 500) and adds each, at one quality for all. Subtitles in the languages
   set in Settings come inside the video (and beside it). Only download videos you have the right
   to; DRM-protected videos aren't supported.

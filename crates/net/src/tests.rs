@@ -384,3 +384,18 @@ fn connections_the_server_turns_away_hand_their_parts_to_the_others() {
     assert_eq!(crate::http::segmented::connections_for("http://127.0.0.1:9/other", 4), 4, "only that server");
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+#[test]
+fn single_checksum_files_are_read_in_both_forms() {
+    use crate::video::tools::single_sum;
+    let hex = "CBA84B26E0DF5AE7F74FC66B86A95B866872A86292EBD84FA1E959927EDD93BF";
+    // PowerShell's Get-FileHash list, as Deno publishes for Windows; sha256sum's line elsewhere.
+    let powershell = format!("\r\nAlgorithm : SHA256\r\nHash      : {hex}\r\nPath      : D:/a/deno.zip\r\n");
+    assert_eq!(single_sum(&powershell).as_deref(), Some(hex.to_ascii_lowercase().as_str()));
+    assert_eq!(
+        single_sum(&format!("{}  deno-x86_64-unknown-linux-gnu.zip\n", hex.to_ascii_lowercase())).as_deref(),
+        Some(hex.to_ascii_lowercase().as_str())
+    );
+    assert_eq!(single_sum("Hash : nothere"), None);
+    assert_eq!(single_sum(&"a".repeat(65)), None);
+}

@@ -111,6 +111,18 @@ pub fn classify(text: &str) -> Result<SourceKind, &'static str> {
     }
 }
 
+/// Whether a video page's link is YouTube's, whose pages yt-dlp reads with a JavaScript runtime
+/// (Deno).
+pub fn needs_js_runtime(url: &str) -> bool {
+    let Some((_, rest)) = url.trim().split_once("//") else { return false };
+    let host = host_of(rest);
+    host == "youtu.be"
+        || host == "youtube.com"
+        || host.ends_with(".youtube.com")
+        || host == "youtube-nocookie.com"
+        || host.ends_with(".youtube-nocookie.com")
+}
+
 /// Whether a video page's link may be a playlist or a channel rather than one video: a `list=`
 /// without a `v=`, or a path naming a playlist, a channel or a user. A guess, used to decide whether
 /// to look before downloading; the look (yt-dlp) says for sure.

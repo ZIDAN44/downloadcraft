@@ -18,7 +18,7 @@ mod widgets;
 use std::path::{Path, PathBuf};
 
 use downloadcraft_engine::model::Theme;
-use downloadcraft_engine::model::probe::{Probe, VideoTools};
+use downloadcraft_engine::model::probe::{Probe, Tool, VideoTools};
 use downloadcraft_engine::{Filter, Session, State};
 use egui::{Margin, Rect, RichText, Ui, vec2};
 use serde_json::{Value, json};
@@ -54,10 +54,10 @@ pub trait Services {
     fn video_tools(&self) -> VideoTools {
         VideoTools::default()
     }
-    /// Fetch yt-dlp, or FFmpeg with `ffmpeg`, in the background.
-    fn fetch_tool(&self, _ffmpeg: bool) {}
-    /// Whether FFmpeg can be fetched here (else the system's package manager has it).
-    fn can_fetch_ffmpeg(&self) -> bool {
+    /// Fetch one of the video tools in the background.
+    fn fetch_tool(&self, _tool: Tool) {}
+    /// Whether `tool` can be fetched here (else the system's package manager has it).
+    fn can_fetch(&self, _tool: Tool) -> bool {
         false
     }
 }

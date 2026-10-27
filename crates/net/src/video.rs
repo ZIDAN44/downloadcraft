@@ -56,6 +56,14 @@ fn command(ytdlp: &Path) -> Command {
     cmd
 }
 
+/// Point yt-dlp at the Deno DownloadCraft fetched (one on the `PATH` it finds by itself), which it
+/// solves YouTube's challenges with.
+fn js_runtime(cmd: &mut Command) {
+    if let Some(deno) = tools::own_deno() {
+        cmd.arg("--js-runtimes").arg(format!("deno:{}", deno.display()));
+    }
+}
+
 /// The last line yt-dlp wrote as an error (`ERROR: …`), made readable.
 fn error_line(stderr: &str) -> String {
     stderr
@@ -84,6 +92,7 @@ fn drain(mut r: impl Read + Send + 'static, max: usize) -> mpsc::Receiver<Vec<u8
 pub fn probe_video(url: &str) -> Probe {
     let Some(ytdlp) = tools::ytdlp() else { return Probe::Failed("video downloads need yt-dlp".into()) };
     let mut cmd = command(&ytdlp);
+    js_runtime(&mut cmd);
     let items = format!("1:{}", probe::MAX_PLAYLIST);
     cmd.args(["-J", "--no-playlist", "--flat-playlist", "--playlist-items", &items, "--no-warnings", "--skip-download", "--", url]);
     let mut child = match cmd.spawn() {
@@ -159,6 +168,7 @@ fn run_ytdlp(f: &VideoFetch, cancel: &AtomicBool, sink: &Sink) -> Result<Option<
         f.folder.join(format!("{stem}.%(ext)s"))
     };
     let mut cmd = command(&ytdlp);
+    js_runtime(&mut cmd);
     cmd.args(["-f", &f.selector, "-S", probe::SORT, "--no-playlist", "--newline", "--no-colors", "--windows-filenames", "--continue", "--no-mtime"]);
     cmd.args(["--merge-output-format", "mp4", "--concurrent-fragments", &f.connections.max(1).to_string()]);
     cmd.args([

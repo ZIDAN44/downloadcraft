@@ -85,11 +85,31 @@ pub enum ToolState {
     Failed(String),
 }
 
-/// yt-dlp (reads video pages) and FFmpeg (puts video and audio together).
+/// yt-dlp (reads video pages), FFmpeg (puts video and audio together) and Deno (the JavaScript
+/// runtime yt-dlp needs for YouTube).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct VideoTools {
     pub ytdlp: ToolState,
     pub ffmpeg: ToolState,
+    pub deno: ToolState,
+}
+
+/// One of the helper programs video downloads use.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Tool {
+    YtDlp,
+    Ffmpeg,
+    Deno,
+}
+
+impl Tool {
+    pub fn name(self) -> &'static str {
+        match self {
+            Tool::YtDlp => "yt-dlp",
+            Tool::Ffmpeg => "FFmpeg",
+            Tool::Deno => "Deno",
+        }
+    }
 }
 
 /// The selector for video at most `height` pixels tall with the best audio.
