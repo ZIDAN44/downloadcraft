@@ -378,8 +378,11 @@ fn connections_the_server_turns_away_hand_their_parts_to_the_others() {
     let ev = run_on(&url, &dir, "busy.bin", true, 4);
     assert!(matches!(last(&ev), Event::Finished { done: 8_000_000, .. }), "{ev:?}");
     assert_eq!(std::fs::read(dir.join("busy.bin")).unwrap(), data);
-    // Two of four turned away: the next download from that server opens two.
-    assert_eq!(crate::http::segmented::connections_for(&url, 4), 2);
+    // Two of four turned away: the next download from that server opens fewer. How many depends on
+    // how many were still going at the refusal (on a slow runner a served one may have finished
+    // already: macOS CI remembered 1), so the test holds it to fewer than asked, at least one.
+    let cap = crate::http::segmented::connections_for(&url, 4);
+    assert!((1..=2).contains(&cap), "{cap}");
     assert_eq!(crate::http::segmented::connections_for(&url, 1), 1);
     assert_eq!(crate::http::segmented::connections_for("http://127.0.0.1:9/other", 4), 4, "only that server");
     let _ = std::fs::remove_dir_all(&dir);
