@@ -1,0 +1,29 @@
+# Fuzzing DownloadCraft's readers of hostile input (servers' headers, file names, links, yt-dlp's
+# answers, the saved list and parts records) with `cargo fuzz` on nightly, Linux or macOS:
+# `cargo +nightly fuzz run -O names`. A workspace of its own, so the main build never needs nightly
+# or libFuzzer. The targets are listed in `fuzz/README.md`. From MailCraft's `fuzz/`.
+package = { name = "downloadcraft-fuzz", version = "0.0.0", edition = "2024", license = "MIT OR Apache-2.0", publish = false, metadata = { cargo-fuzz = true } }
+
+workspace = { members = ["."] }
+
+# One binary per target, each kept out of `cargo test`, `cargo doc` and `cargo bench`.
+bin = [
+    { name = "names", bench = false, test = false, doc = false, path = "fuzz_targets/names.rs" }, # Content-Disposition, links, file names
+    { name = "http", bench = false, test = false, doc = false, path = "fuzz_targets/http.rs" }, # Content-Range, parts records, the updater's lists
+    { name = "video", bench = false, test = false, doc = false, path = "fuzz_targets/video.rs" }, # yt-dlp's JSON and progress lines
+    { name = "saved_list", bench = false, test = false, doc = false, path = "fuzz_targets/saved_list.rs" }, # downloads.json
+]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+serde_json = "1"
+# The DownloadCraft crates under test, straight from this checkout.
+downloadcraft-model.path = "../crates/model"
+downloadcraft-net.path = "../crates/net"
+downloadcraft-engine.path = "../crates/engine"
+
+# `cargo fuzz ... -O` builds with this profile, debug assertions and overflow checks kept.
+[profile.release]
+debug = 1
+debug-assertions = true
+overflow-checks = true

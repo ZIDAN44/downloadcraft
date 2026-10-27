@@ -72,7 +72,7 @@ fn remember_cap(url: &str, n: usize) {
 
 /// A part of the file: bytes `start..end`, written up to `pos`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) struct Part {
+pub struct Part {
     pub start: u64,
     pub end: u64,
     pub pos: u64,
@@ -110,11 +110,16 @@ pub(crate) fn record_path(part: &Path) -> PathBuf {
 /// The record beside `part`, when it's whole and fits a file of `total` bytes (or any size when
 /// `total` is `None`): the size and the parts.
 pub(crate) fn load(part: &Path) -> Option<(u64, Vec<Part>)> {
-    let text = std::fs::read_to_string(record_path(part)).ok()?;
+    parse_record(&std::fs::read_to_string(record_path(part)).ok()?)
+}
+
+/// A parts record as written by `save`: `None` unless it's whole, its parts within their bounds
+/// and covering the file exactly once.
+pub fn parse_record(text: &str) -> Option<(u64, Vec<Part>)> {
     if text.len() > 256 * 1024 {
         return None;
     }
-    let v: Value = serde_json::from_str(&text).ok()?;
+    let v: Value = serde_json::from_str(text).ok()?;
     let total = v.get("total")?.as_u64()?;
     let list = v.get("parts")?.as_array()?;
     if list.is_empty() || list.len() > MAX_PARTS {

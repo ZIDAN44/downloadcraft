@@ -79,3 +79,7 @@ next version: the version is raised and the Progress log gains its entry before 
 - **2026-10-27** — **v0.3**: from MailCraft, `downloadcraft.log` in the data folder (`--log` echoes
   it) and the graphics set-up: DirectX 12 on Windows with the software renderer on a PC without a
   GPU, device limits from the adapter, and a message box saying why when the window can't open.
+- **2026-10-27** — **v0.3**: fuzz targets (`fuzz/`, run weekly) for file names and links, byte
+  ranges and parts records, the updater's lists, yt-dlp's answers and the saved list. They found two
+  file-name bugs at once, now fixed: a long name of odd characters cut down to nothing usable, and
+  a cut ending on a no-break space.

@@ -1,6 +1,6 @@
 //! One HTTP(S) transfer, resumable with byte ranges, on one connection or several (`segmented`).
 
-pub(crate) mod segmented;
+pub mod segmented;
 
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Write};
@@ -160,7 +160,7 @@ fn free_name(folder: &Path, name: &str) -> String {
 }
 
 /// `Content-Range: bytes 100-199/1000` → (100, Some(1000)); `/*` is an unknown total.
-fn content_range(v: &str) -> Option<(u64, Option<u64>)> {
+pub fn content_range(v: &str) -> Option<(u64, Option<u64>)> {
     let rest = v.trim().strip_prefix("bytes")?.trim_start();
     let (range, total) = rest.split_once('/')?;
     let start = range.split_once('-')?.0.trim().parse().ok()?;
