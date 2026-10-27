@@ -23,6 +23,17 @@ MIT OR Apache-2.0, like the code.
 | `assets/app-icon/downloadcraft.ico` | `cargo xtask icons` |
 | `assets/app-icon/downloadcraft.icns` | `cargo xtask icons` |
 
+## Screenshots and the social preview
+
+Screenshots of DownloadCraft's own window. The social preview combines one of them with the app
+icon. MIT OR Apache-2.0, like the code.
+
+| File | Source |
+|---|---|
+| `docs/images/downloads.png` | Screenshot of DownloadCraft (dark mode) |
+| `docs/images/add-link.png` | Screenshot of DownloadCraft (light mode, Add link dialog) |
+| `docs/images/social-preview.png` | The app icon and `docs/images/downloads.png` on a gradient, set in Segoe UI (rendered, no font file included) |
+
 ## Interface icons
 
 Drawn in code (`crates/ui-egui/src/icons.rs`); no icon files.

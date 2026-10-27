@@ -17,6 +17,15 @@
   <img alt="Agent-drivable: commands and CLI" src="https://img.shields.io/badge/agents-commands%20%C2%B7%20CLI-3a8aee?style=flat-square">
 </p>
 
+<p align="center">
+  <img src="docs/images/downloads.png" alt="DownloadCraft in dark mode: the toolbar with Add link, Resume, Pause, Remove, Resume all, Pause all and Clear completed; categories on the left with counts; two speed tests downloading with progress bars, speed and time left, one queued, a paused Ubuntu image at 2.42 GB of 6.20 GB, a failed link that answered 404, and two completed downloads" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/images/add-link.png" alt="The Add link dialog in light mode with three links pasted: two direct links marked as such, and a magnet link marked as arriving in v0.3; the folder to save to, Start now, and Add 2 downloads" width="80%">
+  <br><sub><b>Paste several links at once.</b> Each is checked as you type, and links a later version handles say so.</sub>
+</p>
+
 ## What works today (v0.1)
 
 - **Direct HTTP and HTTPS downloads** that **resume**: a pause, a dropped connection or quitting
