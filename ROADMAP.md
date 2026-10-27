@@ -64,3 +64,7 @@ next version: the version is raised and the Progress log gains its entry before 
   file selected; a deleted or moved file shown as Deleted with Download again; Remove asking first,
   with a box to send the file to the Recycle Bin or Trash. Signed releases update themselves too;
   `downloadcraft-cli tools`. 77 tests, on Windows and Linux.
+- **2026-10-27** — **v0.3**: a connection that sends nothing for 30 s is dropped, and a dropped
+  connection, a timeout or a busy server (408, 429, 5xx) is tried again by itself from where the
+  file got to, waiting 2 s, then twice as long each time up to 30 s; five tries without a byte in
+  between fail the download, a missing or forbidden file fails at once.

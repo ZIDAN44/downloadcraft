@@ -19,7 +19,17 @@ pub(crate) const TICK: Duration = Duration::from_millis(250);
 pub(crate) const CHUNK: usize = 256 * 1024;
 /// The most `name (n)` numbers tried for a taken name.
 const MAX_NUMBERED: u32 = 999;
+/// A connection that sends nothing for this long is stalled, and is dropped (curl's
+/// `--speed-time` with a speed limit of zero).
+pub(crate) const STALL: Duration = Duration::from_secs(30);
+/// Tries in a row after a stalled or dropped connection before the download fails; any bytes
+/// that arrive start the count again.
+const RETRIES: u32 = 5;
+/// The first wait before trying again; it doubles each time, up to [`RETRY_MAX`].
+const RETRY_FIRST: Duration = if cfg!(test) { Duration::from_millis(50) } else { Duration::from_secs(2) };
+const RETRY_MAX: Duration = Duration::from_secs(30);
 
+#[derive(Clone)]
 pub(crate) struct Fetch {
     pub id: DownloadId,
     pub run: u64,
@@ -35,9 +45,15 @@ pub(crate) struct Fetch {
 /// up to 10 redirects, the system's proxy settings from the environment, and HTTP errors as
 /// errors.
 pub fn agent() -> ureq::Agent {
+    agent_with(STALL)
+}
+
+/// [`agent`] with a stall time of its own (tests).
+pub(crate) fn agent_with(stall: Duration) -> ureq::Agent {
     let config = ureq::Agent::config_builder()
         .timeout_connect(Some(Duration::from_secs(30)))
         .timeout_recv_response(Some(Duration::from_secs(60)))
+        .timeout_per_read(Some(stall))
         .max_redirects(10)
         .user_agent(concat!("DownloadCraft/", env!("CARGO_PKG_VERSION")))
         .build();
@@ -46,14 +62,59 @@ pub fn agent() -> ureq::Agent {
 
 /// Run one transfer to its end, reporting through `sink`. A cancelled transfer leaves without a
 /// word: the engine already knows it stopped.
+///
+/// A stalled or dropped connection is tried again by itself, from where the partial file is, with
+/// exponential back-off ([`RETRY_FIRST`], doubling, at most [`RETRY_MAX`]); the count starts again
+/// whenever bytes arrived since the last try.
 pub(crate) fn fetch(agent: &ureq::Agent, f: &Fetch, cancel: &AtomicBool, sink: &Sink) {
     let (id, run) = (f.id, f.run);
-    match transfer(agent, f, cancel, sink) {
-        Ok(Some(done)) => sink.send(Event::Finished { id, run, done }),
-        Ok(None) => {}
-        Err(e) if cancel.load(Ordering::Relaxed) => log::debug!("download {} stopped: {e}", id.0),
-        Err(e) => sink.send(Event::Failed { id, run, error: e.to_string() }),
+    let mut f = f.clone();
+    let mut tries = 0u32;
+    loop {
+        let before = on_disk(&f);
+        let result = transfer(agent, &mut f, cancel, sink);
+        match result {
+            Ok(Some(done)) => return sink.send(Event::Finished { id, run, done }),
+            Ok(None) => return,
+            Err(e) if cancel.load(Ordering::Relaxed) => return log::debug!("download {} stopped: {e}", id.0),
+            Err(NetError::Retry(why)) => {
+                if on_disk(&f) > before {
+                    tries = 0;
+                }
+                tries += 1;
+                if tries > RETRIES {
+                    return sink.send(Event::Failed { id, run, error: format!("{why}; Resume carries on") });
+                }
+                let wait = RETRY_FIRST.saturating_mul(1 << (tries - 1).min(8)).min(RETRY_MAX);
+                log::info!("download {}: {why}; trying again in {}s ({tries} of {RETRIES})", id.0, wait.as_secs());
+                if !sleep(wait, cancel) {
+                    return;
+                }
+            }
+            Err(e) => return sink.send(Event::Failed { id, run, error: e.to_string() }),
+        }
     }
+}
+
+/// Bytes on disk for `f` so far (its partial file), to tell whether a try got anywhere.
+fn on_disk(f: &Fetch) -> u64 {
+    let part = part_of(&f.folder, &names::sanitize(&f.file_name));
+    match segmented::load(&part) {
+        Some((_, parts)) => parts.iter().map(|p| p.pos - p.start).sum(),
+        None => std::fs::metadata(&part).map(|m| m.len()).unwrap_or(0),
+    }
+}
+
+/// Wait `d`, a tenth of a second at a time: false when the download was stopped meanwhile.
+fn sleep(d: Duration, cancel: &AtomicBool) -> bool {
+    let until = Instant::now() + d;
+    while Instant::now() < until {
+        if cancel.load(Ordering::Relaxed) {
+            return false;
+        }
+        std::thread::sleep(Duration::from_millis(100).min(until.saturating_duration_since(Instant::now())));
+    }
+    !cancel.load(Ordering::Relaxed)
 }
 
 fn disk(path: &Path, e: std::io::Error) -> NetError {
@@ -88,20 +149,22 @@ fn header<'a>(resp: &'a ureq::http::Response<ureq::Body>, name: &str) -> Option<
 
 fn http_error(e: ureq::Error) -> NetError {
     match e {
+        // Worth another try: a busy server, a timeout, a connection that went.
+        ureq::Error::StatusCode(code @ (408 | 429)) => NetError::Retry(format!("the server is busy ({code})")),
+        ureq::Error::StatusCode(code @ 500..=599) => NetError::Retry(format!("the server had a problem ({code})")),
         ureq::Error::StatusCode(code) => NetError::Http(match code {
             401 | 403 => format!("the server refused ({code}); the link may need a sign-in or have expired"),
             404 | 410 => format!("the file isn't there any more ({code})"),
-            429 => "the server asks to slow down (429); try again later".into(),
-            500..=599 => format!("the server had a problem ({code}); try again later"),
             _ => format!("the server answered {code}"),
         }),
-        ureq::Error::Timeout(_) => NetError::Http("the server didn't answer in time".into()),
+        ureq::Error::Timeout(_) => NetError::Retry("the server didn't answer in time".into()),
+        ureq::Error::Io(e) => NetError::Retry(format!("the connection failed ({e})")),
         other => NetError::Http(other.to_string()),
     }
 }
 
 /// `Ok(Some(bytes))` when the file is complete, `Ok(None)` when cancelled.
-fn transfer(agent: &ureq::Agent, f: &Fetch, cancel: &AtomicBool, sink: &Sink) -> Result<Option<u64>, NetError> {
+fn transfer(agent: &ureq::Agent, f: &mut Fetch, cancel: &AtomicBool, sink: &Sink) -> Result<Option<u64>, NetError> {
     std::fs::create_dir_all(&f.folder).map_err(|e| disk(&f.folder, e))?;
     let mut name = names::sanitize(&f.file_name);
     let mut part = part_of(&f.folder, &name);
@@ -158,6 +221,9 @@ fn transfer(agent: &ureq::Agent, f: &Fetch, cancel: &AtomicBool, sink: &Sink) ->
         part = part_of(&f.folder, &name);
     }
     sink.send(Event::Started { id: f.id, run: f.run, total, resumable, file_name: name.clone(), done: offset });
+    // Another try carries on with this name and its partial file.
+    f.file_name = name.clone();
+    f.may_rename = false;
 
     if status == 206
         && offset == 0
@@ -181,8 +247,8 @@ fn transfer(agent: &ureq::Agent, f: &Fetch, cancel: &AtomicBool, sink: &Sink) ->
             Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
             Err(e) => {
                 let _ = file.flush();
-                let next = if resumable { "Resume carries on" } else { "Resume starts over" };
-                return Err(NetError::Http(format!("the connection broke at {} ({e}); {next}", downloadcraft_model::format::bytes(done))));
+                let broke = format!("the connection broke at {} ({e})", downloadcraft_model::format::bytes(done));
+                return Err(if resumable { NetError::Retry(broke) } else { NetError::Http(format!("{broke}; Resume starts over")) });
             }
         };
         if cancel.load(Ordering::Relaxed) {
@@ -203,12 +269,8 @@ fn transfer(agent: &ureq::Agent, f: &Fetch, cancel: &AtomicBool, sink: &Sink) ->
     if let Some(t) = total
         && done < t
     {
-        return Err(NetError::Http(format!(
-            "the connection closed at {} of {}; Resume {}",
-            downloadcraft_model::format::bytes(done),
-            downloadcraft_model::format::bytes(t),
-            if resumable { "carries on" } else { "starts over" }
-        )));
+        let closed = format!("the connection closed at {} of {}", downloadcraft_model::format::bytes(done), downloadcraft_model::format::bytes(t));
+        return Err(if resumable { NetError::Retry(closed) } else { NetError::Http(format!("{closed}; Resume starts over")) });
     }
     finish(f, &name, &part, done).map(Some)
 }

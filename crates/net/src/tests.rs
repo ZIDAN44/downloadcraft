@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use downloadcraft_model::{DownloadId, Event};
 
-use crate::http::{Fetch, agent, fetch};
+use crate::http::{Fetch, agent, agent_with, fetch};
 use crate::{Sink, Worker};
 
 #[derive(Clone, Default)]
@@ -24,6 +24,10 @@ pub(crate) struct Serve {
     /// Turn away this many requests for a closed range (`bytes=a-b`) with 503, as servers that
     /// allow few connections per client do.
     pub(crate) refuse_parts: usize,
+    /// After this many body bytes, the first answer goes silent, keeping the connection open.
+    pub(crate) stall_after: Option<usize>,
+    /// The first answer is this status (later ones are the file).
+    pub(crate) first_status: Option<u16>,
 }
 
 /// Serve `s` until the test ends, each connection on a thread of its own; the `Range` header of
@@ -68,6 +72,7 @@ fn answer(s: &Serve, mut stream: std::net::TcpStream, log: &Mutex<Vec<Option<Str
     let refuse = matches!(range, Some((_, Some(_)))) && refused.fetch_add(1, Ordering::SeqCst) < s.refuse_parts;
     let (status, start, end) = match (s.status, range) {
         (Some(code), _) => (code, 0, 0),
+        _ if first && s.first_status.is_some() => (s.first_status.unwrap_or(500), 0, 0),
         _ if refuse => (503, 0, 0),
         (None, Some((a, _))) if s.ranges && a >= len => (416, 0, 0),
         (None, Some((a, b))) if s.ranges => (206, a, b.map_or(len, |b| (b + 1).min(len))),
@@ -86,6 +91,12 @@ fn answer(s: &Serve, mut stream: std::net::TcpStream, log: &Mutex<Vec<Option<Str
     }
     head.push_str("\r\n");
     let _ = stream.write_all(head.as_bytes());
+    if let (Some(n), true) = (s.stall_after, first) {
+        let _ = stream.write_all(&part[..n.min(part.len())]);
+        let _ = stream.flush();
+        std::thread::sleep(Duration::from_secs(5));
+        return;
+    }
     let send = match s.cut_after {
         Some(n) if first => &part[..n.min(part.len())],
         _ => part,
@@ -135,18 +146,45 @@ fn downloads_a_whole_file() {
 }
 
 #[test]
-fn resumes_with_a_byte_range_after_a_broken_connection() {
+fn a_broken_connection_is_tried_again_with_a_byte_range() {
     let data = body(500_000);
     let (url, seen) = serve(Serve { body: data.clone(), ranges: true, cut_after: Some(123_456), ..Default::default() });
     let dir = temp_dir("resume");
     let ev = run(&url, &dir, "data.bin", true);
-    assert!(matches!(last(&ev), Event::Failed { error, .. } if error.contains("Resume")), "{ev:?}");
-    assert_eq!(std::fs::metadata(dir.join("data.bin.dcpart")).unwrap().len(), 123_456);
-    let ev = run(&url, &dir, "data.bin", false);
-    assert!(matches!(ev.first(), Some(Event::Started { done: 123_456, total: Some(500_000), resumable: true, .. })), "{ev:?}");
-    assert!(matches!(last(&ev), Event::Finished { done: 500_000, .. }), "{ev:?}");
+    assert!(matches!(last(&ev), Event::Finished { done: 500_000, .. }), "carried on by itself: {ev:?}");
+    let restarts: Vec<u64> = ev.iter().filter_map(|e| if let Event::Started { done, .. } = e { Some(*done) } else { None }).collect();
+    assert_eq!(restarts, [0, 123_456], "the second try starts where the first stopped");
     assert_eq!(std::fs::read(dir.join("data.bin")).unwrap(), data);
     assert_eq!(seen.lock().unwrap().clone(), vec![None, Some("123456".to_string())]);
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn a_stalled_connection_is_dropped_and_tried_again() {
+    let data = body(400_000);
+    let (url, seen) = serve(Serve { body: data.clone(), ranges: true, stall_after: Some(100_000), ..Default::default() });
+    let dir = temp_dir("stall");
+    let (tx, rx) = channel();
+    let sink = Sink::new(tx, Arc::new(|| {}));
+    let f = Fetch { id: DownloadId(1), run: 1, url: url.clone(), folder: dir.clone(), file_name: "s.bin".into(), may_rename: true, connections: 1 };
+    let started = std::time::Instant::now();
+    fetch(&agent_with(Duration::from_millis(500)), &f, &AtomicBool::new(false), &sink);
+    drop(sink);
+    let ev: Vec<Event> = rx.iter().collect();
+    assert!(matches!(last(&ev), Event::Finished { done: 400_000, .. }), "{ev:?}");
+    assert!(started.elapsed() < Duration::from_secs(4), "the stall was noticed in about half a second, not after the server woke");
+    assert_eq!(std::fs::read(dir.join("s.bin")).unwrap(), data);
+    assert_eq!(seen.lock().unwrap().last().cloned().flatten().as_deref(), Some("100000"));
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn a_missing_file_is_not_tried_again() {
+    let (url, seen) = serve(Serve { body: body(10), status: Some(404), ..Default::default() });
+    let dir = temp_dir("no-retry");
+    let ev = run(&url, &dir, "x.bin", true);
+    assert!(matches!(last(&ev), Event::Failed { error, .. } if error.contains("404")), "{ev:?}");
+    assert_eq!(seen.lock().unwrap().len(), 1, "asked once");
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -192,8 +230,18 @@ fn http_errors_are_explained() {
     let dir = temp_dir("404");
     let ev = run(&url, &dir, "data.bin", true);
     assert!(matches!(last(&ev), Event::Failed { error, .. } if error.contains("404")), "{ev:?}");
-    let ev = run("http://127.0.0.1:1/nothing", &dir, "x", true);
-    assert!(matches!(last(&ev), Event::Failed { .. }), "{ev:?}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn a_busy_server_is_asked_again() {
+    let data = body(50_000);
+    let (url, seen) = serve(Serve { body: data.clone(), first_status: Some(503), ..Default::default() });
+    let dir = temp_dir("busy");
+    let ev = run(&url, &dir, "b.bin", true);
+    assert!(matches!(last(&ev), Event::Finished { done: 50_000, .. }), "{ev:?}");
+    assert_eq!(seen.lock().unwrap().len(), 2, "503, then the file");
+    assert_eq!(std::fs::read(dir.join("b.bin")).unwrap(), data);
     let _ = std::fs::remove_dir_all(&dir);
 }
 

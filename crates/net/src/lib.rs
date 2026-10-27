@@ -46,6 +46,10 @@ pub fn trash_file(path: &std::path::Path) -> Result<(), String> {
 pub enum NetError {
     #[error("{0}")]
     Http(String),
+    /// A failure that may well not happen again (a stalled or dropped connection, a timeout, a
+    /// busy server): the transfer tries again by itself.
+    #[error("{0}")]
+    Retry(String),
     #[error("{0}")]
     Disk(String),
 }

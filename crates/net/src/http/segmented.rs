@@ -254,7 +254,8 @@ pub(super) fn run(
         return Ok(None);
     }
     let why = shared.failed.lock().unwrap_or_else(PoisonError::into_inner).take().unwrap_or_else(|| "a part didn't finish".into());
-    Err(NetError::Http(format!("{why}; Resume carries on")))
+    // Each part is where its record says: another try (or Resume) carries on from there.
+    Err(NetError::Retry(why))
 }
 
 /// One connection: parts one after another until none is left (or the download stops). `first`
