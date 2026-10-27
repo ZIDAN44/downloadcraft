@@ -1,0 +1,17 @@
+[package]
+name = "downloadcraft-ui-egui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "DownloadCraft egui front end (categories, the download list, the Add link dialog); swappable: nothing below depends on it"
+
+[lints]
+workspace = true
+
+[dependencies]
+downloadcraft-engine = { workspace = true }
+# egui's emoji and symbol fonts, as egui had them by default before 0.37.
+egui = { workspace = true, features = ["monochrome_emoji_fonts"] }
+serde_json = { workspace = true }
+log = { workspace = true }
