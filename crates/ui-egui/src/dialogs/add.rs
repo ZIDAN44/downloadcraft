@@ -408,30 +408,36 @@ pub fn add(ctx: &egui::Context, f: &mut AddForm, t: &Tokens, services: &dyn Serv
         let wants_ffmpeg = rows.iter().any(
             |r| matches!(&r.probe, Probe::Video { qualities, .. } | Probe::Playlist { qualities, .. } if qualities.iter().any(|q| q.needs_ffmpeg)),
         );
-        if !rows.is_empty() {
-            ui.add_space(4.0);
-            egui::ScrollArea::vertical().max_height(170.0).show(ui, |ui| {
-                ui.spacing_mut().item_spacing.y = 6.0;
-                for r in &rows {
-                    let choice = f.quality.entry(r.link.clone()).or_insert(0);
-                    link_row(ui, t, r, choice, ffmpeg, ytdlp);
-                }
-            });
-        }
-        // A torrent of several files: which of them to download.
-        for r in &rows {
-            if let Probe::Torrent { name, files } = &r.probe
-                && files.len() > 1
-            {
-                let left_out = f.left_out.entry(r.link.clone()).or_default();
-                torrent_files(ui, t, &r.link, name, files, left_out);
+        // What the links are (their rows, a torrent's files, what video links need) scrolls in
+        // the height the window leaves, so the title, the links, the folder and the buttons
+        // always stay in view however much there is.
+        let room = (ctx.content_rect().height() - 470.0).clamp(120.0, 420.0);
+        egui::ScrollArea::vertical().id_salt("add-found").max_height(room).auto_shrink([false, true]).show(ui, |ui| {
+            if !rows.is_empty() {
+                ui.add_space(4.0);
+                ui.scope(|ui| {
+                    ui.spacing_mut().item_spacing.y = 6.0;
+                    for r in &rows {
+                        let choice = f.quality.entry(r.link.clone()).or_insert(0);
+                        link_row(ui, t, r, choice, ffmpeg, ytdlp);
+                    }
+                });
             }
-        }
-        if has_video {
-            ui.add_space(6.0);
-            let wants_deno = rows.iter().any(|r| r.check == Ok(SourceKind::VideoPage) && source::needs_js_runtime(&r.link));
-            tools_banner(ui, t, services, wants_ffmpeg, wants_deno);
-        }
+            // A torrent of several files: which of them to download.
+            for r in &rows {
+                if let Probe::Torrent { name, files } = &r.probe
+                    && files.len() > 1
+                {
+                    let left_out = f.left_out.entry(r.link.clone()).or_default();
+                    torrent_files(ui, t, &r.link, name, files, left_out);
+                }
+            }
+            if has_video {
+                ui.add_space(6.0);
+                let wants_deno = rows.iter().any(|r| r.check == Ok(SourceKind::VideoPage) && source::needs_js_runtime(&r.link));
+                tools_banner(ui, t, services, wants_ffmpeg, wants_deno);
+            }
+        });
         ui.add_space(10.0);
         widgets::field_label(ui, t, "Save to");
         folder_row(ui, t, &mut f.folder, services, width);
