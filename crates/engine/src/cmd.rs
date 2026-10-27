@@ -43,6 +43,7 @@ pub fn registry() -> Registry {
         CommandSpec::new("prefs.connections", "Connections per download", "Settings", set_connections).params(r#"{"count": number}"#),
         CommandSpec::new("prefs.theme", "Theme", "Settings › Appearance", set_theme).params(r#"{"theme": "system"|"light"|"dark"}"#),
         CommandSpec::new("prefs.subtitles", "Subtitles", "Settings › Videos", set_subtitles).params(r#"{"languages": "en, es"}"#),
+        CommandSpec::new("prefs.language", "Language", "Settings › Appearance", set_language).params(r#"{"language": "auto"|"de"|"pt-br"}"#),
     ])
 }
 
@@ -298,6 +299,17 @@ fn set_connections(s: &mut Session, v: &Value) -> CmdResult {
     s.prefs.connections = n;
     s.dirty = true;
     Ok(json!({"count": n}))
+}
+
+fn set_language(s: &mut Session, v: &Value) -> CmdResult {
+    let code = v.get("language").and_then(Value::as_str).ok_or_else(|| CmdError::Params("`language` (text) is required".into()))?;
+    let ok = code == "auto" || (2..=8).contains(&code.len()) && code.chars().all(|c| c.is_ascii_lowercase() || c == '-');
+    if !ok {
+        return Err(CmdError::Params("`language` is auto or a language code such as de or pt-br".into()));
+    }
+    s.prefs.language = code.to_string();
+    s.dirty = true;
+    Ok(json!({"language": code}))
 }
 
 fn set_subtitles(s: &mut Session, v: &Value) -> CmdResult {

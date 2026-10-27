@@ -20,6 +20,7 @@ pub enum Kind {
 
 /// A button with an optional icon; `label` may be empty for an icon-only one.
 pub fn button(ui: &mut Ui, t: &Tokens, kind: Kind, icon: Option<Icon>, label: &str, enabled: bool) -> Response {
+    let label = tl!(label);
     let font = FontId::proportional(14.0);
     let fg = match (enabled, kind) {
         (false, _) => t.faint,
@@ -87,7 +88,7 @@ pub fn nav_row(ui: &mut Ui, t: &Tokens, icon: Icon, label: &str, count: usize, s
     }
     let color = if selected { t.accent } else { t.muted };
     icons::paint(p, Rect::from_center_size(egui::pos2(rect.left() + 20.0, rect.center().y), vec2(16.0, 16.0)), icon, color);
-    let text = RichText::new(label).size(14.0).color(if selected { t.text } else { t.muted });
+    let text = RichText::new(tl!(label)).size(14.0).color(if selected { t.text } else { t.muted });
     let text = if selected { text.strong() } else { text };
     let galley = egui::WidgetText::from(text).into_galley(ui, Some(egui::TextWrapMode::Truncate), rect.width() - 80.0, egui::TextStyle::Body);
     ui.painter().galley(egui::pos2(rect.left() + 38.0, rect.center().y - galley.size().y / 2.0), galley, t.text);
@@ -103,18 +104,18 @@ pub fn nav_row(ui: &mut Ui, t: &Tokens, icon: Icon, label: &str, count: usize, s
 
 /// A small label over a field.
 pub fn field_label(ui: &mut Ui, t: &Tokens, text: &str) {
-    ui.label(RichText::new(text).size(12.5).color(t.muted).strong());
+    ui.label(RichText::new(tl!(text)).size(12.5).color(t.muted).strong());
 }
 
 /// A section heading in a dialog.
 pub fn section(ui: &mut Ui, t: &Tokens, text: &str) {
     ui.add_space(4.0);
-    ui.label(RichText::new(text.to_uppercase()).size(11.5).color(t.faint).strong());
+    ui.label(RichText::new(tl!(text).to_uppercase()).size(11.5).color(t.faint).strong());
 }
 
 /// A one-line text field with comfortable padding.
 pub fn text_field(ui: &mut Ui, value: &mut String, hint: &str, width: f32) -> Response {
-    ui.add(egui::TextEdit::singleline(value).hint_text(hint).desired_width(width).margin(egui::Margin::symmetric(10, 7)))
+    ui.add(egui::TextEdit::singleline(value).hint_text(tl!(hint)).desired_width(width).margin(egui::Margin::symmetric(10, 7)))
 }
 
 /// `−  n  +`: a number from `min` to `max` (laid out the right way round in a right-to-left row).
@@ -163,7 +164,7 @@ pub fn segmented<T: Copy + PartialEq>(ui: &mut Ui, t: &Tokens, value: &mut T, op
         } else if resp.hovered() {
             ui.painter().rect_filled(r, 8.0, t.hover);
         }
-        let g = ui.painter().layout_no_wrap(label.to_string(), FontId::proportional(13.5), if on { t.text } else { t.muted });
+        let g = ui.painter().layout_no_wrap(tl!(label).to_string(), FontId::proportional(13.5), if on { t.text } else { t.muted });
         let x0 = r.center().x - (22.0 + g.size().x) / 2.0;
         icons::paint(
             ui.painter(),

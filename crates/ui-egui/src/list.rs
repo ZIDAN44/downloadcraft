@@ -57,16 +57,20 @@ fn empty(s: &Session, searching: bool, ui: &mut Ui, t: &Tokens, act: &mut Option
         ui.painter().circle_filled(r.center(), 44.0, t.accent_soft);
         icons::paint(ui.painter(), Rect::from_center_size(r.center(), vec2(40.0, 40.0)), Icon::Download, t.accent);
         ui.add_space(14.0);
-        ui.label(egui::RichText::new(title).size(20.0).strong());
+        ui.label(egui::RichText::new(tl!(title)).size(20.0).strong());
         ui.add_space(2.0);
-        ui.label(egui::RichText::new(hint).color(t.muted));
+        ui.label(egui::RichText::new(tl!(hint)).color(t.muted));
         if s.downloads.is_empty() && !searching {
             ui.add_space(16.0);
             if crate::widgets::button(ui, t, crate::widgets::Kind::Primary, Some(Icon::Add), "Add link", true).clicked() {
                 *act = Some(Action::Add);
             }
             ui.add_space(18.0);
-            ui.label(egui::RichText::new("Direct links download now · torrents, magnet links and MEGA are on the way").size(12.0).color(t.faint));
+            ui.label(
+                egui::RichText::new(tl!("Direct links and video pages download now · torrents, magnet links and MEGA are on the way"))
+                    .size(12.0)
+                    .color(t.faint),
+            );
         }
     });
 }
@@ -74,17 +78,17 @@ fn empty(s: &Session, searching: bool, ui: &mut Ui, t: &Tokens, act: &mut Option
 /// What the second line says: how far, how fast, how long, on how many connections.
 fn detail(d: &Download) -> String {
     if d.missing {
-        return "Deleted or moved  ·  Download again fetches it once more".into();
+        return tl!("Deleted or moved  ·  Download again fetches it once more").into();
     }
     let size = match d.total {
-        Some(t) if d.state != State::Completed => format!("{} of {}", format::bytes(d.done), format::bytes(t)),
+        Some(t) if d.state != State::Completed => tf!("{done} of {total}", done = format::bytes(d.done), total = format::bytes(t)),
         Some(t) => format::bytes(t),
         None if d.done > 0 => format::bytes(d.done),
         None => String::new(),
     };
     let mut bits = vec![];
     if let Some(v) = &d.video {
-        bits.push(format!("Video · {}", v.label));
+        bits.push(tf!("Video · {quality}", quality = tl!(&v.label)));
     }
     if !size.is_empty() {
         bits.push(size);
@@ -93,17 +97,17 @@ fn detail(d: &Download) -> String {
         State::Downloading if d.speed > 0 => {
             bits.push(format::speed(d.speed));
             if let Some(eta) = d.eta() {
-                bits.push(format!("{} left", format::duration(eta)));
+                bits.push(tf!("{time} left", time = format::duration(eta)));
             }
             let going = d.segments.iter().filter(|s| !s.finished()).count();
             if going > 1 {
-                bits.push(format!("{going} connections"));
+                bits.push(tf!("{n} connections", n = going));
             }
         }
-        State::Downloading => bits.push("Connecting…".into()),
-        State::Queued => bits.push("Waiting for a free slot".into()),
-        State::Failed => bits.push(d.error.clone().unwrap_or_else(|| "Failed".into())),
-        State::Paused if d.done > 0 && !d.resumable => bits.push("starts over when resumed".into()),
+        State::Downloading => bits.push(tl!("Connecting…").into()),
+        State::Queued => bits.push(tl!("Waiting for a free slot").into()),
+        State::Failed => bits.push(d.error.clone().unwrap_or_else(|| tl!("Failed").into())),
+        State::Paused if d.done > 0 && !d.resumable => bits.push(tl!("starts over when resumed").into()),
         _ => {}
     }
     bits.join("  ·  ")
@@ -161,7 +165,7 @@ fn bar(d: &Download, rect: Rect, ui: &Ui, t: &Tokens) {
 /// A small round button drawn at `center`; true when clicked.
 fn row_button(ui: &mut Ui, id: egui::Id, center: egui::Pos2, icon: Icon, tip: &str, t: &Tokens) -> bool {
     let r = Rect::from_center_size(center, vec2(32.0, 32.0));
-    let resp = ui.interact(r, id, Sense::click()).on_hover_text(tip).on_hover_cursor(egui::CursorIcon::PointingHand);
+    let resp = ui.interact(r, id, Sense::click()).on_hover_text(tl!(tip)).on_hover_cursor(egui::CursorIcon::PointingHand);
     let p = ui.painter();
     p.rect_filled(r, 8.0, if resp.hovered() { t.surface } else { t.card });
     p.rect_stroke(r, 8.0, egui::Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
@@ -227,8 +231,10 @@ fn row(d: &Download, selected: bool, ui: &mut Ui, t: &Tokens, act: &mut Option<A
     let label = match (d.state, d.fraction()) {
         (State::Downloading, Some(f)) => format!("{:.0}%", f * 100.0),
         (State::Downloading, None) => format::bytes(d.done),
-        _ if d.missing => "Deleted".to_string(),
-        (s, _) => s.label().to_string(),
+        _ if d.missing => tl!("Deleted").to_string(),
+        // One download's state, which some languages say differently from the category
+        // (`Completed` the category, `Completed` this one).
+        (s, _) => crate::i18n::tc("state", s.label()).to_string(),
     };
     ui.painter().text(pos2(right - actions_w, rect.center().y), Align2::RIGHT_CENTER, label, FontId::proportional(13.0), state_color(d, t));
 
@@ -277,27 +283,27 @@ fn row(d: &Download, selected: bool, ui: &mut Ui, t: &Tokens, act: &mut Option<A
         });
     }
     resp.context_menu(|ui| {
-        if d.state.startable() && ui.button("Resume").clicked() {
+        if d.state.startable() && ui.button(tl!("Resume")).clicked() {
             *act = Some(Action::Run("download.resume", d.id));
         }
-        if d.state.active() && ui.button("Pause").clicked() {
+        if d.state.active() && ui.button(tl!("Pause")).clicked() {
             *act = Some(Action::Run("download.pause", d.id));
         }
-        if d.state == State::Completed && !d.missing && ui.button("Open").clicked() {
+        if d.state == State::Completed && !d.missing && ui.button(tl!("Open")).clicked() {
             *act = Some(Action::Open(file.clone()));
         }
-        if d.missing && ui.button("Download again").clicked() {
+        if d.missing && ui.button(tl!("Download again")).clicked() {
             *act = Some(Action::Run("download.again", d.id));
         }
         let folder = if d.state == State::Completed && !d.missing { "Show in folder" } else { "Open folder" };
-        if ui.button(folder).clicked() {
+        if ui.button(tl!(folder)).clicked() {
             *act = Some(Action::Reveal(file.clone()));
         }
-        if ui.button("Copy link").clicked() {
+        if ui.button(tl!("Copy link")).clicked() {
             *act = Some(Action::CopyLink(d.url.clone()));
         }
         ui.separator();
-        if ui.button("Remove…").clicked() {
+        if ui.button(tl!("Remove…")).clicked() {
             *act = Some(Action::Remove(d.id));
         }
     });

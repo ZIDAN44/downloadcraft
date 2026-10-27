@@ -66,6 +66,8 @@
   set aside, never fatal. `downloadcraft.log` beside it says what each run did (retries, parts
   handed back, the graphics adapter); `--log` shows it in the terminal too.
 - **Light, dark or the system's theme**, from the switch beside the search or Settings.
+- **In your language**: English, Deutsch, español, français, italiano, Nederlands, português do
+  Brasil and русский, following the system's language unless one is picked in Settings.
 - **Search** the list by name or link (Ctrl+F), and hover a row for Pause, Resume, Open folder and
   Remove.
 - **Built for agents**: every action is a command with an id, shared by the toolbar, shortcuts,

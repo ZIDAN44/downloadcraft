@@ -77,6 +77,10 @@ A download manager that crashes loses hours of downloading. **This outranks feat
   or download-file I/O. Every job carries a run number and events from an older run are dropped,
   so a paused transfer that wakes up late can't touch the list. `cargo xtask layers` enforces the
   layering (no `egui` below L6, no network crates outside `net`).
+- **Interface text goes through `tl!` / `tf!`** (`crates/ui-egui/src/i18n.rs`, from MailCraft) or
+  a widget helper that translates its label; the English in the code is the key. New or changed
+  wording gets its row in every catalog in `crates/ui-egui/src/i18n/`, translated from its meaning;
+  the tests list what's missing or stale. Command ids, file names, the CLI and the log stay English.
 - **Rust only. Never break wasm** for the portable crates (`cargo xtask wasm`).
 
 ## File size

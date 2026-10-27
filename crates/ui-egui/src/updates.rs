@@ -38,16 +38,16 @@ impl DownloadApp {
     pub(crate) fn update_bar(&mut self, ui: &mut Ui, t: &Tokens) {
         let UpdateState::Ready { version } = self.update.clone() else { return };
         ui.horizontal(|ui| {
-            ui.label(RichText::new(format!("DownloadCraft {version} is ready.")).strong());
+            ui.label(RichText::new(tf!("DownloadCraft {version} is ready.", version = version)).strong());
             ui.label(
-                RichText::new("Restart now to install it, or it installs when you close DownloadCraft. Downloads pause and carry on after.")
+                RichText::new(tl!("Restart now to install it, or it installs when you close DownloadCraft. Downloads pause and carry on after."))
                     .color(t.muted),
             );
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("Later").clicked() {
+                if ui.button(tl!("Later")).clicked() {
                     self.update_dismissed = Some(version.clone());
                 }
-                if ui.button(RichText::new("Restart now").strong()).clicked() {
+                if ui.button(RichText::new(tl!("Restart now")).strong()).clicked() {
                     self.update_choice = Some(UpdateChoice::RestartNow);
                 }
             });
@@ -59,10 +59,10 @@ impl DownloadApp {
         let text = match &self.update {
             UpdateState::None => return,
             UpdateState::Downloading { version, done, total } if *total > 0 => {
-                format!("Downloading DownloadCraft {version}: {}%", done.saturating_mul(100) / total)
+                tf!("Downloading DownloadCraft {version}: {percent}%", version = version, percent = done.saturating_mul(100) / total)
             }
-            UpdateState::Downloading { version, .. } => format!("Downloading DownloadCraft {version}"),
-            UpdateState::Ready { .. } => "Restart to update".into(),
+            UpdateState::Downloading { version, .. } => tf!("Downloading DownloadCraft {version}", version = version),
+            UpdateState::Ready { .. } => tl!("Restart to update").to_string(),
         };
         ui.label(RichText::new(text).color(t.accent));
         ui.label(RichText::new("·").color(t.muted));

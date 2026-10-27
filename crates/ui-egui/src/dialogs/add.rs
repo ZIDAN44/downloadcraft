@@ -58,8 +58,8 @@ fn default_quality(qualities: &[Quality], ffmpeg: bool) -> usize {
 
 fn quality_text(q: &Quality) -> String {
     match q.size {
-        Some(s) => format!("{}  ·  {}", q.label, format::bytes(s)),
-        None => q.label.clone(),
+        Some(s) => format!("{}  ·  {}", tl!(&q.label), format::bytes(s)),
+        None => tl!(&q.label).to_string(),
     }
 }
 
@@ -72,25 +72,27 @@ fn link_row(ui: &mut Ui, t: &Tokens, row: &Row, choice: &mut usize, ffmpeg: bool
     let (name, chip, color) = match (&row.check, &row.probe) {
         (Err(e), _) => (row.link.chars().take(60).collect(), (*e).to_string(), t.danger),
         (Ok(k), _) if k.not_yet().is_some() => {
-            (row.link.chars().take(60).collect(), format!("{} · {}", k.label(), k.not_yet().unwrap_or("")), t.warning)
+            (row.link.chars().take(60).collect(), format!("{} · {}", tl!(k.label()), tl!(k.not_yet().unwrap_or(""))), t.warning)
         }
         (Ok(SourceKind::VideoPage), _) if !ytdlp_ready => {
-            (row.link.chars().take(60).collect(), "Video page · needs yt-dlp (below)".into(), t.warning)
+            (row.link.chars().take(60).collect(), tl!("Video page · needs yt-dlp (below)").into(), t.warning)
         }
-        (Ok(_), Probe::Pending) => (fallback(), "Checking the link…".into(), t.muted),
+        (Ok(_), Probe::Pending) => (fallback(), tl!("Checking the link…").into(), t.muted),
         (Ok(_), Probe::File { name, size, note: Some(n) }) => {
             (name.clone(), format!("{}{n}", size.map(|s| format!("{} · ", format::bytes(s))).unwrap_or_default()), t.warning)
         }
-        (Ok(_), Probe::File { name, size, note: None }) => {
-            (name.clone(), size.map_or_else(|| "Direct link · size not given".into(), |s| format!("Direct link · {}", format::bytes(s))), t.success)
-        }
-        (Ok(_), Probe::Video { title, .. }) => (title.clone(), "Video".into(), t.success),
+        (Ok(_), Probe::File { name, size, note: None }) => (
+            name.clone(),
+            size.map_or_else(|| tl!("Direct link · size not given").into(), |s| tf!("Direct link · {size}", size = format::bytes(s))),
+            t.success,
+        ),
+        (Ok(_), Probe::Video { title, .. }) => (title.clone(), tl!("Video").into(), t.success),
         (Ok(_), Probe::Playlist { title, videos, .. }) if videos.is_empty() => {
-            (title.clone(), "Playlist · no videos that can be added".into(), t.warning)
+            (title.clone(), tl!("Playlist · no videos that can be added").into(), t.warning)
         }
         (Ok(_), Probe::Playlist { title, videos, .. }) => {
             let n = videos.len();
-            (title.clone(), if n == 1 { "Playlist · 1 video".into() } else { format!("Playlist · {n} videos") }, t.success)
+            (title.clone(), if n == 1 { tl!("Playlist · 1 video").into() } else { tf!("Playlist · {n} videos", n = n) }, t.success)
         }
         (Ok(_), Probe::Failed(e)) => (fallback(), e.clone(), t.warning),
     };
@@ -115,7 +117,7 @@ fn link_row(ui: &mut Ui, t: &Tokens, row: &Row, choice: &mut usize, ffmpeg: bool
             egui::ComboBox::from_id_salt(("quality", &row.link)).width(picker_w - 10.0).selected_text(current).show_ui(ui, |ui| {
                 for (i, q) in qualities.iter().enumerate() {
                     let usable = ffmpeg || !q.needs_ffmpeg;
-                    let text = if usable { quality_text(q) } else { format!("{}  ·  needs FFmpeg", q.label) };
+                    let text = if usable { quality_text(q) } else { tf!("{quality}  ·  needs FFmpeg", quality = tl!(&q.label)) };
                     if ui.add_enabled(usable, egui::Button::selectable(*choice == i, text)).clicked() {
                         *choice = i;
                     }
@@ -158,7 +160,7 @@ fn tools_banner(ui: &mut Ui, t: &Tokens, services: &dyn Services, wants_ffmpeg: 
                     || services.fetch_tool(Tool::Deno),
                 );
             } else {
-                ui.add(egui::Label::new(RichText::new("YouTube also needs Deno (deno.com) for every quality; install it to get them.").size(12.5)).wrap());
+                ui.add(egui::Label::new(RichText::new(tl!("YouTube also needs Deno (deno.com) for every quality; install it to get them.")).size(12.5)).wrap());
             }
         }
         if ffmpeg_missing {
@@ -168,7 +170,9 @@ fn tools_banner(ui: &mut Ui, t: &Tokens, services: &dyn Services, wants_ffmpeg: 
                 });
             } else {
                 ui.label(
-                    RichText::new("Higher qualities need FFmpeg to join video and sound. Install it with brew install ffmpeg (macOS) or sudo apt install ffmpeg (Linux).")
+                    RichText::new(tl!(
+                        "Higher qualities need FFmpeg to join video and sound. Install it with brew install ffmpeg (macOS) or sudo apt install ffmpeg (Linux)."
+                    ))
                         .size(12.5),
                 );
             }
@@ -178,14 +182,14 @@ fn tools_banner(ui: &mut Ui, t: &Tokens, services: &dyn Services, wants_ffmpeg: 
 
 fn tool_line(ui: &mut Ui, t: &Tokens, text: &str, state: &ToolState, action: &str, fetch: impl FnOnce()) {
     // The text wraps to the dialog's width; the button sits on its own line, on the right.
-    ui.add(egui::Label::new(RichText::new(text).size(12.5)).wrap());
+    ui.add(egui::Label::new(RichText::new(tl!(text)).size(12.5)).wrap());
     if let ToolState::Failed(e) = state {
         ui.add(egui::Label::new(RichText::new(e).size(12.0).color(t.danger)).wrap());
     }
     ui.allocate_ui_with_layout(vec2(ui.available_width(), 34.0), egui::Layout::right_to_left(egui::Align::Center), |ui| match state {
         ToolState::Fetching => {
             ui.spinner();
-            ui.label(RichText::new("Getting it and checking it…").size(12.5).color(t.muted));
+            ui.label(RichText::new(tl!("Getting it and checking it…")).size(12.5).color(t.muted));
         }
         _ => {
             let label = if matches!(state, ToolState::Failed(_)) { "Try again" } else { action };
@@ -225,13 +229,13 @@ fn links_box(ui: &mut Ui, t: &Tokens, links: &mut String) {
     ui.horizontal(|ui| {
         widgets::field_label(ui, t, "Links");
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if count > 0 && ui.add(egui::Button::new(RichText::new("Clear").size(12.5).color(t.accent)).frame(false)).clicked() {
+            if count > 0 && ui.add(egui::Button::new(RichText::new(tl!("Clear")).size(12.5).color(t.accent)).frame(false)).clicked() {
                 links.clear();
             }
             let text = match count {
-                0 => "one per line".to_string(),
-                1 => "1 link".to_string(),
-                n => format!("{n} links"),
+                0 => tl!("one per line").to_string(),
+                1 => tl!("1 link").to_string(),
+                n => tf!("{n} links", n = n),
             };
             ui.label(RichText::new(text).size(12.5).color(t.faint));
         });
@@ -353,7 +357,7 @@ pub fn add(ctx: &egui::Context, f: &mut AddForm, t: &Tokens, services: &dyn Serv
         widgets::field_label(ui, t, "Save to");
         folder_row(ui, t, &mut f.folder, services, width);
         ui.add_space(4.0);
-        ui.checkbox(&mut f.start, "Start downloading now");
+        ui.checkbox(&mut f.start, tl!("Start downloading now"));
         ui.add_space(14.0);
         // A playlist adds each of its videos.
         let ok: usize = rows
@@ -365,10 +369,10 @@ pub fn add(ctx: &egui::Context, f: &mut AddForm, t: &Tokens, services: &dyn Serv
             })
             .sum();
         ui.horizontal(|ui| {
-            ui.label(RichText::new("Ctrl+Enter adds").size(12.0).color(t.faint));
+            ui.label(RichText::new(tl!("Ctrl+Enter adds")).size(12.0).color(t.faint));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let can = ok > 0 && !f.folder.trim().is_empty();
-                let label = if ok > 1 { format!("Add {ok} downloads") } else { "Add download".to_string() };
+                let label = if ok > 1 { tf!("Add {n} downloads", n = ok) } else { "Add download".to_string() };
                 let enter = ui.input(|i| i.key_pressed(egui::Key::Enter) && i.modifiers.command);
                 if widgets::button(ui, t, Kind::Primary, Some(Icon::Download), &label, can).clicked() || (can && enter) {
                     let mut list = Vec::new();

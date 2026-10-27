@@ -1,0 +1,152 @@
+# DownloadCraft interface strings: Russian (русский).
+# context<TAB>English<TAB>translation; escapes \n \t \\. Placeholders like {name} stay as they are.
+# Written for DownloadCraft from the meaning of the English (clean room): no wording is taken from
+# other download managers.
+
+	1 download	1 загрузка
+	1 download running	Идёт 1 загрузка
+	1 link	1 ссылка
+	About	О программе
+	Add a link (Ctrl+N), or paste one anywhere (Ctrl+V)	Добавьте ссылку (Ctrl+N) или вставьте её в любом месте (Ctrl+V)
+	Add download	Добавить загрузку
+	Add link	Добавить ссылку
+	Add {n} downloads	Добавить загрузки: {n}
+	Added {n} downloads	Добавлено загрузок: {n}
+	All downloads	Все загрузки
+	Also delete the file (it goes to the Recycle Bin)	Удалить и файл (он попадёт в корзину)
+	Also delete the file (it goes to the Trash)	Удалить и файл (он попадёт в корзину)
+	Appearance	Внешний вид
+	Audio only	Только звук
+	Best	Лучшее
+	Best available	Лучшее из доступного
+	Browse	Обзор
+	Cancel	Отмена
+	Changes apply when you save.	Изменения вступят в силу после сохранения.
+	Checking the link…	Проверка ссылки…
+	Choose a folder	Выберите папку
+	Clear	Очистить
+	Clear completed	Убрать завершённые
+	Close (Esc)	Закрыть (Esc)
+	Completed	Завершённые
+	Connecting…	Подключение…
+	Connections per download	Соединений на загрузку
+	Copy link	Копировать ссылку
+	Ctrl+Enter adds	Ctrl+Enter добавляет
+	Dark	Тёмная
+	Deleted	Удалён
+	Deleted or moved  ·  Download again fetches it once more	Удалён или перемещён  ·  «Скачать снова» загрузит его ещё раз
+	Direct link	Прямая ссылка
+	Direct link · size not given	Прямая ссылка · размер не указан
+	Direct link · {size}	Прямая ссылка · {size}
+	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Прямые ссылки и страницы с видео уже скачиваются · торренты, magnet-ссылки и MEGA на подходе
+	Download again	Скачать снова
+	Download folder	Папка загрузок
+	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	DownloadCraft обновляется сам. Когда новая версия готова, панель вверху предложит перезапустить программу, чтобы её установить.
+	DownloadCraft {version} is ready.	DownloadCraft {version} готов.
+	Downloading	Загружаются
+	Downloading DownloadCraft {version}	Загрузка DownloadCraft {version}
+	Downloading DownloadCraft {version}: {percent}%	Загрузка DownloadCraft {version}: {percent}%
+	Downloads	Загрузки
+	Downloads at once	Загрузок одновременно
+	Downloads in this category show up here.	Здесь появляются загрузки этой категории.
+	FTP	FTP
+	FTP downloads arrive in v0.4	загрузки по FTP появятся в v0.4
+	Failed	С ошибкой
+	Follows your computer's language unless you pick one.	Язык компьютера, если вы не выберете другой.
+	Get Deno	Получить Deno
+	Get FFmpeg	Получить FFmpeg
+	Get yt-dlp	Получить yt-dlp
+	Getting it and checking it…	Загрузка и проверка…
+	Higher qualities come as separate video and sound, which FFmpeg joins into one file.	Высокое качество приходит отдельными видео и звуком, которые FFmpeg соединяет в один файл.
+	Higher qualities need FFmpeg to join video and sound. Install it with brew install ffmpeg (macOS) or sudo apt install ffmpeg (Linux).	Для высокого качества нужен FFmpeg, чтобы соединить видео и звук. Установите его командой brew install ffmpeg (macOS) или sudo apt install ffmpeg (Linux).
+	It comes off the list.	Она уйдёт из списка.
+	Language	Язык
+	Languages to save with videos, such as en, es. Empty: none.	Языки субтитров для видео, например en, ru. Пусто: без субтитров.
+	Later	Позже
+	Light	Светлая
+	Link copied	Ссылка скопирована
+	Links	Ссылки
+	MEGA	MEGA
+	MEGA links arrive in v0.5	ссылки MEGA появятся в v0.5
+	Magnet link	Magnet-ссылка
+	No downloads yet	Загрузок пока нет
+	No matches	Ничего не найдено
+	Nothing downloading	Ничего не загружается
+	Nothing here	Здесь пусто
+	Nothing in this list has that name or link.	В этом списке нет такого имени или ссылки.
+	One file with sound	Один файл со звуком
+	Open	Открыть
+	Open folder	Открыть папку
+	Parts of one file fetched at the same time, when the server allows.	Части одного файла, загружаемые одновременно, если сервер позволяет.
+	Paste a link anywhere in this window with Ctrl+V, or add one.	Вставьте ссылку в любом месте окна через Ctrl+V или добавьте её.
+	Paste one link per line: files, or video pages such as YouTube.	По одной ссылке в строке: файлы или страницы с видео, например YouTube.
+	Pause	Приостановить
+	Pause (Space)	Приостановить (Пробел)
+	Pause all	Приостановить все
+	Paused	На паузе
+	Playlist · 1 video	Плейлист · 1 видео
+	Playlist · no videos that can be added	Плейлист · нет видео, которые можно добавить
+	Playlist · {n} videos	Плейлист · видео: {n}
+	Queued	В очереди
+	Remove	Убрать
+	Remove (Delete)	Убрать (Delete)
+	Remove and delete	Убрать и удалить
+	Remove download?	Убрать загрузку?
+	Remove from the list (Delete)	Убрать из списка (Delete)
+	Remove…	Убрать…
+	Restart now	Перезапустить сейчас
+	Restart now to install it, or it installs when you close DownloadCraft. Downloads pause and carry on after.	Перезапустите сейчас, чтобы установить, или она установится при закрытии DownloadCraft. Загрузки приостановятся и потом продолжатся.
+	Restart to update	Перезапустите для обновления
+	Resume	Продолжить
+	Resume (Space)	Продолжить (Пробел)
+	Resume all	Продолжить все
+	Same as the system	Как в системе
+	Save	Сохранить
+	Save to	Сохранить в
+	Search downloads  (Ctrl+F)	Поиск загрузок  (Ctrl+F)
+	Settings	Настройки
+	Show in folder	Показать в папке
+	Speed	Скорость
+	Start downloading now	Начать загрузку сразу
+	Subtitles	Субтитры
+	System	Системная
+	System follows your computer.	«Системная» следует за вашим компьютером.
+	The part downloaded so far is deleted.	Уже загруженная часть удаляется.
+	The rest wait in the queue.	Остальные ждут в очереди.
+	Theme	Тема
+	Theme: Dark. Click for System	Тема: тёмная. Нажмите для системной
+	Theme: Light. Click for Dark	Тема: светлая. Нажмите для тёмной
+	Theme: System. Click for Light	Тема: системная. Нажмите для светлой
+	Torrent	Торрент
+	Try again	Повторить
+	Up to 1080p	До 1080p
+	Up to 480p	До 480p
+	Up to 720p	До 720p
+	Video	Видео
+	Video links use yt-dlp, a free, open-source program that finds the video in a page. DownloadCraft fetches its official build and checks it before use.	Для ссылок на видео нужен yt-dlp — свободная программа с открытым кодом, которая находит видео на странице. DownloadCraft загружает её официальную сборку и проверяет её перед использованием.
+	Video page	Страница с видео
+	Video page · needs yt-dlp (below)	Страница с видео · нужен yt-dlp (ниже)
+	Video · {quality}	Видео · {quality}
+	Videos	Видео
+	Waiting for a free slot	Ждёт свободного места
+	YouTube also needs Deno (deno.com) for every quality; install it to get them.	Для всех качеств YouTube нужен ещё и Deno (deno.com); установите его, чтобы их получить.
+	YouTube also needs Deno, a free JavaScript runtime yt-dlp reads its pages with; without it some qualities are missing. DownloadCraft fetches its official build and checks it before use.	Для YouTube нужен ещё и Deno — свободная среда JavaScript, через которую yt-dlp читает его страницы; без неё некоторых качеств не будет. DownloadCraft загружает его официальную сборку и проверяет её перед использованием.
+	none	нет
+	one per line	по одной в строке
+	starts over when resumed	начнётся заново при продолжении
+	torrents arrive in v0.3	торренты появятся в v0.3
+	{done} of {total}	{done} из {total}
+	{n} connections	соединений: {n}
+	{n} downloads	Загрузок: {n}
+	{n} downloads running	Идёт загрузок: {n}
+	{n} in the list · {connections} connections each	В списке: {n} · по {connections} соединений
+	{n} links	Ссылок: {n}
+	{quality}  ·  needs FFmpeg	{quality}  ·  нужен FFmpeg
+	{time} left	осталось {time}
+
+# One download's state, beside the category of the same English name.
+state	Queued	В очереди
+state	Downloading	Загружается
+state	Paused	На паузе
+state	Completed	Завершена
+state	Failed	Ошибка

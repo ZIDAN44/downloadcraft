@@ -30,10 +30,14 @@ pub fn remove(ctx: &egui::Context, f: &mut RemoveForm, t: &Tokens) -> Option<Opt
         });
         ui.add_space(8.0);
         if f.finished {
-            let bin = if cfg!(windows) { "Recycle Bin" } else { "Trash" };
-            ui.checkbox(&mut f.delete_file, format!("Also delete the file (it goes to the {bin})"));
+            let text = if cfg!(windows) {
+                tl!("Also delete the file (it goes to the Recycle Bin)")
+            } else {
+                tl!("Also delete the file (it goes to the Trash)")
+            };
+            ui.checkbox(&mut f.delete_file, text);
         } else {
-            ui.label(RichText::new("The part downloaded so far is deleted.").size(13.0).color(t.muted));
+            ui.label(RichText::new(tl!("The part downloaded so far is deleted.")).size(13.0).color(t.muted));
         }
         ui.add_space(14.0);
         let (enter, esc) = ui.input(|i| (i.key_pressed(egui::Key::Enter), i.key_pressed(egui::Key::Escape)));

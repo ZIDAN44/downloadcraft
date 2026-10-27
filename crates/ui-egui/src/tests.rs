@@ -5,7 +5,7 @@ use serde_json::json;
 
 use crate::{DownloadApp, NoServices};
 
-fn frame(app: &mut DownloadApp, ctx: &egui::Context, events: Vec<egui::Event>) {
+pub(crate) fn frame(app: &mut DownloadApp, ctx: &egui::Context, events: Vec<egui::Event>) {
     let input =
         egui::RawInput { screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(1100.0, 700.0))), events, ..Default::default() };
     let mut out = ctx.run_ui(input, |ui| app.ui(ui));
@@ -13,7 +13,7 @@ fn frame(app: &mut DownloadApp, ctx: &egui::Context, events: Vec<egui::Event>) {
     out.textures_delta.clear();
 }
 
-fn sample() -> Session {
+pub(crate) fn sample() -> Session {
     let mut s = Session::new();
     s.prefs.folder = "/downloads".into();
     s.prefs.max_active = 4;

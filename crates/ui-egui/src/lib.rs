@@ -8,7 +8,22 @@
 //! opening files) comes through [`Services`].
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+/// An interface string in the current language (see [`i18n`]).
+macro_rules! tl {
+    ($s:expr) => {
+        $crate::i18n::t($s)
+    };
+}
+
+/// A translated template with `{name}` values filled in: `tf!("{n} links", n = count)`.
+macro_rules! tf {
+    ($s:expr $(, $k:ident = $v:expr)* $(,)?) => {
+        $crate::i18n::tfmt($s, &[$((stringify!($k), &$v.to_string())),*])
+    };
+}
+
 mod dialogs;
+pub mod i18n;
 pub mod icons;
 mod list;
 pub mod theme;
@@ -182,6 +197,12 @@ impl DownloadApp {
     /// The whole window.
     pub fn ui(&mut self, ui: &mut Ui) {
         let ctx = ui.ctx().clone();
+        // The language being picked in Settings shows at once, as the theme does.
+        let language = match &self.dialog {
+            Some(Dialog::Settings(f)) => f.language.clone(),
+            _ => self.session.prefs.language.clone(),
+        };
+        i18n::set_current(i18n::Lang::from_pref(&language));
         let t = self.tokens(&ctx);
         self.shortcuts(&ctx);
         self.look_for_files(&ctx);
@@ -236,6 +257,7 @@ impl DownloadApp {
                         self.run("prefs.connections", json!({"count": form.connections}));
                         self.run("prefs.theme", json!({"theme": form.theme}));
                         self.run("prefs.subtitles", json!({"languages": form.subtitles}));
+                        self.run("prefs.language", json!({"language": form.language}));
                     }
                 }),
             };
@@ -264,7 +286,7 @@ impl DownloadApp {
             self.run("download.add", params);
         }
         if n > 1 {
-            self.session.status = format!("Added {n} downloads");
+            self.session.status = tf!("Added {n} downloads", n = n);
         }
     }
 
@@ -365,7 +387,7 @@ impl DownloadApp {
         });
         ui.add_space(18.0);
         if widgets::button(ui, t, Kind::Primary, Some(Icon::Add), "Add link", true)
-            .on_hover_text("Add a link (Ctrl+N), or paste one anywhere (Ctrl+V)")
+            .on_hover_text(tl!("Add a link (Ctrl+N), or paste one anywhere (Ctrl+V)"))
             .clicked()
         {
             self.open_add("");
@@ -401,14 +423,14 @@ impl DownloadApp {
             ui.spacing_mut().item_spacing.y = 2.0;
             // The sidebar's foot is laid out from the bottom up, so the lines go in last first.
             let text = match running {
-                0 => "Nothing downloading".to_string(),
-                1 => "1 download running".to_string(),
-                n => format!("{n} downloads running"),
+                0 => tl!("Nothing downloading").to_string(),
+                1 => tl!("1 download running").to_string(),
+                n => tf!("{n} downloads running", n = n),
             };
             ui.label(RichText::new(text).size(12.0).color(t.muted));
             let speed = downloadcraft_engine::model::format::speed(self.session.total_speed());
             ui.label(RichText::new(speed).size(18.0).strong().color(if running > 0 { t.accent } else { t.muted }));
-            ui.label(RichText::new("SPEED").size(11.0).color(t.faint).strong());
+            ui.label(RichText::new(tl!("Speed").to_uppercase()).size(11.0).color(t.faint).strong());
         });
     }
 
@@ -416,9 +438,9 @@ impl DownloadApp {
         ui.horizontal(|ui| {
             ui.vertical(|ui| {
                 ui.spacing_mut().item_spacing.y = 0.0;
-                ui.label(RichText::new(self.session.filter.label()).size(22.0).strong());
+                ui.label(RichText::new(tl!(self.session.filter.label())).size(22.0).strong());
                 let n = list::visible(&self.session, &self.search).len();
-                ui.label(RichText::new(if n == 1 { "1 download".to_string() } else { format!("{n} downloads") }).size(13.0).color(t.muted));
+                ui.label(RichText::new(if n == 1 { tl!("1 download").to_string() } else { tf!("{n} downloads", n = n) }).size(13.0).color(t.muted));
             });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 let (icon, next, tip) = match self.session.prefs.theme {
@@ -426,7 +448,7 @@ impl DownloadApp {
                     Theme::Light => (Icon::Sun, Theme::Dark, "Theme: Light. Click for Dark"),
                     Theme::Dark => (Icon::Moon, Theme::System, "Theme: Dark. Click for System"),
                 };
-                if widgets::button(ui, t, Kind::Secondary, Some(icon), "", true).on_hover_text(tip).clicked() {
+                if widgets::button(ui, t, Kind::Secondary, Some(icon), "", true).on_hover_text(tl!(tip)).clicked() {
                     self.force_dark = None;
                     self.run("prefs.theme", json!({"theme": next}));
                 }
@@ -434,7 +456,7 @@ impl DownloadApp {
                 let resp = ui.add(
                     egui::TextEdit::singleline(&mut self.search)
                         .id(egui::Id::unique("search"))
-                        .hint_text("Search downloads  (Ctrl+F)")
+                        .hint_text(tl!("Search downloads  (Ctrl+F)"))
                         .desired_width(260.0)
                         .margin(Margin { left: 32, right: 10, top: 8, bottom: 8 }),
                 );
@@ -457,19 +479,19 @@ impl DownloadApp {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 2.0;
             if widgets::button(ui, t, Kind::Ghost, Some(Icon::Resume), "Resume", sel.is_some_and(State::startable))
-                .on_hover_text("Resume (Space)")
+                .on_hover_text(tl!("Resume (Space)"))
                 .clicked()
             {
                 self.run("download.resume", Value::Null);
             }
             if widgets::button(ui, t, Kind::Ghost, Some(Icon::Pause), "Pause", sel.is_some_and(State::active))
-                .on_hover_text("Pause (Space)")
+                .on_hover_text(tl!("Pause (Space)"))
                 .clicked()
             {
                 self.run("download.pause", Value::Null);
             }
             if widgets::button(ui, t, Kind::Ghost, Some(Icon::Remove), "Remove", sel.is_some())
-                .on_hover_text("Remove from the list (Delete)")
+                .on_hover_text(tl!("Remove from the list (Delete)"))
                 .clicked()
             {
                 self.ask_remove(None);
@@ -494,7 +516,11 @@ impl DownloadApp {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 self.update_status(ui, t);
                 let n = self.session.downloads.len();
-                ui.label(RichText::new(format!("{n} in the list · {} connections each", self.session.prefs.connections)).size(12.5).color(t.faint));
+                ui.label(
+                    RichText::new(tf!("{n} in the list · {connections} connections each", n = n, connections = self.session.prefs.connections))
+                        .size(12.5)
+                        .color(t.faint),
+                );
             });
         });
     }
@@ -515,7 +541,7 @@ impl DownloadApp {
             list::Action::Remove(id) => self.ask_remove(Some(id)),
             list::Action::CopyLink(url) => {
                 ctx.copy_text(url);
-                self.session.status = "Link copied".into();
+                self.session.status = tl!("Link copied").into();
             }
             list::Action::Add => self.open_add(""),
         }

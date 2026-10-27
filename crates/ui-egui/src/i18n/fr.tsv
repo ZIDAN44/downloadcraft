@@ -1,0 +1,152 @@
+# DownloadCraft interface strings: French (français).
+# context<TAB>English<TAB>translation; escapes \n \t \\. Placeholders like {name} stay as they are.
+# Written for DownloadCraft from the meaning of the English (clean room): no wording is taken from
+# other download managers.
+
+	1 download	1 téléchargement
+	1 download running	1 téléchargement en cours
+	1 link	1 lien
+	About	À propos
+	Add a link (Ctrl+N), or paste one anywhere (Ctrl+V)	Ajoutez un lien (Ctrl+N) ou collez-le n’importe où (Ctrl+V)
+	Add download	Ajouter le téléchargement
+	Add link	Ajouter un lien
+	Add {n} downloads	Ajouter {n} téléchargements
+	Added {n} downloads	{n} téléchargements ajoutés
+	All downloads	Tous les téléchargements
+	Also delete the file (it goes to the Recycle Bin)	Supprimer aussi le fichier (il va dans la Corbeille)
+	Also delete the file (it goes to the Trash)	Supprimer aussi le fichier (il va dans la corbeille)
+	Appearance	Apparence
+	Audio only	Audio seul
+	Best	Meilleure
+	Best available	Meilleure disponible
+	Browse	Parcourir
+	Cancel	Annuler
+	Changes apply when you save.	Les changements s’appliquent à l’enregistrement.
+	Checking the link…	Vérification du lien…
+	Choose a folder	Choisissez un dossier
+	Clear	Effacer
+	Clear completed	Retirer les terminés
+	Close (Esc)	Fermer (Échap)
+	Completed	Terminés
+	Connecting…	Connexion…
+	Connections per download	Connexions par téléchargement
+	Copy link	Copier le lien
+	Ctrl+Enter adds	Ctrl+Entrée ajoute
+	Dark	Sombre
+	Deleted	Supprimé
+	Deleted or moved  ·  Download again fetches it once more	Supprimé ou déplacé  ·  Télécharger à nouveau le récupère encore une fois
+	Direct link	Lien direct
+	Direct link · size not given	Lien direct · taille non indiquée
+	Direct link · {size}	Lien direct · {size}
+	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Les liens directs et les pages vidéo se téléchargent déjà · torrents, liens magnet et MEGA arrivent
+	Download again	Télécharger à nouveau
+	Download folder	Dossier des téléchargements
+	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	DownloadCraft se tient à jour tout seul. Quand une nouvelle version est prête, une barre en haut vous permet de redémarrer pour l’installer.
+	DownloadCraft {version} is ready.	DownloadCraft {version} est prêt.
+	Downloading	En cours
+	Downloading DownloadCraft {version}	Téléchargement de DownloadCraft {version}
+	Downloading DownloadCraft {version}: {percent}%	Téléchargement de DownloadCraft {version} : {percent} %
+	Downloads	Téléchargements
+	Downloads at once	Téléchargements simultanés
+	Downloads in this category show up here.	Les téléchargements de cette catégorie apparaissent ici.
+	FTP	FTP
+	FTP downloads arrive in v0.4	les téléchargements FTP arrivent avec la v0.4
+	Failed	Échoués
+	Follows your computer's language unless you pick one.	Suit la langue de votre ordinateur, sauf si vous en choisissez une.
+	Get Deno	Obtenir Deno
+	Get FFmpeg	Obtenir FFmpeg
+	Get yt-dlp	Obtenir yt-dlp
+	Getting it and checking it…	Téléchargement et vérification…
+	Higher qualities come as separate video and sound, which FFmpeg joins into one file.	Les qualités supérieures arrivent en image et son séparés, que FFmpeg réunit en un seul fichier.
+	Higher qualities need FFmpeg to join video and sound. Install it with brew install ffmpeg (macOS) or sudo apt install ffmpeg (Linux).	Les qualités supérieures demandent FFmpeg pour réunir image et son. Installez-le avec brew install ffmpeg (macOS) ou sudo apt install ffmpeg (Linux).
+	It comes off the list.	Il est retiré de la liste.
+	Language	Langue
+	Languages to save with videos, such as en, es. Empty: none.	Langues enregistrées avec les vidéos, par exemple en, fr. Vide : aucune.
+	Later	Plus tard
+	Light	Clair
+	Link copied	Lien copié
+	Links	Liens
+	MEGA	MEGA
+	MEGA links arrive in v0.5	les liens MEGA arrivent avec la v0.5
+	Magnet link	Lien magnet
+	No downloads yet	Aucun téléchargement pour l’instant
+	No matches	Aucun résultat
+	Nothing downloading	Rien en téléchargement
+	Nothing here	Rien ici
+	Nothing in this list has that name or link.	Rien dans cette liste n’a ce nom ou ce lien.
+	One file with sound	Un fichier avec le son
+	Open	Ouvrir
+	Open folder	Ouvrir le dossier
+	Parts of one file fetched at the same time, when the server allows.	Parties d’un même fichier téléchargées en même temps, si le serveur le permet.
+	Paste a link anywhere in this window with Ctrl+V, or add one.	Collez un lien n’importe où dans cette fenêtre avec Ctrl+V, ou ajoutez-en un.
+	Paste one link per line: files, or video pages such as YouTube.	Un lien par ligne : des fichiers, ou des pages vidéo comme YouTube.
+	Pause	Suspendre
+	Pause (Space)	Suspendre (Espace)
+	Pause all	Tout suspendre
+	Paused	Suspendus
+	Playlist · 1 video	Playlist · 1 vidéo
+	Playlist · no videos that can be added	Playlist · aucune vidéo à ajouter
+	Playlist · {n} videos	Playlist · {n} vidéos
+	Queued	En attente
+	Remove	Retirer
+	Remove (Delete)	Retirer (Suppr)
+	Remove and delete	Retirer et supprimer
+	Remove download?	Retirer le téléchargement ?
+	Remove from the list (Delete)	Retirer de la liste (Suppr)
+	Remove…	Retirer…
+	Restart now	Redémarrer maintenant
+	Restart now to install it, or it installs when you close DownloadCraft. Downloads pause and carry on after.	Redémarrez maintenant pour l’installer, ou elle s’installe à la fermeture de DownloadCraft. Les téléchargements se suspendent et reprennent ensuite.
+	Restart to update	Redémarrez pour mettre à jour
+	Resume	Reprendre
+	Resume (Space)	Reprendre (Espace)
+	Resume all	Tout reprendre
+	Same as the system	Comme le système
+	Save	Enregistrer
+	Save to	Enregistrer dans
+	Search downloads  (Ctrl+F)	Rechercher  (Ctrl+F)
+	Settings	Paramètres
+	Show in folder	Afficher dans le dossier
+	Speed	Vitesse
+	Start downloading now	Commencer le téléchargement tout de suite
+	Subtitles	Sous-titres
+	System	Système
+	System follows your computer.	Système suit votre ordinateur.
+	The part downloaded so far is deleted.	La partie déjà téléchargée est supprimée.
+	The rest wait in the queue.	Les autres attendent dans la file.
+	Theme	Thème
+	Theme: Dark. Click for System	Thème : sombre. Cliquez pour Système
+	Theme: Light. Click for Dark	Thème : clair. Cliquez pour Sombre
+	Theme: System. Click for Light	Thème : Système. Cliquez pour Clair
+	Torrent	Torrent
+	Try again	Réessayer
+	Up to 1080p	Jusqu’à 1080p
+	Up to 480p	Jusqu’à 480p
+	Up to 720p	Jusqu’à 720p
+	Video	Vidéo
+	Video links use yt-dlp, a free, open-source program that finds the video in a page. DownloadCraft fetches its official build and checks it before use.	Les liens vidéo utilisent yt-dlp, un programme libre et open source qui trouve la vidéo dans une page. DownloadCraft récupère sa version officielle et la vérifie avant de s’en servir.
+	Video page	Page vidéo
+	Video page · needs yt-dlp (below)	Page vidéo · nécessite yt-dlp (ci-dessous)
+	Video · {quality}	Vidéo · {quality}
+	Videos	Vidéos
+	Waiting for a free slot	En attente d’une place libre
+	YouTube also needs Deno (deno.com) for every quality; install it to get them.	YouTube demande aussi Deno (deno.com) pour toutes les qualités ; installez-le pour les avoir.
+	YouTube also needs Deno, a free JavaScript runtime yt-dlp reads its pages with; without it some qualities are missing. DownloadCraft fetches its official build and checks it before use.	YouTube demande aussi Deno, un environnement JavaScript libre avec lequel yt-dlp lit ses pages ; sans lui, certaines qualités manquent. DownloadCraft récupère sa version officielle et la vérifie avant de s’en servir.
+	none	aucune
+	one per line	un par ligne
+	starts over when resumed	repart de zéro à la reprise
+	torrents arrive in v0.3	les torrents arrivent avec la v0.3
+	{done} of {total}	{done} sur {total}
+	{n} connections	{n} connexions
+	{n} downloads	{n} téléchargements
+	{n} downloads running	{n} téléchargements en cours
+	{n} in the list · {connections} connections each	{n} dans la liste · {connections} connexions chacun
+	{n} links	{n} liens
+	{quality}  ·  needs FFmpeg	{quality}  ·  nécessite FFmpeg
+	{time} left	encore {time}
+
+# One download's state, beside the category of the same English name.
+state	Queued	En attente
+state	Downloading	En cours
+state	Paused	Suspendu
+state	Completed	Terminé
+state	Failed	Échoué

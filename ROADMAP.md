@@ -13,8 +13,8 @@ next version: the version is raised and the Progress log gains its entry before 
 | | |
 |---|---|
 | Crates | 4 libraries + 2 apps + xtask |
-| Commands | 19 (`downloadcraft-cli commands`) |
-| Tests | 103 (unit, a local HTTP server for single and multi-part downloads and the updater's download, headless UI frames) |
+| Commands | 20 (`downloadcraft-cli commands`) |
+| Tests | 110 (unit, a local HTTP server for single and multi-part downloads and the updater's download, headless UI frames) |
 | Platforms | Windows, macOS, Linux |
 
 ## Milestones
@@ -97,3 +97,8 @@ next version: the version is raised and the Progress log gains its entry before 
   LightCraft's), evaluated in CI by the shared workflow and built once in a container, its tests
   passing in the sandbox. Show in folder checked against real Linux file managers: Nautilus and
   Thunar open the folder with the file selected, a name with spaces and accents included.
+- **2026-10-27** — **v0.3**: the interface in eight languages (English, German, Spanish, French,
+  Italian, Dutch, Brazilian Portuguese, Russian), from MailCraft's catalogs-and-`tl!` design:
+  following the system's language or the one picked in Settings, with tests that every string
+  drawn is in every catalog and none is stale. Settings wraps a long line beside its control and
+  scrolls in a short window. 110 tests.

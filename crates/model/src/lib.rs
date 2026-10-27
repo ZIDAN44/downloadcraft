@@ -175,6 +175,13 @@ pub struct Prefs {
     /// The languages whose subtitles come with a video, as typed (`en, es`); empty for none.
     #[serde(default)]
     pub subtitles: String,
+    /// The interface language: `auto` (the system's) or a language code (`de`, `pt-br`).
+    #[serde(default = "default_language")]
+    pub language: String,
+}
+
+fn default_language() -> String {
+    "auto".into()
 }
 
 fn default_max_active() -> usize {
@@ -199,6 +206,7 @@ impl Default for Prefs {
             theme: Theme::System,
             delete_files_on_remove: false,
             subtitles: String::new(),
+            language: default_language(),
         }
     }
 }

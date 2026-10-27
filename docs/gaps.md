@@ -2,8 +2,10 @@
 
 Missing features and known problems, most important first. Remove an item once it's done.
 
-1. **Interface text through craft-i18n** (`tl!` / `tf!` and the catalogs, as MailCraft); every
-   string is English in code today.
+1. **More languages.** Right-to-left (Arabic, Hebrew) and CJK interfaces need fonts embedded (as
+   craft-fonts gives the storytold apps) and bidirectional layout; Bengali and other Indic scripts
+   need text shaping egui doesn't do yet. Moving the catalogs to craft-i18n once DownloadCraft is
+   one of its apps.
 2. **SonarCloud** (`sonarcloud.yml`, as the storytold apps have it): needs the project and a
    `SONAR_TOKEN` secret set up by the owner first, or the workflow only fails.
 3. **Video pages: the rest.** FFmpeg on macOS (there is no build from yt-dlp's project; Homebrew

@@ -1,0 +1,152 @@
+# DownloadCraft interface strings: Dutch (Nederlands).
+# context<TAB>English<TAB>translation; escapes \n \t \\. Placeholders like {name} stay as they are.
+# Written for DownloadCraft from the meaning of the English (clean room): no wording is taken from
+# other download managers.
+
+	1 download	1 download
+	1 download running	1 download bezig
+	1 link	1 link
+	About	Over
+	Add a link (Ctrl+N), or paste one anywhere (Ctrl+V)	Voeg een link toe (Ctrl+N) of plak er een waar je wilt (Ctrl+V)
+	Add download	Download toevoegen
+	Add link	Link toevoegen
+	Add {n} downloads	{n} downloads toevoegen
+	Added {n} downloads	{n} downloads toegevoegd
+	All downloads	Alle downloads
+	Also delete the file (it goes to the Recycle Bin)	Ook het bestand verwijderen (het gaat naar de Prullenbak)
+	Also delete the file (it goes to the Trash)	Ook het bestand verwijderen (het gaat naar de prullenmand)
+	Appearance	Uiterlijk
+	Audio only	Alleen geluid
+	Best	Beste
+	Best available	Beste beschikbare
+	Browse	Bladeren
+	Cancel	Annuleren
+	Changes apply when you save.	Wijzigingen gelden zodra je opslaat.
+	Checking the link…	Link controleren…
+	Choose a folder	Kies een map
+	Clear	Wissen
+	Clear completed	Voltooide weghalen
+	Close (Esc)	Sluiten (Esc)
+	Completed	Voltooid
+	Connecting…	Verbinden…
+	Connections per download	Verbindingen per download
+	Copy link	Link kopiëren
+	Ctrl+Enter adds	Ctrl+Enter voegt toe
+	Dark	Donker
+	Deleted	Verwijderd
+	Deleted or moved  ·  Download again fetches it once more	Verwijderd of verplaatst  ·  Opnieuw downloaden haalt het nog een keer op
+	Direct link	Directe link
+	Direct link · size not given	Directe link · grootte niet opgegeven
+	Direct link · {size}	Directe link · {size}
+	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Directe links en videopagina's downloaden al · torrents, magnetlinks en MEGA komen eraan
+	Download again	Opnieuw downloaden
+	Download folder	Downloadmap
+	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	DownloadCraft houdt zichzelf bij. Staat er een nieuwe versie klaar, dan kun je via een balk bovenaan opnieuw starten om die te installeren.
+	DownloadCraft {version} is ready.	DownloadCraft {version} staat klaar.
+	Downloading	Bezig
+	Downloading DownloadCraft {version}	DownloadCraft {version} downloaden
+	Downloading DownloadCraft {version}: {percent}%	DownloadCraft {version} downloaden: {percent}%
+	Downloads	Downloads
+	Downloads at once	Downloads tegelijk
+	Downloads in this category show up here.	Downloads in deze categorie verschijnen hier.
+	FTP	FTP
+	FTP downloads arrive in v0.4	FTP-downloads komen in v0.4
+	Failed	Mislukt
+	Follows your computer's language unless you pick one.	Volgt de taal van je computer, tenzij je er een kiest.
+	Get Deno	Deno ophalen
+	Get FFmpeg	FFmpeg ophalen
+	Get yt-dlp	yt-dlp ophalen
+	Getting it and checking it…	Ophalen en controleren…
+	Higher qualities come as separate video and sound, which FFmpeg joins into one file.	Hogere kwaliteiten komen als los beeld en los geluid, die FFmpeg samenvoegt tot één bestand.
+	Higher qualities need FFmpeg to join video and sound. Install it with brew install ffmpeg (macOS) or sudo apt install ffmpeg (Linux).	Hogere kwaliteiten hebben FFmpeg nodig om beeld en geluid samen te voegen. Installeer het met brew install ffmpeg (macOS) of sudo apt install ffmpeg (Linux).
+	It comes off the list.	Hij gaat van de lijst.
+	Language	Taal
+	Languages to save with videos, such as en, es. Empty: none.	Talen die met video's worden bewaard, zoals en, nl. Leeg: geen.
+	Later	Later
+	Light	Licht
+	Link copied	Link gekopieerd
+	Links	Links
+	MEGA	MEGA
+	MEGA links arrive in v0.5	MEGA-links komen in v0.5
+	Magnet link	Magnetlink
+	No downloads yet	Nog geen downloads
+	No matches	Geen resultaten
+	Nothing downloading	Er wordt niets gedownload
+	Nothing here	Hier staat niets
+	Nothing in this list has that name or link.	Niets in deze lijst heeft die naam of link.
+	One file with sound	Eén bestand met geluid
+	Open	Openen
+	Open folder	Map openen
+	Parts of one file fetched at the same time, when the server allows.	Delen van één bestand die tegelijk worden opgehaald, als de server het toestaat.
+	Paste a link anywhere in this window with Ctrl+V, or add one.	Plak een link ergens in dit venster met Ctrl+V, of voeg er een toe.
+	Paste one link per line: files, or video pages such as YouTube.	Eén link per regel: bestanden, of videopagina's zoals YouTube.
+	Pause	Pauzeren
+	Pause (Space)	Pauzeren (Spatie)
+	Pause all	Alles pauzeren
+	Paused	Gepauzeerd
+	Playlist · 1 video	Afspeellijst · 1 video
+	Playlist · no videos that can be added	Afspeellijst · geen video's die kunnen worden toegevoegd
+	Playlist · {n} videos	Afspeellijst · {n} video's
+	Queued	In de wachtrij
+	Remove	Weghalen
+	Remove (Delete)	Weghalen (Delete)
+	Remove and delete	Weghalen en verwijderen
+	Remove download?	Download weghalen?
+	Remove from the list (Delete)	Van de lijst halen (Delete)
+	Remove…	Weghalen…
+	Restart now	Nu opnieuw starten
+	Restart now to install it, or it installs when you close DownloadCraft. Downloads pause and carry on after.	Start nu opnieuw om te installeren, of de installatie gebeurt als je DownloadCraft sluit. Downloads pauzeren en gaan daarna verder.
+	Restart to update	Opnieuw starten om bij te werken
+	Resume	Hervatten
+	Resume (Space)	Hervatten (Spatie)
+	Resume all	Alles hervatten
+	Same as the system	Zoals het systeem
+	Save	Opslaan
+	Save to	Opslaan in
+	Search downloads  (Ctrl+F)	Downloads zoeken  (Ctrl+F)
+	Settings	Instellingen
+	Show in folder	Tonen in map
+	Speed	Snelheid
+	Start downloading now	Meteen beginnen met downloaden
+	Subtitles	Ondertitels
+	System	Systeem
+	System follows your computer.	Systeem volgt je computer.
+	The part downloaded so far is deleted.	Het deel dat al binnen is, wordt verwijderd.
+	The rest wait in the queue.	De rest wacht in de rij.
+	Theme	Thema
+	Theme: Dark. Click for System	Thema: donker. Klik voor Systeem
+	Theme: Light. Click for Dark	Thema: licht. Klik voor Donker
+	Theme: System. Click for Light	Thema: Systeem. Klik voor Licht
+	Torrent	Torrent
+	Try again	Opnieuw proberen
+	Up to 1080p	Tot 1080p
+	Up to 480p	Tot 480p
+	Up to 720p	Tot 720p
+	Video	Video
+	Video links use yt-dlp, a free, open-source program that finds the video in a page. DownloadCraft fetches its official build and checks it before use.	Videolinks gebruiken yt-dlp, een gratis opensourceprogramma dat de video in een pagina vindt. DownloadCraft haalt de officiële versie op en controleert die voor gebruik.
+	Video page	Videopagina
+	Video page · needs yt-dlp (below)	Videopagina · heeft yt-dlp nodig (hieronder)
+	Video · {quality}	Video · {quality}
+	Videos	Video's
+	Waiting for a free slot	Wacht op een vrije plek
+	YouTube also needs Deno (deno.com) for every quality; install it to get them.	YouTube heeft voor alle kwaliteiten ook Deno (deno.com) nodig; installeer het om ze te krijgen.
+	YouTube also needs Deno, a free JavaScript runtime yt-dlp reads its pages with; without it some qualities are missing. DownloadCraft fetches its official build and checks it before use.	YouTube heeft ook Deno nodig, een gratis JavaScript-omgeving waarmee yt-dlp de pagina's leest; zonder ontbreken sommige kwaliteiten. DownloadCraft haalt de officiële versie op en controleert die voor gebruik.
+	none	geen
+	one per line	één per regel
+	starts over when resumed	begint opnieuw bij hervatten
+	torrents arrive in v0.3	torrents komen in v0.3
+	{done} of {total}	{done} van {total}
+	{n} connections	{n} verbindingen
+	{n} downloads	{n} downloads
+	{n} downloads running	{n} downloads bezig
+	{n} in the list · {connections} connections each	{n} in de lijst · elk {connections} verbindingen
+	{n} links	{n} links
+	{quality}  ·  needs FFmpeg	{quality}  ·  heeft FFmpeg nodig
+	{time} left	nog {time}
+
+# One download's state, beside the category of the same English name.
+state	Queued	In de wachtrij
+state	Downloading	Bezig
+state	Paused	Gepauzeerd
+state	Completed	Voltooid
+state	Failed	Mislukt
