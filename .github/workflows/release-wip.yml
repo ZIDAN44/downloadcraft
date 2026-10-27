@@ -234,6 +234,7 @@ jobs:
           nfpm-version: "2.47.0"
           deb-arch: amd64
       - name: Build and package (deb, rpm, tar.gz)
+        env:
           CARGO_TARGET_RISCV64GC_UNKNOWN_LINUX_GNU_LINKER: riscv64-linux-gnu-gcc
           PKG_CONFIG_SYSROOT_DIR: /
           PKG_CONFIG_PATH: /usr/lib/riscv64-linux-gnu/pkgconfig:/usr/share/pkgconfig
