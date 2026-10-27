@@ -24,8 +24,8 @@
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/add-link.png" alt="The Add link dialog with four links pasted, one per numbered line with a dot for each: two direct links in green, shown below with their file names; a magnet link and a YouTube page in amber; the folder to save to, Start downloading now, and Add 2 downloads" width="100%"><p align="center"><sub><b>Paste several links at once.</b> Each line is checked as you type: green downloads now, amber needs something first, red isn't a link.</sub></p></td>
-<td width="50%"><img src="docs/images/settings.png" alt="Settings in the light theme: Theme with Dark, Light and System, the download folder, downloads at once and connections per download" width="100%"><p align="center"><sub><b>Light, dark or your system's theme</b>, and how many connections each download may open.</sub></p></td>
+<td width="50%"><img src="docs/images/add-link.png" alt="The Add link dialog in dark mode with three links pasted, each numbered with a green dot: a kernel tarball shown as Direct link, 148 MB; Debian's netinst torrent shown as Torrent, 793 MB; and Sintel's magnet link shown as Torrent, 11 files, 129 MB, with its file list folded underneath; the folder to save to, Start downloading now, and Add 3 downloads" width="100%"><p align="center"><sub><b>Paste several links at once</b>: files, video pages, magnet links and torrents. Each line is checked as you type, and a torrent's files can be picked before it starts.</sub></p></td>
+<td width="50%"><img src="docs/images/settings.png" alt="Settings in the light theme, with its sections down the side (General, Downloads, Videos, Torrents, Connection, About) and Connection open: peers per torrent, the port for incoming connections with Random, TCP or µTP, forwarding the port on the router, a SOCKS5 proxy and an IP filter" width="100%"><p align="center"><sub><b>Settings in sections</b>, here how torrents connect: a port kept and forwarded on your router, a proxy, an IP filter.</sub></p></td>
 </tr>
 </table>
 
@@ -77,16 +77,15 @@ Download only videos you have the right to. DRM-protected videos aren't supporte
   folder is never replaced; a resume checks what's on disk and fetches only what's missing.
 - **Sharing back.** A finished torrent is shared while DownloadCraft is open until it has sent its
   own size (0 to 10 times, in Settings).
-- **Details under the list**: how it's going, the trackers and how many share it, the peers
-  you're connected to, and each file's progress, where you can pick files while it runs.
+- **Details under the list**, folded away until you open them (and kept the way you leave
+  them): how it's going, the trackers and how many share it, the peers you're connected to, and
+  each file's progress, where you can pick files while it runs.
 - **Reachable, like other torrent clients.** DownloadCraft picks a port once and asks your router
   to forward it (NAT-PMP, or UPnP), so peers can connect to you as well as you to them; the dot in
   the status bar turns green once the router has. Settings turns it off.
 - **Your connection, your way**: the port (or a random one), TCP or TCP and µTP, speed limits
   overall and for each torrent, peers per torrent, a SOCKS5 proxy and an IP filter (`.dat` or
   `.p2p`).
-- **Details when you want them**: a pane under the list, folded away until you open it, and kept
-  the way you leave it.
 - Peers are found through trackers, the DHT and peer exchange, with
   [librqbit](https://github.com/ikatson/rqbit).
 
@@ -101,6 +100,8 @@ Download and share only what you have the right to.
 - **Show in folder** opens the file manager with the file selected, as browsers do. A file that's
   been deleted or moved shows as **Deleted**, with **Download again**.
 - **Remove asks first**, with a box to delete the file too (it goes to the Recycle Bin or Trash).
+- **Settings in sections**: General, Downloads, Videos, Torrents, Connection and About, each a
+  short page of its own.
 - **Light, dark or your system's theme.**
 - **Eight languages**: English, Deutsch, español, français, italiano, Nederlands, português do
   Brasil and русский. DownloadCraft follows your system's language unless you pick one in
@@ -127,7 +128,8 @@ Test builds are on the [releases page](https://github.com/ZIDAN44/downloadcraft/
 
 Installed from the `.msi`, the portable zip, the `.dmg` or the `.AppImage`, DownloadCraft updates
 itself. It downloads the next version in the background, checks its SHA-256, and installs it when
-you restart. Copies from releases follow releases; copies from test builds also follow test
+you restart. Settings › About has **Check for updates** too, and **Download and install** when
+there's a newer version. Copies from releases follow releases; copies from test builds also follow test
 builds. [How updates work](docs/updates.md).
 
 ## Using it

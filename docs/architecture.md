@@ -79,7 +79,7 @@ never depends on the network layer: the apps connect the two.
 - One librqbit session serves every torrent, on a Tokio runtime of its own (two threads) started
   with the first torrent from the torrent settings (`torrent/engine.rs`, given by
   `Job::Configure` when the list loads and whenever `prefs.torrent` changes). Speed limits change
-  at once. A change to the port, protocol, UPnP, peer limit, proxy or IP filter starts a new
+  at once. A change to the port, protocol, port forwarding, peer limit, proxy or IP filter starts a new
   session for the next torrent once none is running; torrents still going keep theirs. The DHT
   keeps its nodes in `<data>/torrents/dht.json`; an IP filter is written there as
   `ipfilter.p2p` (`.dat` lines converted) for librqbit to read.

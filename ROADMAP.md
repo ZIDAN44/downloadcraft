@@ -1,6 +1,6 @@
 # Roadmap
 
-**Stage:** v0.4 — torrents and magnet links (2026-10-27).
+**Stage:** v0.4 — torrents and magnet links, Settings in sections, and Check for updates (2026-10-28).
 
 Each milestone below is a version, named for what it adds. The [Progress log](#progress-log)
 records what changed in each, and [docs/gaps.md](docs/gaps.md) ranks the work for the next one.
@@ -34,8 +34,9 @@ the next build, so no two different builds share a version.
 4. **v0.4 — Torrents** ✅ Magnet links and `.torrent` files, by link or from this computer (BEP 3,
    9, 10), with peers from trackers, the DHT (BEP 5) and peer exchange; choosing files inside a
    torrent, before and while it downloads, and which to download first; web seeds (BEP 19); seeding
-   to a ratio; a details pane (general, trackers, peers, files); the port, µTP, UPnP, peer limits,
-   speed limits overall and per torrent, a SOCKS5 proxy and an IP filter.
+   to a ratio; a details pane (general, trackers, peers, files); a port kept and forwarded on the
+   router (NAT-PMP or UPnP), µTP, peer limits, speed limits overall and per torrent, a SOCKS5 proxy
+   and an IP filter. Around them: Settings in sections, and Check for updates in About.
    Built on librqbit (Apache-2.0): no libtorrent-rasterbar bindings, no GPL clients' code.
 5. **v0.5 — More places** FTP and FTPS; sign-in for HTTP, kept in the system keychain; cookies
    handed over from the browser extension; scheduled start and stop; "shut down when done"; speed
@@ -194,3 +195,7 @@ the next build, so no two different builds share a version.
 - **2026-10-28** — **v0.4**: Check for updates in Settings › About: asks GitHub at once and says
   what it found; Download and install downloads the newer version, checks it and restarts into
   it. Tried end to end with a portable test copy, which updated itself to `v0.3.1-test.8`.
+- **2026-10-28** — **v0.4**: ready to release. Add link fits the window whatever is pasted (what
+  the links turn out to be scrolls; the title, the links, the folder and the buttons stay in
+  view). The README's screenshots of Add link (two torrents and a direct link) and Settings (in
+  sections, on Connection) are this version's; the documentation describes v0.4 as it is.
