@@ -1,0 +1,17 @@
+[package]
+name = "downloadcraft-engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "DownloadCraft engine: the download list, the queue, the command registry and the sans-I/O job/event loop (no network, wasm-safe)"
+
+[lints]
+workspace = true
+
+[dependencies]
+downloadcraft-model = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+thiserror = { workspace = true }
