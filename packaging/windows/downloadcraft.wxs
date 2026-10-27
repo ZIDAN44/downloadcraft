@@ -9,8 +9,8 @@
       -d BinDir=... -d IconPath=... -d BannerBmp=... -d DialogBmp=... -o out.msi
 
   Per-user install (no UAC prompt), by default into %LOCALAPPDATA%\Programs\DownloadCraft, so test
-  builds update themselves without elevation (docs/updates.md); the same layout as craft-launcher's
-  installer (storytold/craft-launcher), which the shared Windows ARM64 test checks.
+  DownloadCraft updates itself without elevation (docs/updates.md). The shared Windows ARM64 test
+  (windows-arm64.yml, is-per-user) checks this layout.
 
   Double-clicked, it opens a setup wizard: Welcome; a folder page with a "Create a desktop
   shortcut" box; Ready; progress; Finish, with a ticked "Launch DownloadCraft" box. The folder and

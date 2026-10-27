@@ -13,8 +13,7 @@ Missing features and known problems in v0.1, most important first. Remove an ite
    renderer fallback on Windows and a message box when the window can't open.
 5. **One instance per data folder** (`single_instance.rs`), so a second launch with a link hands
    it to the running window.
-6. **The craft-launcher catalog entry**, and SonarCloud and Nix (`sonarcloud.yml`, `nix.yml`,
-   `flake.nix`) as the storytold apps have them: SonarCloud needs the project and a `SONAR_TOKEN`
-   secret set up by the owner.
+6. **SonarCloud and Nix** (`sonarcloud.yml`, `nix.yml`, `flake.nix`) as the storytold apps have
+   them: SonarCloud needs the project and a `SONAR_TOKEN` secret set up by the owner.
 7. **Free-space check** before a start, and a clear message when the disk fills.
 8. **Fuzz targets** for `Content-Range`, `Content-Disposition` and `source::classify`.

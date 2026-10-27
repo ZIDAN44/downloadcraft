@@ -94,8 +94,7 @@ Copy-Item (Join-Path $Bin 'downloadcraft.exe'), (Join-Path $Bin 'downloadcraft-c
 & (Join-Path $PSScriptRoot 'sign.ps1') (Join-Path $Stage 'downloadcraft.exe') (Join-Path $Stage 'downloadcraft-cli.exe')
 
 # ---- MSI ---------------------------------------------------------------------------------------
-# The setup wizard's art, drawn here (System.Drawing) from DownloadCraft's icon, as craft-launcher
-# does: the banner over the inner pages (493x58) and the Welcome and Finish pages' picture
+# The setup wizard's art, drawn here (System.Drawing) from DownloadCraft's icon: the banner over the inner pages (493x58) and the Welcome and Finish pages' picture
 # (493x312, the text sits on the right 329 px of it).
 function New-InstallerArt([string] $BannerOut, [string] $DialogOut) {
   Add-Type -AssemblyName System.Drawing

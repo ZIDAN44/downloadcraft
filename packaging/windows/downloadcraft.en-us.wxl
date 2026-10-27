@@ -2,7 +2,7 @@
 <!--
   Overrides for the setup wizard's WixUI strings, so its pages name the version being installed
   ([DownloadCraftVersion] is the full version, pre-release tag included, set in downloadcraft.wxs)
-  and say what DownloadCraft is. As craft-launcher's installer does.
+  and say what DownloadCraft is.
 -->
 <WixLocalization Culture="en-US" xmlns="http://wixtoolset.org/schemas/v4/wxl">
   <String Id="WelcomeDlgTitle" Value="{\WixUI_Font_Bigger}Welcome to [ProductName] [DownloadCraftVersion]" />

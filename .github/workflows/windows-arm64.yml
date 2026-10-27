@@ -32,5 +32,5 @@ jobs:
     with:
       app-name: downloadcraft
       app-dir: DownloadCraft
-      # The MSI installs per user (packaging/windows/downloadcraft.wxs), as craft-launcher's does.
+      # The MSI installs per user (packaging/windows/downloadcraft.wxs).
       is-per-user: true
