@@ -1260,6 +1260,7 @@ dependencies = [
  "log",
  "ring",
  "serde_json",
+ "socket2",
  "thiserror 2.0.21",
  "tokio",
  "trash",

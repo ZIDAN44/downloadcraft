@@ -19,7 +19,7 @@
 	Also delete the file (it goes to the Trash)	Удалить и файл (он попадёт в корзину)
 	Answering	Отвечает
 	Appearance	Внешний вид
-	Ask the router to forward the port (UPnP)	Просить роутер пробросить порт (UPnP)
+	Asking the router to forward the port…	Просим роутер пробросить порт…
 	Audio only	Только звук
 	Best	Лучшее
 	Best available	Лучшее из доступного
@@ -77,6 +77,7 @@
 	Finished	Завершено
 	First	Сначала
 	Follows your computer's language unless you pick one.	Язык компьютера, если вы не выберете другой.
+	Forward the port on the router (NAT-PMP or UPnP)	Пробрасывать порт на роутере (NAT-PMP или UPnP)
 	Free and open source, under the MIT or Apache-2.0 licence.	Свободная программа с открытым кодом, по лицензии MIT или Apache-2.0.
 	General	Общее
 	Get Deno	Получить Deno
@@ -84,6 +85,7 @@
 	Get yt-dlp	Получить yt-dlp
 	Getting it and checking it…	Загрузка и проверка…
 	Getting the torrent's details…	Получение сведений о торренте…
+	Hide details	Скрыть подробности
 	Higher qualities come as separate video and sound, which FFmpeg joins into one file.	Высокое качество приходит отдельными видео и звуком, которые FFmpeg соединяет в один файл.
 	Higher qualities need FFmpeg to join video and sound. Install it with brew install ffmpeg (macOS) or sudo apt install ffmpeg (Linux).	Для высокого качества нужен FFmpeg, чтобы соединить видео и звук. Установите его командой brew install ffmpeg (macOS) или sudo apt install ffmpeg (Linux).
 	IP filter	IP-фильтр
@@ -161,6 +163,7 @@
 	Share finished torrents	Раздавать готовые торренты
 	Share ratio	Рейтинг раздачи
 	Sharing · {sent} sent	Раздаётся · отправлено {sent}
+	Show details	Показать подробности
 	Show in folder	Показать в папке
 	Source	Источник
 	Speed	Скорость
@@ -179,7 +182,8 @@
 	The part downloaded so far is deleted.	Уже загруженная часть удаляется.
 	The port, peers, proxy and IP filter apply once no torrent is running.	Порт, пиры, прокси и IP-фильтр вступят в силу, когда не будет запущенных торрентов.
 	The rest wait in the queue.	Остальные ждут в очереди.
-	The router is asked to forward the port (UPnP).	Роутер просят пробросить порт (UPnP).
+	The router didn't forward the port: {why}	Роутер не пробросил порт: {why}
+	The router forwards the port ({how}), so peers can connect in.	Роутер пробрасывает порт ({how}), пиры могут подключаться.
 	Theme	Тема
 	Theme: Dark. Click for System	Тема: тёмная. Нажмите для системной
 	Theme: Light. Click for Dark	Тема: светлая. Нажмите для тёмной
@@ -235,6 +239,7 @@
 	{have} of {size}	{have} из {size}
 	{name}: {picked} of {n} files · {size}	{name}: выбрано {picked} из {n} · {size}
 	{n} (up to {max})	{n} (до {max})
+	{n} connected · {speed}	соединено: {n} · {speed}
 	{n} connections	соединений: {n}
 	{n} downloads	Загрузок: {n}
 	{n} downloads running	Идёт загрузок: {n}

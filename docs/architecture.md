@@ -109,6 +109,13 @@ never depends on the network layer: the apps connect the two.
   web (skipped under a proxy or a download limit) and no peer appears for 20 s to check pieces shared with files left out, the transfer
   reports Finished itself. Download first: librqbit is given only those files, and the rest once
   it reports them done. A torrent's own limits go in `AddTorrentOptions::ratelimits`.
+- **Port forwarding** (`torrent/portmap.rs`, packets in `model::portmap`). The first start picks
+  a port at random (20000 to 59999, `prefs.torrentFirstRun`) and keeps it. While a session lives
+  and forwarding is on (the default), a thread asks the router to forward that port for TCP and
+  UDP: NAT-PMP (RFC 6886) to the gateway, else UPnP's `AddPortMapping`, an hour at a time and
+  renewed at half, taken away when the session ends. Everything is sent from the address that
+  holds the default route, with the router searched for (SSDP) from that adapter: librqbit's own
+  UPnP, switched off, went out a virtual adapter (WSL, Hyper-V) and found nothing.
 - **Scrape** (`torrent/scrape.rs`): a thread per torrent asks each tracker (at most 30) about the
   swarm, 3 s after the start and then every 15 minutes, over HTTP with a 64 KiB answer at most or
   over UDP, 12 s each. The answers are read in `model::torrent` (a bencode reader capped at 32

@@ -35,6 +35,7 @@ use crate::{NetError, Sink};
 
 mod engine;
 mod live;
+mod portmap;
 mod scrape;
 mod storage;
 mod web;

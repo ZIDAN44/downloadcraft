@@ -24,6 +24,9 @@ pub enum Icon {
     Moon,
     /// A screen: follow the system.
     Monitor,
+    /// Open something upwards, and fold it down again.
+    ChevronUp,
+    ChevronDown,
 }
 
 /// Draw `icon` filling `r` (a square) in `color`.
@@ -57,6 +60,12 @@ pub fn paint(p: &Painter, r: Rect, icon: Icon, color: Color32) {
             p.line_segment([at(3.0, 4.5), at(13.0, 4.5)], stroke);
             p.line_segment([at(6.5, 2.6), at(9.5, 2.6)], stroke);
             p.add(line(&[(4.4, 4.8), (5.4, 13.5), (10.6, 13.5), (11.6, 4.8)]));
+        }
+        Icon::ChevronUp => {
+            p.add(line(&[(3.5, 10.5), (8.0, 6.0), (12.5, 10.5)]));
+        }
+        Icon::ChevronDown => {
+            p.add(line(&[(3.5, 6.0), (8.0, 10.5), (12.5, 6.0)]));
         }
         Icon::Clear | Icon::Check => {
             p.add(line(&[(3.0, 8.5), (6.5, 12.0), (13.0, 4.5)]));

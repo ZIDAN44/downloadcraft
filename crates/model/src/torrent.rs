@@ -107,6 +107,10 @@ pub struct EngineStatus {
     /// The port other peers reach this one on.
     pub port: Option<u16>,
     pub upnp: bool,
+    /// The router forwards the port (`Ok(how)`: NAT-PMP or UPnP), or why not; `None` while it's
+    /// being asked, or when forwarding is off.
+    #[serde(default)]
+    pub forwarded: Option<Result<String, String>>,
     pub proxy: bool,
     /// Ranges in the IP filter, when one is loaded.
     pub filtered: Option<usize>,
@@ -131,13 +135,16 @@ pub enum Protocol {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TorrentPrefs {
-    /// The port for incoming connections; 0 for one the system picks each start (start).
+    /// The port for incoming connections; 0 for one the system picks each start (start). The app
+    /// picks one at random the first time (`chosen`) and keeps it, so the router's forwarding of
+    /// it keeps working.
     #[serde(default)]
     pub port: u16,
     #[serde(default)]
     pub protocol: Protocol,
-    /// Ask the router to forward the port, through UPnP (start). Off unless chosen.
-    #[serde(default)]
+    /// Ask the router to forward the port, through UPnP (start), so peers can reach this computer
+    /// as other torrent clients let them. On unless turned off.
+    #[serde(default = "yes")]
     pub upnp: bool,
     /// The most peers one torrent connects to; 0 for no limit (start).
     #[serde(default = "default_peer_limit")]
@@ -153,11 +160,22 @@ pub struct TorrentPrefs {
     /// An IP filter file (`.dat` or `.p2p`, gzipped or not); empty for none (start).
     #[serde(default)]
     pub ip_filter: String,
+    /// The port and UPnP have been set up the first time (`prefs.torrentFirstRun`); from then on
+    /// they stay as the user leaves them.
+    #[serde(default)]
+    pub chosen: bool,
 }
 
 fn default_peer_limit() -> u32 {
     200
 }
+
+fn yes() -> bool {
+    true
+}
+
+/// The ports a port is picked from the first time: above those most programs claim.
+pub const RANDOM_PORTS: std::ops::Range<u16> = 20_000..60_000;
 
 /// The most peers anyone can ask a torrent to connect to.
 pub const MAX_PEER_LIMIT: u32 = 2000;
@@ -167,12 +185,13 @@ impl Default for TorrentPrefs {
         TorrentPrefs {
             port: 0,
             protocol: Protocol::Tcp,
-            upnp: false,
+            upnp: true,
             peer_limit: default_peer_limit(),
             down_kib: 0,
             up_kib: 0,
             proxy: String::new(),
             ip_filter: String::new(),
+            chosen: false,
         }
     }
 }

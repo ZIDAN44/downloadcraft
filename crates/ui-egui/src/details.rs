@@ -45,6 +45,8 @@ pub enum Action {
     First(usize, bool),
     /// This torrent's own speed limits, down and up, in KiB/s.
     Limits(u32, u32),
+    /// Fold the pane away (`false`) or open it.
+    Open(bool),
     Copy(String),
 }
 
@@ -61,6 +63,12 @@ pub fn show(ui: &mut Ui, t: &Tokens, pane: &mut Pane, d: &Download, prefs: &Pref
             }
         }
         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            if crate::widgets::button(ui, t, crate::widgets::Kind::Ghost, Some(crate::icons::Icon::ChevronDown), "", true)
+                .on_hover_text(tl!("Hide details"))
+                .clicked()
+            {
+                *act = Some(Action::Open(false));
+            }
             let name = egui::WidgetText::from(RichText::new(&d.file_name).size(12.5).color(t.faint));
             ui.add(egui::Label::new(name).truncate());
         });
@@ -73,6 +81,20 @@ pub fn show(ui: &mut Ui, t: &Tokens, pane: &mut Pane, d: &Download, prefs: &Pref
         Tab::Peers => peers(ui, t, live),
         Tab::Files => files(ui, t, pane, d, live, act),
     }
+}
+
+/// The pane folded away: one line saying it's there, which opens it.
+pub fn folded(ui: &mut Ui, t: &Tokens, d: &Download, act: &mut Option<Action>) {
+    ui.horizontal(|ui| {
+        let open = crate::widgets::button(ui, t, crate::widgets::Kind::Ghost, Some(crate::icons::Icon::ChevronUp), "Show details", true);
+        let summary = d.live.as_deref().map(|l| tf!("{n} connected · {speed}", n = l.connected, speed = format::speed(l.down_speed)));
+        if let Some(s) = summary {
+            ui.label(RichText::new(s).size(12.5).color(t.faint));
+        }
+        if open.clicked() {
+            *act = Some(Action::Open(true));
+        }
+    });
 }
 
 fn not_running(ui: &mut Ui, t: &Tokens) {

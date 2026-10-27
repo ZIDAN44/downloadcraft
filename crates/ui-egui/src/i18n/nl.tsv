@@ -19,7 +19,7 @@
 	Also delete the file (it goes to the Trash)	Ook het bestand verwijderen (het gaat naar de prullenmand)
 	Answering	Antwoordt
 	Appearance	Uiterlijk
-	Ask the router to forward the port (UPnP)	De router vragen de poort door te sturen (UPnP)
+	Asking the router to forward the port…	De router wordt gevraagd de poort door te sturen…
 	Audio only	Alleen geluid
 	Best	Beste
 	Best available	Beste beschikbare
@@ -77,6 +77,7 @@
 	Finished	Voltooid
 	First	Eerst
 	Follows your computer's language unless you pick one.	Volgt de taal van je computer, tenzij je er een kiest.
+	Forward the port on the router (NAT-PMP or UPnP)	De poort op de router doorsturen (NAT-PMP of UPnP)
 	Free and open source, under the MIT or Apache-2.0 licence.	Vrij en open source, onder de MIT- of Apache-2.0-licentie.
 	General	Algemeen
 	Get Deno	Deno ophalen
@@ -84,6 +85,7 @@
 	Get yt-dlp	yt-dlp ophalen
 	Getting it and checking it…	Ophalen en controleren…
 	Getting the torrent's details…	Gegevens van de torrent ophalen…
+	Hide details	Details verbergen
 	Higher qualities come as separate video and sound, which FFmpeg joins into one file.	Hogere kwaliteiten komen als los beeld en los geluid, die FFmpeg samenvoegt tot één bestand.
 	Higher qualities need FFmpeg to join video and sound. Install it with brew install ffmpeg (macOS) or sudo apt install ffmpeg (Linux).	Hogere kwaliteiten hebben FFmpeg nodig om beeld en geluid samen te voegen. Installeer het met brew install ffmpeg (macOS) of sudo apt install ffmpeg (Linux).
 	IP filter	IP-filter
@@ -161,6 +163,7 @@
 	Share finished torrents	Voltooide torrents delen
 	Share ratio	Deelverhouding
 	Sharing · {sent} sent	Wordt gedeeld · {sent} verzonden
+	Show details	Details tonen
 	Show in folder	Tonen in map
 	Source	Bron
 	Speed	Snelheid
@@ -179,7 +182,8 @@
 	The part downloaded so far is deleted.	Het deel dat al binnen is, wordt verwijderd.
 	The port, peers, proxy and IP filter apply once no torrent is running.	Poort, peers, proxy en IP-filter gelden zodra er geen torrent loopt.
 	The rest wait in the queue.	De rest wacht in de rij.
-	The router is asked to forward the port (UPnP).	De router wordt gevraagd de poort door te sturen (UPnP).
+	The router didn't forward the port: {why}	De router heeft de poort niet doorgestuurd: {why}
+	The router forwards the port ({how}), so peers can connect in.	De router stuurt de poort door ({how}), dus peers kunnen verbinden.
 	Theme	Thema
 	Theme: Dark. Click for System	Thema: donker. Klik voor Systeem
 	Theme: Light. Click for Dark	Thema: licht. Klik voor Donker
@@ -235,6 +239,7 @@
 	{have} of {size}	{have} van {size}
 	{name}: {picked} of {n} files · {size}	{name}: {picked} van {n} bestanden · {size}
 	{n} (up to {max})	{n} (tot {max})
+	{n} connected · {speed}	{n} verbonden · {speed}
 	{n} connections	{n} verbindingen
 	{n} downloads	{n} downloads
 	{n} downloads running	{n} downloads bezig

@@ -30,3 +30,6 @@ tokio = { version = "1", features = ["rt-multi-thread"] }
 anyhow = "1"
 # Gzipped IP filter files (already here through `zip`).
 flate2 = { version = "1", default-features = false, features = ["zlib-rs"] }
+# The router search goes out the network adapter the default route uses (already here through
+# tokio; MIT OR Apache-2.0).
+socket2 = "0.6"

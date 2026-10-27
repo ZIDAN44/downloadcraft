@@ -215,6 +215,8 @@ fn a_tour_in_the_pseudo_language_only_draws_known_strings() {
     for _ in 0..2 {
         crate::tests::frame(&mut app, &ctx, vec![]);
     }
+    crate::tests::frame(&mut app, &ctx, vec![]);
+    app.run("view.details", serde_json::json!({"open": true}));
     for tab in [crate::details::Tab::General, crate::details::Tab::Trackers, crate::details::Tab::Peers, crate::details::Tab::Files] {
         app.details.tab = tab;
         crate::tests::frame(&mut app, &ctx, vec![]);

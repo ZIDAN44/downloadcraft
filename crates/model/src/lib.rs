@@ -9,6 +9,7 @@
 pub mod format;
 pub mod job;
 pub mod names;
+pub mod portmap;
 pub mod probe;
 pub mod source;
 pub mod torrent;
@@ -222,6 +223,9 @@ pub struct Prefs {
     /// Ports, limits, proxy and IP filter for torrents.
     #[serde(default)]
     pub torrent: torrent::TorrentPrefs,
+    /// The details pane under the list is open (it starts folded away).
+    #[serde(default)]
+    pub details_open: bool,
 }
 
 fn default_seed_ratio() -> f32 {
@@ -260,6 +264,7 @@ impl Default for Prefs {
             language: default_language(),
             seed_ratio: default_seed_ratio(),
             torrent: torrent::TorrentPrefs::default(),
+            details_open: false,
         }
     }
 }

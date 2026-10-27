@@ -248,20 +248,25 @@ impl DownloadApp {
         if let Some(d) = selected {
             let engine = self.services.torrent_status();
             let mut act = None;
-            egui::Panel::bottom("details")
-                .resizable(true)
-                .default_size(280.0)
-                .size_range(220.0..=560.0)
-                .frame(
-                    egui::Frame::new()
-                        .fill(t.surface)
-                        .inner_margin(Margin { left: 16, right: 16, top: 8, bottom: 6 })
-                        .stroke(egui::Stroke::new(1.0, t.border)),
-                )
-                .show(ui, |ui| details::show(ui, &t, &mut self.details, &d, &self.session.prefs, engine.as_ref(), &mut act));
+            let frame = egui::Frame::new()
+                .fill(t.surface)
+                .inner_margin(Margin { left: 16, right: 16, top: 8, bottom: 6 })
+                .stroke(egui::Stroke::new(1.0, t.border));
+            if self.session.prefs.details_open {
+                egui::Panel::bottom("details")
+                    .resizable(true)
+                    .default_size(280.0)
+                    .size_range(220.0..=560.0)
+                    .frame(frame)
+                    .show(ui, |ui| details::show(ui, &t, &mut self.details, &d, &self.session.prefs, engine.as_ref(), &mut act));
+            } else {
+                // Folded away (as it starts): one line that opens it.
+                egui::Panel::bottom("details-folded").resizable(false).frame(frame).show(ui, |ui| details::folded(ui, &t, &d, &mut act));
+            }
             match act {
                 Some(details::Action::PickFiles(files)) => self.run("download.pickFiles", json!({"id": d.id.0, "files": files})),
                 Some(details::Action::First(file, first)) => self.run("download.first", json!({"id": d.id.0, "files": [file], "first": first})),
+                Some(details::Action::Open(open)) => self.run("view.details", json!({"open": open})),
                 Some(details::Action::Limits(down, up)) => self.run("download.torrentLimits", json!({"id": d.id.0, "downKib": down, "upKib": up})),
                 Some(details::Action::Copy(text)) => {
                     ctx.copy_text(text);
@@ -581,8 +586,12 @@ impl DownloadApp {
                     let dht = e.dht_nodes.map_or_else(|| tl!("DHT off").to_string(), |n| tf!("DHT: {n} nodes", n = n));
                     let port = e.port.map_or_else(String::new, |p| tf!("port {port}", port = p));
                     let mut tip = vec![tl!("Torrents: peers are found through trackers, the DHT and each other.").to_string()];
-                    if e.upnp {
-                        tip.push(tl!("The router is asked to forward the port (UPnP).").into());
+                    let open = matches!(e.forwarded, Some(Ok(_)));
+                    match &e.forwarded {
+                        Some(Ok(how)) => tip.push(tf!("The router forwards the port ({how}), so peers can connect in.", how = how)),
+                        Some(Err(why)) => tip.push(tf!("The router didn't forward the port: {why}", why = why)),
+                        None if e.upnp => tip.push(tl!("Asking the router to forward the port…").into()),
+                        None => {}
                     }
                     if e.proxy {
                         tip.push(tl!("Peers are reached through the proxy.").into());
@@ -593,7 +602,15 @@ impl DownloadApp {
                     if e.pending {
                         tip.push(tl!("Changed settings apply once no torrent is running.").into());
                     }
-                    let color = if e.dht_nodes.unwrap_or(0) > 0 { t.success } else { t.faint };
+                    // Green once peers can reach this computer (the port forwarded), amber while
+                    // only outgoing connections work.
+                    let color = if open {
+                        t.success
+                    } else if e.dht_nodes.unwrap_or(0) > 0 {
+                        t.warning
+                    } else {
+                        t.faint
+                    };
                     let r = ui.label(RichText::new(format!("{dht}  ·  {port}")).size(12.5).color(t.muted)).on_hover_text(tip.join("\n"));
                     ui.painter().circle_filled(egui::pos2(r.rect.left() - 8.0, r.rect.center().y), 3.5, color);
                     ui.add_space(14.0);

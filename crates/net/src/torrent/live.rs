@@ -22,6 +22,9 @@ pub(super) struct Watch {
     pub peer_limit: u32,
     /// The files have been sent (in the first report).
     told_files: bool,
+    /// What was on disk at the first look, so this run's bytes can be told even once librqbit's
+    /// count starts again (it does when a torrent completes).
+    have_at_start: Option<u64>,
     /// The web seeds, as fetching from them went.
     pub web: Vec<downloadcraft_model::torrent::Tracker>,
     /// The files to download first are done.
@@ -39,6 +42,7 @@ impl Watch {
             told_files: false,
             web: Vec::new(),
             first_done: false,
+            have_at_start: None,
         }
     }
 
@@ -91,11 +95,16 @@ impl Watch {
         }
         let have = files.iter().filter_map(|f| file_done.get(f.index)).sum::<u64>().min(size);
         let trackers = trackers.lock().unwrap_or_else(PoisonError::into_inner).clone();
+        // Counted from when it's live (before that, librqbit is still checking what's on disk).
+        let this_run = match live {
+            Some(_) => st.progress_bytes.saturating_sub(*self.have_at_start.get_or_insert(st.progress_bytes)),
+            None => 0,
+        };
         TorrentLive {
             info_hash: t.info_hash().as_string(),
             active_secs: now.duration_since(self.since).as_secs(),
             seeding_secs: self.seeding_since.map_or(0, |s| now.duration_since(s).as_secs()),
-            downloaded: snap.map_or(0, |s| s.fetched_bytes),
+            downloaded: snap.map_or(0, |s| s.fetched_bytes).max(this_run),
             uploaded: st.uploaded_bytes,
             wasted: st.finished.then(|| snap.map_or(0, |s| s.fetched_bytes.saturating_sub(s.downloaded_and_checked_bytes))),
             down_speed: live.map_or(0, |l| l.download_speed.as_bytes()),

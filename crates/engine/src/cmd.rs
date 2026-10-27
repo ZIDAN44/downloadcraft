@@ -47,6 +47,8 @@ pub fn registry() -> Registry {
         CommandSpec::new("prefs.torrent", "Torrent connections", "Settings › Torrents", set_torrent).params(
             r#"{"port"?: number, "protocol"?: "tcp"|"both", "upnp"?: bool, "peerLimit"?: number, "downKib"?: number, "upKib"?: number, "proxy"?: string, "ipFilter"?: string}"#,
         ),
+        CommandSpec::new("prefs.torrentFirstRun", "Set up torrent connections", "App start", torrent_first_run).params(r#"{"port": number}"#),
+        CommandSpec::new("view.details", "Details", "Window", view_details).params(r#"{"open"?: bool}"#),
         CommandSpec::new("download.pickFiles", "Pick files", "Details › Files", pick_files).params(r#"{"id"?: number, "files": [number]}"#),
         CommandSpec::new("download.first", "Download first", "Details › Files", download_first).params(r#"{"id"?: number, "files": [number], "first": bool}"#),
         CommandSpec::new("download.torrentLimits", "Speed limits for this torrent", "Details › General", torrent_limits)
@@ -413,6 +415,32 @@ fn set_torrent(s: &mut Session, v: &Value) -> CmdResult {
         s.push_job(Job::Configure { torrent: t });
     }
     Ok(serde_json::to_value(&s.prefs.torrent).unwrap_or(Value::Null))
+}
+
+/// The first time: the port the app picked at random (kept from then on, so the router's
+/// forwarding keeps working) and UPnP on. Once done (`chosen`), it changes nothing.
+fn torrent_first_run(s: &mut Session, v: &Value) -> CmdResult {
+    use downloadcraft_model::torrent::RANDOM_PORTS;
+    if s.prefs.torrent.chosen {
+        return Ok(json!({"port": s.prefs.torrent.port, "changed": false}));
+    }
+    let port = p::u64(v, "port").and_then(|p| u16::try_from(p).ok()).filter(|p| RANDOM_PORTS.contains(p));
+    let port = port.ok_or_else(|| CmdError::Params(format!("`port` is a number from {} to {}", RANDOM_PORTS.start, RANDOM_PORTS.end - 1)))?;
+    let t = &mut s.prefs.torrent;
+    t.port = port;
+    t.upnp = true;
+    t.chosen = true;
+    let t = t.clone();
+    s.dirty = true;
+    s.push_job(Job::Configure { torrent: t });
+    Ok(json!({"port": port, "changed": true}))
+}
+
+/// Open or fold away the details pane (`open` left out: the other way); remembered.
+fn view_details(s: &mut Session, v: &Value) -> CmdResult {
+    s.prefs.details_open = p::bool(v, "open").unwrap_or(!s.prefs.details_open);
+    s.dirty = true;
+    Ok(json!({"open": s.prefs.details_open}))
 }
 
 /// Change the files a torrent downloads. Running, it carries on with the new choice; finished, a

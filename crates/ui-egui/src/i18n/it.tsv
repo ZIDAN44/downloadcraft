@@ -19,7 +19,7 @@
 	Also delete the file (it goes to the Trash)	Elimina anche il file (finisce nel cestino)
 	Answering	Risponde
 	Appearance	Aspetto
-	Ask the router to forward the port (UPnP)	Chiedi al router di inoltrare la porta (UPnP)
+	Asking the router to forward the port…	Si chiede al router di inoltrare la porta…
 	Audio only	Solo audio
 	Best	Migliore
 	Best available	Migliore disponibile
@@ -77,6 +77,7 @@
 	Finished	Completati
 	First	Prima
 	Follows your computer's language unless you pick one.	Segue la lingua del computer, se non ne scegli una.
+	Forward the port on the router (NAT-PMP or UPnP)	Inoltra la porta sul router (NAT-PMP o UPnP)
 	Free and open source, under the MIT or Apache-2.0 licence.	Libero e open source, con licenza MIT o Apache-2.0.
 	General	Generale
 	Get Deno	Ottieni Deno
@@ -84,6 +85,7 @@
 	Get yt-dlp	Ottieni yt-dlp
 	Getting it and checking it…	Download e controllo in corso…
 	Getting the torrent's details…	Recupero dei dati del torrent…
+	Hide details	Nascondi dettagli
 	Higher qualities come as separate video and sound, which FFmpeg joins into one file.	Le qualità più alte arrivano con video e audio separati, che FFmpeg unisce in un unico file.
 	Higher qualities need FFmpeg to join video and sound. Install it with brew install ffmpeg (macOS) or sudo apt install ffmpeg (Linux).	Le qualità più alte richiedono FFmpeg per unire video e audio. Installalo con brew install ffmpeg (macOS) o sudo apt install ffmpeg (Linux).
 	IP filter	Filtro IP
@@ -161,6 +163,7 @@
 	Share finished torrents	Condividi i torrent completati
 	Share ratio	Rapporto di condivisione
 	Sharing · {sent} sent	In condivisione · {sent} inviati
+	Show details	Mostra dettagli
 	Show in folder	Mostra nella cartella
 	Source	Origine
 	Speed	Velocità
@@ -179,7 +182,8 @@
 	The part downloaded so far is deleted.	La parte scaricata finora viene eliminata.
 	The port, peers, proxy and IP filter apply once no torrent is running.	Porta, peer, proxy e filtro IP valgono quando nessun torrent è in corso.
 	The rest wait in the queue.	Gli altri aspettano in coda.
-	The router is asked to forward the port (UPnP).	Al router viene chiesto di inoltrare la porta (UPnP).
+	The router didn't forward the port: {why}	Il router non ha inoltrato la porta: {why}
+	The router forwards the port ({how}), so peers can connect in.	Il router inoltra la porta ({how}), quindi i peer possono connettersi.
 	Theme	Tema
 	Theme: Dark. Click for System	Tema: scuro. Clic per Sistema
 	Theme: Light. Click for Dark	Tema: chiaro. Clic per Scuro
@@ -235,6 +239,7 @@
 	{have} of {size}	{have} di {size}
 	{name}: {picked} of {n} files · {size}	{name}: {picked} file su {n} · {size}
 	{n} (up to {max})	{n} (fino a {max})
+	{n} connected · {speed}	{n} connessi · {speed}
 	{n} connections	{n} connessioni
 	{n} downloads	{n} download
 	{n} downloads running	{n} download in corso

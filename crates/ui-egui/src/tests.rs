@@ -179,6 +179,10 @@ fn a_torrents_details_draw_on_every_tab() {
     add_torrent(&mut s);
     let mut app = DownloadApp::new(s, Box::new(NoServices));
     assert!(app.session.selection.and_then(|id| app.session.get(id)).is_some_and(|d| d.live.is_some()), "the details arrived");
+    // Folded away at first; opened, it stays open.
+    assert!(!app.session.prefs.details_open);
+    frame(&mut app, &ctx, vec![]);
+    app.run("view.details", json!({"open": true}));
     for tab in [crate::details::Tab::General, crate::details::Tab::Trackers, crate::details::Tab::Peers, crate::details::Tab::Files] {
         app.details.tab = tab;
         frame(&mut app, &ctx, vec![]);

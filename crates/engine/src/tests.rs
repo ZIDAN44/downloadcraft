@@ -439,3 +439,34 @@ fn a_torrents_first_files_and_own_limits_go_with_it() {
     assert!(s.run("download.first", &json!({"id": plain.0, "files": [0], "first": true})).is_err());
     assert!(s.run("download.torrentLimits", &json!({"id": plain.0, "downKib": 1})).is_err());
 }
+
+#[test]
+fn the_torrent_port_is_picked_once_with_upnp_and_the_details_pane_is_remembered() {
+    let mut s = session();
+    assert!(s.prefs.torrent.upnp && !s.prefs.torrent.chosen, "UPnP on by default, as in other torrent clients");
+    assert!(s.run("prefs.torrentFirstRun", &json!({"port": 80})).is_err(), "only from the random range");
+    let r = s.run("prefs.torrentFirstRun", &json!({"port": 47895})).unwrap();
+    assert_eq!(r["changed"], json!(true));
+    assert!(matches!(s.take_jobs().as_slice(), [Job::Configure { torrent }] if torrent.port == 47895 && torrent.upnp && torrent.chosen));
+    // Turned off and moved by the user: kept, however often the app starts again.
+    s.run("prefs.torrent", &json!({"upnp": false, "port": 51000})).unwrap();
+    s.take_jobs();
+    let r = s.run("prefs.torrentFirstRun", &json!({"port": 30000})).unwrap();
+    assert_eq!((r["changed"].clone(), s.prefs.torrent.port, s.prefs.torrent.upnp), (json!(false), 51000, false));
+    assert!(s.take_jobs().is_empty());
+    // A list saved before the setting existed gets it set up once too.
+    let mut old = Session::new();
+    old.load(json!({"prefs": {"torrent": {"port": 0, "upnp": false}}})).unwrap();
+    assert!(!old.prefs.torrent.chosen);
+    old.run("prefs.torrentFirstRun", &json!({"port": 40000})).unwrap();
+    assert!(old.prefs.torrent.upnp && old.prefs.torrent.port == 40000);
+
+    // The details pane: folded at first, then as left, across a save.
+    assert!(!s.prefs.details_open);
+    assert_eq!(s.run("view.details", &json!({})).unwrap()["open"], json!(true), "left out: the other way");
+    let mut again = Session::new();
+    again.load(s.save()).unwrap();
+    assert!(again.prefs.details_open);
+    again.run("view.details", &json!({"open": false})).unwrap();
+    assert!(!again.prefs.details_open);
+}

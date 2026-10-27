@@ -15,8 +15,8 @@ the next build, so no two different builds share a version.
 | | |
 |---|---|
 | Crates | 4 libraries, 2 apps and xtask |
-| Commands | 25 (`downloadcraft-cli commands`) |
-| Tests | 131: unit tests, a local HTTP server for downloads on one or many connections and for the updater, and headless frames of the window |
+| Commands | 27 (`downloadcraft-cli commands`) |
+| Tests | 134: unit tests, a local HTTP server for downloads on one or many connections and for the updater, and headless frames of the window |
 | Platforms | Windows, macOS, Linux (and FreeBSD packages) |
 
 ## Milestones
@@ -173,3 +173,16 @@ the next build, so no two different builds share a version.
     archive.org publishes.
     Sintel with the film marked First and a 1500 KiB/s limit: the film came first at 1.2 to
     1.8 MB/s, then the other ten files. 131 tests.
+- **2026-10-28** — **v0.4**: reachable like other torrent clients.
+  - The port is forwarded on the router by default, by DownloadCraft itself: NAT-PMP, else UPnP,
+    for TCP and UDP, from the network adapter the default route uses. librqbit's UPnP, now off,
+    looked for the router on a virtual adapter (WSL, Hyper-V) on the test PC and never found it,
+    so its port showed as closed. The first start picks one port at random and keeps it, so the
+    forwarding holds; Settings can change either. The status bar's dot turns green once the
+    router forwards the port, and its tooltip says how, or why not.
+  - The details pane starts folded away under a "Show details" line, and stays open or folded as
+    it was left (`view.details`).
+  - "This run" in the details counted nothing once a torrent completed (librqbit's count starts
+    again then); it now counts from what's on disk.
+  - Checked against the router's own table: DownloadCraft's port 48081 forwarded for TCP and UDP
+    by NAT-PMP beside qBittorrent's 47895.

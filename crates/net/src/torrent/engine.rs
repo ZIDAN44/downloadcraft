@@ -6,7 +6,7 @@
 
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 
 use downloadcraft_model::torrent::{EngineStatus, Protocol, TorrentPrefs, ip_filter_to_p2p, proxy_url};
@@ -22,6 +22,17 @@ pub(super) struct Engine {
     started: TorrentPrefs,
     /// Ranges in the IP filter it loaded, when it loaded one.
     filtered: Option<usize>,
+    /// The router's forwarding of the port, kept up while the session lives.
+    forwarding: Option<(super::portmap::State, Arc<AtomicBool>)>,
+}
+
+impl Drop for Engine {
+    /// The forwarding stops (and is taken away) with the session.
+    fn drop(&mut self) {
+        if let Some((_, stop)) = &self.forwarding {
+            stop.store(true, Ordering::Relaxed);
+        }
+    }
 }
 
 impl Engine {
@@ -51,12 +62,13 @@ const fn default_prefs() -> TorrentPrefs {
     TorrentPrefs {
         port: 0,
         protocol: Protocol::Tcp,
-        upnp: false,
+        upnp: true,
         peer_limit: 200,
         down_kib: 0,
         up_kib: 0,
         proxy: String::new(),
         ip_filter: String::new(),
+        chosen: false,
     }
 }
 
@@ -156,6 +168,7 @@ pub fn status() -> Option<EngineStatus> {
         dht_nodes: dht.map(|n| u32::try_from(n).unwrap_or(u32::MAX)),
         port: e.session.announce_port().or_else(|| e.session.listen_addr().map(|a| a.port())),
         upnp: e.started.upnp,
+        forwarded: e.forwarding.as_ref().and_then(|(s, _)| s.lock().unwrap_or_else(PoisonError::into_inner).clone()),
         proxy: !e.started.proxy.trim().is_empty(),
         filtered: e.filtered,
         running: u32::try_from(RUNNING.load(Ordering::SeqCst)).unwrap_or(u32::MAX),
@@ -181,8 +194,9 @@ fn start(p: &TorrentPrefs) -> Result<Engine, String> {
     let listen = ListenerOptions {
         mode,
         listen_addr: (std::net::Ipv6Addr::UNSPECIFIED, p.port).into(),
-        // Off unless chosen in Settings: nothing is opened on the router behind the user's back.
-        enable_upnp_port_forwarding: p.upnp,
+        // DownloadCraft forwards the port itself (`torrent/portmap.rs`): librqbit's UPnP can look
+        // for the router on the wrong network adapter.
+        enable_upnp_port_forwarding: false,
         ..ListenerOptions::default()
     };
     let (blocklist_url, filtered) = match ip_filter(p, dir.map(PathBuf::as_path))? {
@@ -203,11 +217,19 @@ fn start(p: &TorrentPrefs) -> Result<Engine, String> {
     log::info!(
         "torrents: listening on {:?} ({mode:?}{}), DHT {}, {} filtered ranges",
         session.listen_addr(),
-        if p.upnp { ", UPnP" } else { "" },
+        if p.upnp { ", forwarding the port" } else { "" },
         if session.get_dht().is_some() { "on" } else { "off" },
         filtered.unwrap_or(0)
     );
-    Ok(Engine { rt, session, started: p.clone(), filtered })
+    // On by default, as in other torrent clients, so peers can connect in; Settings turns it off.
+    let forwarding = match (p.upnp, session.listen_addr()) {
+        (true, Some(addr)) => {
+            let stop = Arc::new(AtomicBool::new(false));
+            Some((super::portmap::start(addr.port(), stop.clone()), stop))
+        }
+        _ => None,
+    };
+    Ok(Engine { rt, session, started: p.clone(), filtered, forwarding })
 }
 
 /// The IP filter in the settings, written as the P2P form librqbit reads (`<dir>/ipfilter.p2p`):

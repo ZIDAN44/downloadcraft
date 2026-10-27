@@ -297,6 +297,15 @@ fn cant_open(why: &str, log: Option<&std::path::Path>) -> String {
 }
 
 /// Open the window and run the app until it closes.
+/// A port for incoming torrent connections, picked at random from those above most programs'.
+fn random_port() -> u16 {
+    use downloadcraft_engine::model::torrent::RANDOM_PORTS;
+    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos() as u64);
+    let mixed = (now ^ u64::from(std::process::id()).rotate_left(32)).wrapping_mul(0x9E37_79B9_7F4A_7C15) >> 33;
+    let span = u64::from(RANDOM_PORTS.end - RANDOM_PORTS.start);
+    RANDOM_PORTS.start + u16::try_from(mixed % span).unwrap_or(0)
+}
+
 fn run(
     options: eframe::NativeOptions,
     args: Args,
@@ -319,6 +328,10 @@ fn run(
             let platform = platform::Platform::new(Arc::new(move || repaint.request_repaint()));
             let mut app = DownloadApp::new(session, Box::new(platform));
             app.force_dark = args.dark;
+            // The first time: a port for torrents, picked at random and kept, with UPnP on.
+            if !app.session.prefs.torrent.chosen {
+                app.run("prefs.torrentFirstRun", serde_json::json!({"port": random_port()}));
+            }
             for (id, v) in &args.cmds {
                 // `ui.*` opens a dialog (for scripting and screenshots); the rest are engine commands.
                 match id.as_str() {

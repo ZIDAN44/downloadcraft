@@ -54,7 +54,7 @@ pub(super) fn section(ui: &mut Ui, t: &Tokens, seed_ratio: &mut f32, p: &mut Tor
         });
     });
     ui.add_space(4.0);
-    ui.checkbox(&mut p.upnp, tl!("Ask the router to forward the port (UPnP)"));
+    ui.checkbox(&mut p.upnp, tl!("Forward the port on the router (NAT-PMP or UPnP)"));
     ui.add_space(6.0);
     widgets::field_label(ui, t, "SOCKS5 proxy for peers and web trackers");
     ui.horizontal(|ui| {

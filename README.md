@@ -79,9 +79,14 @@ Download only videos you have the right to. DRM-protected videos aren't supporte
   own size (0 to 10 times, in Settings).
 - **Details under the list**: how it's going, the trackers and how many share it, the peers
   you're connected to, and each file's progress, where you can pick files while it runs.
+- **Reachable, like other torrent clients.** DownloadCraft picks a port once and asks your router
+  to forward it (NAT-PMP, or UPnP), so peers can connect to you as well as you to them; the dot in
+  the status bar turns green once the router has. Settings turns it off.
 - **Your connection, your way**: the port (or a random one), TCP or TCP and µTP, speed limits
-  overall and for each torrent, peers per torrent, a SOCKS5 proxy and an IP filter (`.dat` or `.p2p`). UPnP is off unless you
-  turn it on, so DownloadCraft opens no ports on your router by itself.
+  overall and for each torrent, peers per torrent, a SOCKS5 proxy and an IP filter (`.dat` or
+  `.p2p`).
+- **Details when you want them**: a pane under the list, folded away until you open it, and kept
+  the way you leave it.
 - Peers are found through trackers, the DHT and peer exchange, with
   [librqbit](https://github.com/ikatson/rqbit).
 
