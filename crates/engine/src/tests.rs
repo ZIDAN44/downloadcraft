@@ -179,7 +179,7 @@ fn saves_and_loads() {
     assert_eq!(t.prefs.folder, "/downloads");
     let a = t.get(id).unwrap();
     assert_eq!((a.state, a.done, a.speed), (State::Paused, 77, 0), "a transfer that was running comes back paused");
-    assert!(t.take_jobs().is_empty());
+    assert!(matches!(t.take_jobs().as_slice(), [Job::Configure { .. }]), "nothing starts by itself; the torrent settings are handed on");
     t.run("download.add", &json!({"url": "https://e.com/c.zip"})).unwrap();
     assert_eq!(t.downloads.last().map(|d| d.id), Some(DownloadId(3)));
 }
@@ -347,4 +347,68 @@ fn the_seeding_ratio_is_kept_in_range() {
     s.run("prefs.seedRatio", &json!({"ratio": -3})).unwrap();
     assert_eq!(s.prefs.seed_ratio, 0.0);
     assert!(s.run("prefs.seedRatio", &json!({"ratio": "lots"})).is_err());
+}
+
+#[test]
+fn a_torrents_files_can_be_picked_again_and_its_details_are_kept() {
+    use downloadcraft_model::probe::TorrentFile;
+    use downloadcraft_model::torrent::TorrentLive;
+    let mut s = session();
+    s.run("download.add", &json!({"url": "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel", "files": [0]})).unwrap();
+    let Some(Job::FetchTorrent { id, run, sent, .. }) = s.take_jobs().first().cloned() else { panic!() };
+    assert_eq!(sent, 0);
+    s.apply(Event::Started { id, run, total: Some(10), resumable: true, file_name: "Sintel".into(), done: 0 });
+    let files = vec![TorrentFile { index: 0, path: "a".into(), size: 10 }, TorrentFile { index: 1, path: "b".into(), size: 20 }];
+    let live = TorrentLive { size: 10, uploaded: 4, files: files.clone(), ..TorrentLive::default() };
+    s.apply(Event::Details { id, run, live: Box::new(live) });
+    let d = s.get(id).unwrap();
+    assert_eq!(d.torrent.as_ref().map(|t| t.list.clone()), Some(files), "the file list is kept for when it's paused");
+    assert_eq!((d.sent, d.live.as_ref().map(|l| l.files.len())), (4, Some(0)), "moved, not copied");
+    // Picked again while it runs: the transfer is told.
+    s.run("download.pickFiles", &json!({"id": id.0, "files": [1]})).unwrap();
+    assert_eq!(s.take_jobs(), vec![Job::PickFiles { id, files: vec![1] }]);
+    // Every file: the same as none picked.
+    s.run("download.pickFiles", &json!({"id": id.0, "files": [0, 1]})).unwrap();
+    assert_eq!(s.take_jobs(), vec![Job::PickFiles { id, files: vec![] }]);
+    assert!(s.get(id).is_some_and(|d| d.torrent.as_ref().is_some_and(|t| t.files.is_empty())));
+    assert!(s.run("download.pickFiles", &json!({"id": id.0, "files": []})).is_err(), "at least one");
+    // The size follows what's picked.
+    s.apply(Event::Details { id, run, live: Box::new(TorrentLive { size: 30, uploaded: 4, ..TorrentLive::default() }) });
+    assert_eq!(s.get(id).and_then(|d| d.total), Some(30));
+    // Finished, with a file left out: picking it sends it back to the queue for that file.
+    s.run("download.pickFiles", &json!({"id": id.0, "files": [0]})).unwrap();
+    s.apply(Event::Finished { id, run, done: 10 });
+    s.take_jobs();
+    s.run("download.pickFiles", &json!({"id": id.0, "files": [0, 1]})).unwrap();
+    let jobs = s.take_jobs();
+    assert!(jobs.contains(&Job::Stop { id }), "its sharing stops: {jobs:?}");
+    assert!(jobs.iter().any(|j| matches!(j, Job::FetchTorrent { first: false, sent: 4, .. })), "and it starts again with what it sent: {jobs:?}");
+    // Not a torrent: refused.
+    s.run("download.add", &json!({"url": "https://e.com/a.zip"})).unwrap();
+    let plain = s.downloads.last().map(|d| d.id).unwrap();
+    assert!(s.run("download.pickFiles", &json!({"id": plain.0, "files": [0]})).is_err());
+}
+
+#[test]
+fn torrent_settings_are_checked_and_handed_to_the_network_layer() {
+    let mut s = session();
+    let r = s
+        .run(
+            "prefs.torrent",
+            &json!({"port": 51413, "protocol": "both", "upnp": true, "peerLimit": 99_999, "downKib": 500, "proxy": "127.0.0.1:9050"}),
+        )
+        .unwrap();
+    assert_eq!((r["port"].as_u64(), r["peerLimit"].as_u64()), (Some(51413), Some(2000)));
+    let jobs = s.take_jobs();
+    assert!(matches!(jobs.as_slice(), [Job::Configure { torrent }] if torrent.upnp && torrent.down_kib == 500), "{jobs:?}");
+    s.run("prefs.torrent", &json!({"port": 51413})).unwrap();
+    assert!(s.take_jobs().is_empty(), "nothing changed, nothing to tell");
+    for bad in [json!({"port": 70_000}), json!({"protocol": "carrier pigeon"}), json!({"proxy": "u:p@h:1"}), json!({"upnp": "yes"})] {
+        assert!(s.run("prefs.torrent", &bad).is_err(), "{bad}");
+    }
+    // Loading the list tells the network layer the settings it was saved with.
+    let saved = s.save();
+    let mut again = Session::new();
+    again.load(saved).unwrap();
+    assert!(matches!(again.take_jobs().as_slice(), [Job::Configure { torrent }] if torrent.port == 51413));
 }

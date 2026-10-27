@@ -128,6 +128,9 @@ fn progress_and_eta() {
         missing: false,
         torrent: None,
         uploaded: 0,
+        sent: 0,
+        sent_before: 0,
+        live: None,
         seeding: false,
     };
     assert_eq!(d.fraction(), Some(0.25));

@@ -178,6 +178,9 @@ impl Session {
             d.error = None;
             let torrent = matches!(d.kind, SourceKind::Torrent | SourceKind::Magnet);
             d.seeding = false;
+            d.live = None;
+            d.uploaded = 0;
+            d.sent_before = d.sent;
             let job = match &d.video {
                 _ if torrent => Job::FetchTorrent {
                     id,
@@ -188,6 +191,7 @@ impl Session {
                     files: d.torrent.as_ref().map(|t| t.files.clone()).unwrap_or_default(),
                     first: d.total.is_none(),
                     seed_ratio,
+                    sent: d.sent,
                 },
                 Some(v) => Job::FetchVideo {
                     id,
@@ -222,6 +226,7 @@ impl Session {
         d.state = to;
         d.speed = 0;
         d.run = 0;
+        d.live = None;
         if was_running {
             self.jobs.push(Job::Stop { id });
         }
@@ -234,6 +239,7 @@ impl Session {
         if d.state == State::Completed && d.run != 0 {
             d.run = 0;
             d.seeding = false;
+            d.live = None;
             self.jobs.push(Job::Stop { id });
         }
     }
@@ -266,10 +272,30 @@ impl Session {
         if let Event::Uploaded { run, uploaded, seeding, .. } = ev {
             if d.run != 0 && d.run == run && d.state == State::Completed {
                 d.uploaded = uploaded;
+                d.sent = d.sent_before.saturating_add(uploaded);
                 d.seeding = seeding;
                 if !seeding {
                     d.run = 0;
+                    d.live = None;
                 }
+                self.dirty = true;
+            }
+            return;
+        }
+        // A torrent's details, downloading or sharing; its size follows the files picked.
+        if let Event::Details { run, mut live, .. } = ev {
+            if d.run != 0 && d.run == run && matches!(d.state, State::Downloading | State::Completed) {
+                if !live.files.is_empty()
+                    && let Some(choice) = d.torrent.as_mut()
+                {
+                    choice.list = std::mem::take(&mut live.files);
+                }
+                d.uploaded = live.uploaded;
+                d.sent = d.sent_before.saturating_add(live.uploaded);
+                if d.state == State::Downloading && live.size > 0 && d.total.is_some() {
+                    d.total = Some(live.size);
+                }
+                d.live = Some(live);
             }
             return;
         }
@@ -307,7 +333,7 @@ impl Session {
                 finished = Some(format!("{}: {error}", d.file_name));
                 d.error = Some(error);
             }
-            Event::Uploaded { .. } => return,
+            Event::Uploaded { .. } | Event::Details { .. } => return,
         }
         self.dirty = true;
         if let Some(status) = finished {
@@ -351,6 +377,8 @@ impl Session {
         }
         self.prefs.seed_ratio = self.prefs.seed_ratio.clamp(0.0, downloadcraft_model::MAX_SEED_RATIO);
         self.next_id = saved.next_id.max(top.saturating_add(1));
+        // The network layer takes the torrent settings as loaded.
+        self.jobs.push(Job::Configure { torrent: self.prefs.torrent.clone() });
         self.selection = None;
         self.dirty = false;
         Ok(())

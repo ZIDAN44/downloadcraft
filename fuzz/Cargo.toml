@@ -12,6 +12,7 @@ bin = [
     { name = "http", bench = false, test = false, doc = false, path = "fuzz_targets/http.rs" }, # Content-Range, parts records, the updater's lists
     { name = "video", bench = false, test = false, doc = false, path = "fuzz_targets/video.rs" }, # yt-dlp's JSON and progress lines
     { name = "saved_list", bench = false, test = false, doc = false, path = "fuzz_targets/saved_list.rs" }, # downloads.json
+    { name = "torrent", bench = false, test = false, doc = false, path = "fuzz_targets/torrent.rs" }, # trackers' scrape answers, IP filters, proxies
 ]
 
 [dependencies]

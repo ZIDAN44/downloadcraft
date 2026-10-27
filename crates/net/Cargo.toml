@@ -28,3 +28,5 @@ thiserror = { workspace = true }
 librqbit = { version = "9", default-features = false, features = ["rust-tls"] }
 tokio = { version = "1", features = ["rt-multi-thread"] }
 anyhow = "1"
+# Gzipped IP filter files (already here through `zip`).
+flate2 = { version = "1", default-features = false, features = ["zlib-rs"] }

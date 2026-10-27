@@ -98,6 +98,15 @@ impl Services for Platform {
         d.pick_file().map(|p| p.to_string_lossy().into_owned())
     }
 
+    fn pick_ip_filter(&self) -> Option<String> {
+        let d = rfd::FileDialog::new().set_title("Choose an IP filter").add_filter("IP filter", &["dat", "p2p", "txt", "gz"]);
+        d.pick_file().map(|p| p.to_string_lossy().into_owned())
+    }
+
+    fn torrent_status(&self) -> Option<downloadcraft_engine::model::torrent::EngineStatus> {
+        downloadcraft_net::torrent::status()
+    }
+
     fn open(&self, path: &Path) {
         open_path(path);
     }

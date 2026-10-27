@@ -3,11 +3,13 @@
 
 mod add;
 mod remove;
+mod torrents;
 
 pub use add::{AddForm, add};
 pub use remove::{RemoveForm, remove};
 
-use downloadcraft_engine::model::{MAX_ACTIVE_LIMIT, MAX_CONNECTIONS, MAX_SEED_RATIO, Prefs, Theme};
+use downloadcraft_engine::model::torrent::TorrentPrefs;
+use downloadcraft_engine::model::{MAX_ACTIVE_LIMIT, MAX_CONNECTIONS, Prefs, Theme};
 use egui::{RichText, Ui};
 
 use crate::Services;
@@ -24,6 +26,8 @@ pub struct SettingsForm {
     pub subtitles: String,
     /// How many times its size a finished torrent sends to others (0: none).
     pub seed_ratio: f32,
+    /// Ports, limits, proxy and IP filter for torrents.
+    pub torrent: TorrentPrefs,
     /// `auto` (the system's) or a language code (`i18n::LANGUAGES`).
     pub language: String,
 }
@@ -37,6 +41,7 @@ impl SettingsForm {
             theme: p.theme,
             subtitles: p.subtitles.clone(),
             seed_ratio: p.seed_ratio,
+            torrent: p.torrent.clone(),
             language: p.language.clone(),
         }
     }
@@ -81,7 +86,7 @@ pub(super) fn folder_row(ui: &mut Ui, t: &Tokens, folder: &mut String, services:
 /// A labelled setting: the name and a line under it on the left, wrapping in the room `control`
 /// leaves (`room`, its width), and the control on the right, centred on them. A longer name or
 /// line in another language wraps beside the control instead of running under it.
-fn setting(ui: &mut Ui, t: &Tokens, name: &str, help: &str, room: f32, control: impl FnOnce(&mut Ui)) {
+pub(super) fn setting(ui: &mut Ui, t: &Tokens, name: &str, help: &str, room: f32, control: impl FnOnce(&mut Ui)) {
     ui.horizontal(|ui| {
         let w = (ui.available_width() - room - 12.0).max(120.0);
         ui.allocate_ui_with_layout(egui::vec2(w, 0.0), egui::Layout::top_down(egui::Align::Min), |ui| {
@@ -152,10 +157,7 @@ pub fn settings(ctx: &egui::Context, f: &mut SettingsForm, t: &Tokens, services:
             ui.add_space(8.0);
             ui.separator();
             widgets::section(ui, t, "Torrents");
-            let ratio = egui::DragValue::new(&mut f.seed_ratio).range(0.0..=MAX_SEED_RATIO).speed(0.05).fixed_decimals(1).suffix(" ×");
-            setting(ui, t, "Share finished torrents", "Until each has sent this many times its size. 0: not at all.", 120.0, |ui| {
-                ui.add(ratio);
-            });
+            torrents::section(ui, t, &mut f.seed_ratio, &mut f.torrent, services, width);
             ui.add_space(8.0);
             ui.separator();
             widgets::section(ui, t, "About");

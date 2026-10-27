@@ -110,3 +110,73 @@ fn the_update_bar_and_progress_draw() {
     assert!(app.update_bar_wanted());
     assert_eq!(app.take_update_choice(), None);
 }
+
+/// A torrent that's downloading, with peers, trackers in every state and files, selected.
+pub(crate) fn add_torrent(s: &mut Session) {
+    use downloadcraft_engine::model::probe::TorrentFile;
+    use downloadcraft_engine::model::torrent::{Peer, TorrentLive, Tracker, TrackerStatus};
+    let _ = s.run("download.add", &json!({"url": "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel", "files": [1, 2]}));
+    let Some(Job::FetchTorrent { id, run, .. }) = s.take_jobs().into_iter().find(|j| matches!(j, Job::FetchTorrent { .. })) else { return };
+    s.apply(Event::Started { id, run, total: Some(129_000_000), resumable: true, file_name: "Sintel".into(), done: 0 });
+    let tracker = |url: &str, status| Tracker { url: url.into(), status, seeds: Some(368), leechers: Some(2), completed: Some(5347) };
+    let live = TorrentLive {
+        info_hash: "08ada5a7a6183aae1e09d831df6748d566095a10".into(),
+        active_secs: 3700,
+        seeding_secs: 0,
+        downloaded: 52_000_000,
+        uploaded: 3_000_000,
+        wasted: Some(16_384),
+        down_speed: 2_400_000,
+        up_speed: 30_000,
+        size: 129_000_000,
+        have: 51_000_000,
+        pieces: 493,
+        piece_size: 262_144,
+        connected: 12,
+        connecting: 4,
+        queued: 30,
+        known: 120,
+        peer_limit: 200,
+        peers: vec![Peer {
+            address: "203.0.113.7:51413".into(),
+            connection: "µTP".into(),
+            client: "Transmission 4.1".into(),
+            down_speed: 800_000,
+            up_speed: 1_000,
+            downloaded: 20_000_000,
+            uploaded: 400_000,
+        }],
+        trackers: vec![
+            tracker("udp://tracker.example:1337/announce", TrackerStatus::Working),
+            tracker("https://t.example/announce", TrackerStatus::Failing("timed out".into())),
+            tracker("udp://quiet.example:80", TrackerStatus::Waiting),
+            tracker("wss://tracker.example", TrackerStatus::Unsupported),
+        ],
+        file_done: vec![0, 1_514, 46_115, 0],
+        files: vec![
+            TorrentFile { index: 0, path: "Sintel/Sintel.de.srt".into(), size: 1_652 },
+            TorrentFile { index: 1, path: "Sintel/Sintel.en.srt".into(), size: 1_514 },
+            TorrentFile { index: 2, path: "Sintel/poster.jpg".into(), size: 46_115 },
+            TorrentFile { index: 3, path: "Sintel/Sintel.mp4".into(), size: 129_241_752 },
+        ],
+    };
+    s.apply(Event::Details { id, run, live: Box::new(live) });
+    let _ = s.run("list.select", &json!({"id": id.0}));
+}
+
+#[test]
+fn a_torrents_details_draw_on_every_tab() {
+    let ctx = egui::Context::default();
+    let mut s = sample();
+    add_torrent(&mut s);
+    let mut app = DownloadApp::new(s, Box::new(NoServices));
+    assert!(app.session.selection.and_then(|id| app.session.get(id)).is_some_and(|d| d.live.is_some()), "the details arrived");
+    for tab in [crate::details::Tab::General, crate::details::Tab::Trackers, crate::details::Tab::Peers, crate::details::Tab::Files] {
+        app.details.tab = tab;
+        frame(&mut app, &ctx, vec![]);
+        frame(&mut app, &ctx, vec![]);
+    }
+    // Paused, it has no details but still lists its files to pick from.
+    app.run("download.pause", json!({}));
+    frame(&mut app, &ctx, vec![]);
+}

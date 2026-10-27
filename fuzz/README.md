@@ -1,7 +1,7 @@
 # Fuzzing
 
 Fuzz targets for the code that reads input DownloadCraft doesn't control: servers' headers, links,
-yt-dlp's answers, GitHub's release list, and files left on disk. This folder is a Cargo workspace
+yt-dlp's answers, GitHub's release list, torrent trackers' answers, and files left on disk. This folder is a Cargo workspace
 of its own, outside the main one, so the main build never needs a nightly toolchain or libFuzzer.
 `.github/workflows/fuzz.yml` runs every target weekly on Linux. The set-up comes from MailCraft's
 `fuzz/`.
@@ -12,6 +12,7 @@ of its own, outside the main one, so the main build never needs a nightly toolch
 | `http` | `Content-Range` headers; the parts record beside a partial file (a record that's accepted covers the file exactly once); the updater's release list, `SHA256SUMS.txt`, tags and asset links. |
 | `video` | yt-dlp's `-J` description of a page (qualities, title, file name) and its progress lines. |
 | `saved_list` | `downloads.json`. It loads as an error or a list, and a list it loads saves and loads again unchanged. |
+| `torrent` | Trackers' scrape answers, bencoded (BEP 48) and over UDP (BEP 15); IP filter files in the `.dat` and P2P forms; proxy addresses; info hashes. A filter comes out as P2P ranges only, and a proxy that's taken reads the same again. |
 
 ## Running
 

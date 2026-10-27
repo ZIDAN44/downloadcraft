@@ -144,7 +144,8 @@ Commit after every piece of work that builds.
   where layouts break.
 - CLI: `downloadcraft-cli commands`, `downloadcraft-cli run <id> '<json>'`,
   `downloadcraft-cli get <url> [--dir <folder>] [--connections <n>] [--subtitles <langs>]
-  [--files <list>] [--seed <ratio>]`, `downloadcraft-cli files <torrent>`,
+  [--files <list>] [--seed <ratio>] [--torrent <json>] [--details]`,
+  `downloadcraft-cli files <torrent>`,
   `downloadcraft-cli tools [get]`.
 - Torrents are tested only with ones that are legal to share: Linux images (Debian's netinst) and
   openly licensed films (the Blender Foundation's Sintel), never anything copyrighted.

@@ -44,6 +44,10 @@ pub fn registry() -> Registry {
         CommandSpec::new("prefs.theme", "Theme", "Settings › Appearance", set_theme).params(r#"{"theme": "system"|"light"|"dark"}"#),
         CommandSpec::new("prefs.subtitles", "Subtitles", "Settings › Videos", set_subtitles).params(r#"{"languages": "en, es"}"#),
         CommandSpec::new("prefs.seedRatio", "Share finished torrents", "Settings › Torrents", set_seed_ratio).params(r#"{"ratio": number}"#),
+        CommandSpec::new("prefs.torrent", "Torrent connections", "Settings › Torrents", set_torrent).params(
+            r#"{"port"?: number, "protocol"?: "tcp"|"both", "upnp"?: bool, "peerLimit"?: number, "downKib"?: number, "upKib"?: number, "proxy"?: string, "ipFilter"?: string}"#,
+        ),
+        CommandSpec::new("download.pickFiles", "Pick files", "Details › Files", pick_files).params(r#"{"id"?: number, "files": [number]}"#),
         CommandSpec::new("prefs.language", "Language", "Settings › Appearance", set_language).params(r#"{"language": "auto"|"de"|"pt-br"}"#),
     ])
 }
@@ -102,7 +106,7 @@ fn new_download(
             .unwrap_or_default();
         files.sort_unstable();
         files.dedup();
-        TorrentChoice { files }
+        TorrentChoice { files, list: Vec::new() }
     });
     // A video page downloads through yt-dlp, in the quality picked (the best there is otherwise).
     let video = (kind == SourceKind::VideoPage).then(|| {
@@ -130,6 +134,9 @@ fn new_download(
         missing: false,
         torrent,
         uploaded: 0,
+        sent: 0,
+        sent_before: 0,
+        live: None,
         seeding: false,
     });
     s.selection = Some(id);
@@ -363,6 +370,85 @@ fn set_seed_ratio(s: &mut Session, v: &Value) -> CmdResult {
     s.prefs.seed_ratio = (r * 10.0).round() / 10.0;
     s.dirty = true;
     Ok(json!({"ratio": s.prefs.seed_ratio}))
+}
+
+/// Change any of the torrent settings; the rest stay. The network layer is told at once.
+fn set_torrent(s: &mut Session, v: &Value) -> CmdResult {
+    use downloadcraft_model::torrent::{MAX_PEER_LIMIT, Protocol, proxy_url};
+    let mut t = s.prefs.torrent.clone();
+    let num = |k: &str| v.get(k).map(|x| x.as_u64().ok_or_else(|| CmdError::Params(format!("`{k}` is a number"))));
+    if let Some(p) = num("port") {
+        t.port = u16::try_from(p?).map_err(|_| CmdError::Params("`port` is 0 to 65535".into()))?;
+    }
+    if let Some(p) = v.get("protocol") {
+        t.protocol = serde_json::from_value::<Protocol>(p.clone()).map_err(|_| CmdError::Params("`protocol` is tcp or both".into()))?;
+    }
+    if let Some(u) = v.get("upnp") {
+        t.upnp = u.as_bool().ok_or_else(|| CmdError::Params("`upnp` is true or false".into()))?;
+    }
+    if let Some(n) = num("peerLimit") {
+        t.peer_limit = u32::try_from(n?).unwrap_or(MAX_PEER_LIMIT).min(MAX_PEER_LIMIT);
+    }
+    let kib = |n: u64| u32::try_from(n).unwrap_or(u32::MAX).min(4_000_000);
+    if let Some(n) = num("downKib") {
+        t.down_kib = kib(n?);
+    }
+    if let Some(n) = num("upKib") {
+        t.up_kib = kib(n?);
+    }
+    if let Some(p) = v.get("proxy") {
+        let p = p.as_str().ok_or_else(|| CmdError::Params("`proxy` is text".into()))?;
+        proxy_url(p).map_err(|e| CmdError::Params(e.into()))?;
+        t.proxy = p.trim().chars().take(300).collect();
+    }
+    if let Some(f) = v.get("ipFilter") {
+        t.ip_filter = f.as_str().ok_or_else(|| CmdError::Params("`ipFilter` is a file's path".into()))?.trim().chars().take(1000).collect();
+    }
+    if t != s.prefs.torrent {
+        s.prefs.torrent = t.clone();
+        s.dirty = true;
+        s.push_job(Job::Configure { torrent: t });
+    }
+    Ok(serde_json::to_value(&s.prefs.torrent).unwrap_or(Value::Null))
+}
+
+/// Change the files a torrent downloads. Running, it carries on with the new choice; finished, a
+/// file added to the choice sends it back to the queue for what's missing.
+fn pick_files(s: &mut Session, v: &Value) -> CmdResult {
+    let id = target(s, v)?;
+    let mut files: Vec<usize> = v
+        .get("files")
+        .and_then(Value::as_array)
+        .ok_or_else(|| CmdError::Params("`files` (array of numbers) is required".into()))?
+        .iter()
+        .filter_map(Value::as_u64)
+        .filter_map(|i| usize::try_from(i).ok())
+        .filter(|i| *i < probe::MAX_TORRENT_FILES)
+        .collect();
+    files.sort_unstable();
+    files.dedup();
+    if files.is_empty() {
+        return Err(CmdError::Params("pick at least one file".into()));
+    }
+    let Some(d) = s.get_mut(id) else { return Err(CmdError::Params(format!("no download {}", id.0))) };
+    let Some(choice) = d.torrent.as_mut() else { return Err(CmdError::Disabled("it isn't a torrent".into())) };
+    // All the files listed, when the torrent's whole list is known: the same as none picked.
+    let all = !choice.list.is_empty() && choice.list.iter().all(|f| files.contains(&f.index));
+    let before = std::mem::replace(&mut choice.files, if all { Vec::new() } else { files.clone() });
+    let grew = before.is_empty() && !all || !before.is_empty() && (all || files.iter().any(|f| !before.contains(f)));
+    let (state, running) = (d.state, d.run != 0);
+    if state == State::Completed && grew {
+        // Finished (perhaps still sharing): back to the queue to fetch what's now picked too.
+        s.stop_seeding(id);
+        if let Some(d) = s.get_mut(id) {
+            d.state = State::Queued;
+            d.missing = false;
+        }
+    } else if running {
+        s.push_job(Job::PickFiles { id, files: if all { Vec::new() } else { files } });
+    }
+    s.dirty = true;
+    Ok(json!({"id": id.0}))
 }
 
 fn set_theme(s: &mut Session, v: &Value) -> CmdResult {

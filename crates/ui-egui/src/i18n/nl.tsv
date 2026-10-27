@@ -6,21 +6,27 @@
 	1 download	1 download
 	1 download running	1 download bezig
 	1 link	1 link
+	A .dat or .p2p file, or empty for none	Een .dat- of .p2p-bestand, of leeg voor geen
 	About	Over
 	Add a link (Ctrl+N), or paste one anywhere (Ctrl+V)	Voeg een link toe (Ctrl+N) of plak er een waar je wilt (Ctrl+V)
 	Add download	Download toevoegen
 	Add link	Link toevoegen
 	Add {n} downloads	{n} downloads toevoegen
 	Added {n} downloads	{n} downloads toegevoegd
+	Address	Adres
 	All downloads	Alle downloads
 	Also delete the file (it goes to the Recycle Bin)	Ook het bestand verwijderen (het gaat naar de Prullenbak)
 	Also delete the file (it goes to the Trash)	Ook het bestand verwijderen (het gaat naar de prullenmand)
+	Answering	Antwoordt
 	Appearance	Uiterlijk
+	Ask the router to forward the port (UPnP)	De router vragen de poort door te sturen (UPnP)
 	Audio only	Alleen geluid
 	Best	Beste
 	Best available	Beste beschikbare
 	Browse	Bladeren
+	Can't be asked about the swarm	Kan niet naar de zwerm gevraagd worden
 	Cancel	Annuleren
+	Changed settings apply once no torrent is running.	Gewijzigde instellingen gelden zodra er geen torrent loopt.
 	Changes apply when you save.	Wijzigingen gelden zodra je opslaat.
 	Checking the link…	Link controleren…
 	Choose a folder	Kies een map
@@ -28,10 +34,18 @@
 	Clear completed	Voltooide weghalen
 	Close (Esc)	Sluiten (Esc)
 	Completed	Voltooid
+	Connect to peers over	Met peers verbinden via
 	Connecting…	Verbinden…
+	Connection	Verbinding
+	Connections	Verbindingen
 	Connections per download	Verbindingen per download
+	Copied	Gekopieerd
+	Copy	Kopiëren
 	Copy link	Link kopiëren
 	Ctrl+Enter adds	Ctrl+Enter voegt toe
+	DHT (peers found without a tracker)	DHT (peers vinden zonder tracker)
+	DHT off	DHT uit
+	DHT: {n} nodes	DHT: {n} knooppunten
 	Dark	Donker
 	Deleted	Verwijderd
 	Deleted or moved  ·  Download again fetches it once more	Verwijderd of verplaatst  ·  Opnieuw downloaden haalt het nog een keer op
@@ -40,9 +54,13 @@
 	Direct link · {size}	Directe link · {size}
 	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Directe links en videopagina's downloaden al · torrents, magnetlinks en MEGA komen eraan
 	Download again	Opnieuw downloaden
+	Download and upload over all torrents, in KiB/s. 0: no limit.	Download en upload over alle torrents, in KiB/s. 0: geen limiet.
 	Download folder	Downloadmap
+	Download limit	Downloadlimiet
+	Download speed	Downloadsnelheid
 	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	DownloadCraft houdt zichzelf bij. Staat er een nieuwe versie klaar, dan kun je via een balk bovenaan opnieuw starten om die te installeren.
 	DownloadCraft {version} is ready.	DownloadCraft {version} staat klaar.
+	Downloaded	Gedownload
 	Downloading	Bezig
 	Downloading DownloadCraft {version}	DownloadCraft {version} downloaden
 	Downloading DownloadCraft {version}: {percent}%	DownloadCraft {version} downloaden: {percent}%
@@ -52,8 +70,12 @@
 	FTP	FTP
 	FTP downloads arrive in v0.5	FTP-downloads komen in v0.5
 	Failed	Mislukt
+	Files	Bestanden
+	Filter files	Bestanden filteren
+	Finished	Voltooid
 	Follows your computer's language unless you pick one.	Volgt de taal van je computer, tenzij je er een kiest.
 	Free and open source, under the MIT or Apache-2.0 licence.	Vrij en open source, onder de MIT- of Apache-2.0-licentie.
+	General	Algemeen
 	Get Deno	Deno ophalen
 	Get FFmpeg	FFmpeg ophalen
 	Get yt-dlp	yt-dlp ophalen
@@ -61,6 +83,8 @@
 	Getting the torrent's details…	Gegevens van de torrent ophalen…
 	Higher qualities come as separate video and sound, which FFmpeg joins into one file.	Hogere kwaliteiten komen als los beeld en los geluid, die FFmpeg samenvoegt tot één bestand.
 	Higher qualities need FFmpeg to join video and sound. Install it with brew install ffmpeg (macOS) or sudo apt install ffmpeg (Linux).	Hogere kwaliteiten hebben FFmpeg nodig om beeld en geluid samen te voegen. Installeer het met brew install ffmpeg (macOS) of sudo apt install ffmpeg (Linux).
+	IP filter	IP-filter
+	Info hash	Info-hash
 	It comes off the list.	Hij gaat van de lijst.
 	Language	Taal
 	Languages to save with videos, such as en, es. Empty: none.	Talen die met video's worden bewaard, zoals en, nl. Leeg: geen.
@@ -68,19 +92,27 @@
 	Light	Licht
 	Link copied	Link gekopieerd
 	Links	Links
+	Local peers (on this network)	Lokale peers (op dit netwerk)
 	Looking for people sharing it…	Zoeken naar mensen die hem delen…
 	MEGA	MEGA
 	MEGA links arrive in v0.6	MEGA-links komen in v0.6
 	Magnet link	Magnetlink
 	No downloads yet	Nog geen downloads
 	No matches	Geen resultaten
+	No one connected yet · {connecting} connecting · {known} known	Nog niemand verbonden · {connecting} verbinden · {known} bekend
+	Not answering: {why}	Antwoordt niet: {why}
+	Not asked yet	Nog niet gevraagd
 	Nothing downloading	Er wordt niets gedownload
 	Nothing here	Hier staat niets
 	Nothing in this list has that name or link.	Niets in deze lijst heeft die naam of link.
+	Off	Uit
+	On	Aan
+	On · {n} nodes	Aan · {n} knooppunten
 	One file with sound	Eén bestand met geluid
 	Open	Openen
 	Open a torrent file…	Torrentbestand openen…
 	Open folder	Map openen
+	Others reach this computer on it. 0: a new one each start.	Anderen bereiken deze computer erop. 0: elke start een nieuwe.
 	Parts of one file fetched at the same time, when the server allows.	Delen van één bestand die tegelijk worden opgehaald, als de server het toestaat.
 	Paste a link anywhere in this window with Ctrl+V, or add one.	Plak een link ergens in dit venster met Ctrl+V, of voeg er een toe.
 	Paste one link per line: files, video pages such as YouTube, or torrents.	Eén link per regel: bestanden, videopagina’s zoals YouTube of torrents.
@@ -88,12 +120,21 @@
 	Pause (Space)	Pauzeren (Spatie)
 	Pause all	Alles pauzeren
 	Paused	Gepauzeerd
+	Peer exchange (peers tell each other)	Peeruitwisseling (peers stellen elkaar voor)
+	Peers	Peers
+	Peers are reached through the proxy.	Peers worden via de proxy bereikt.
+	Peers per torrent	Peers per torrent
 	Pick all	Alles kiezen
 	Pick none	Niets kiezen
+	Pieces	Stukken
 	Playlist · 1 video	Afspeellijst · 1 video
 	Playlist · no videos that can be added	Afspeellijst · geen video's die kunnen worden toegevoegd
 	Playlist · {n} videos	Afspeellijst · {n} video's
+	Port for incoming connections	Poort voor binnenkomende verbindingen
+	Program	Programma
 	Queued	In de wachtrij
+	Random	Willekeurig
+	Received	Ontvangen
 	Remove	Weghalen
 	Remove (Delete)	Weghalen (Delete)
 	Remove and delete	Weghalen en verwijderen
@@ -106,34 +147,57 @@
 	Resume	Hervatten
 	Resume (Space)	Hervatten (Spatie)
 	Resume all	Alles hervatten
+	SOCKS5 proxy for peers and web trackers	SOCKS5-proxy voor peers en webtrackers
 	Same as the system	Zoals het systeem
 	Save	Opslaan
 	Save to	Opslaan in
+	Saved in {folder}	Opgeslagen in {folder}
 	Search downloads  (Ctrl+F)	Downloads zoeken  (Ctrl+F)
+	Sent	Verzonden
 	Settings	Instellingen
 	Share finished torrents	Voltooide torrents delen
+	Share ratio	Deelverhouding
 	Sharing · {sent} sent	Wordt gedeeld · {sent} verzonden
 	Show in folder	Tonen in map
+	Source	Bron
 	Speed	Snelheid
+	Speed limits	Snelheidslimieten
 	Start downloading now	Meteen beginnen met downloaden
+	Status	Status
 	Subtitles	Ondertitels
+	Swarm	Zwerm
 	System	Systeem
 	System follows your computer.	Systeem volgt je computer.
+	TCP	TCP
+	TCP and µTP	TCP en µTP
+	The DHT and UDP trackers still connect directly; they can't go through a SOCKS5 proxy here.	De DHT en UDP-trackers verbinden nog steeds rechtstreeks; ze kunnen hier niet via een SOCKS5-proxy.
+	The IP filter blocks {n} ranges.	Het IP-filter blokkeert {n} reeksen.
+	The most one torrent connects to at once. 0: no limit.	Het hoogste aantal waarmee één torrent tegelijk verbindt. 0: geen limiet.
 	The part downloaded so far is deleted.	Het deel dat al binnen is, wordt verwijderd.
+	The port, peers, proxy and IP filter apply once no torrent is running.	Poort, peers, proxy en IP-filter gelden zodra er geen torrent loopt.
 	The rest wait in the queue.	De rest wacht in de rij.
+	The router is asked to forward the port (UPnP).	De router wordt gevraagd de poort door te sturen (UPnP).
 	Theme	Thema
 	Theme: Dark. Click for System	Thema: donker. Klik voor Systeem
 	Theme: Light. Click for Dark	Thema: licht. Klik voor Donker
 	Theme: System. Click for Light	Thema: Systeem. Klik voor Licht
+	These show while it's downloading or sharing.	Dit verschijnt terwijl hij downloadt of gedeeld wordt.
+	This run	Deze sessie
+	Time active	Actieve tijd
+	Time left	Resterende tijd
 	Torrent	Torrent
 	Torrent · {n} files · {size}	Torrent · {n} bestanden · {size}
 	Torrent · {size}	Torrent · {size}
 	Torrents	Torrents
+	Torrents: peers are found through trackers, the DHT and each other.	Torrents: peers worden gevonden via trackers, de DHT en elkaar.
+	Trackers	Trackers
 	Try again	Opnieuw proberen
 	Until each has sent this many times its size. 0: not at all.	Tot elke zo vaak zijn eigen grootte heeft verzonden. 0: helemaal niet.
 	Up to 1080p	Tot 1080p
 	Up to 480p	Tot 480p
 	Up to 720p	Tot 720p
+	Upload limit	Uploadlimiet
+	Upload speed	Uploadsnelheid
 	Video	Video
 	Video links use yt-dlp, a free, open-source program that finds the video in a page. DownloadCraft fetches its official build and checks it before use.	Videolinks gebruiken yt-dlp, een gratis opensourceprogramma dat de video in een pagina vindt. DownloadCraft haalt de officiële versie op en controleert die voor gebruik.
 	Video page	Videopagina
@@ -141,20 +205,38 @@
 	Video · {quality}	Video · {quality}
 	Videos	Video's
 	Waiting for a free slot	Wacht op een vrije plek
+	Wasted	Verspild
+	With all of it	Met alles
 	YouTube also needs Deno (deno.com) for every quality; install it to get them.	YouTube heeft voor alle kwaliteiten ook Deno (deno.com) nodig; installeer het om ze te krijgen.
 	YouTube also needs Deno, a free JavaScript runtime yt-dlp reads its pages with; without it some qualities are missing. DownloadCraft fetches its official build and checks it before use.	YouTube heeft ook Deno nodig, een gratis JavaScript-omgeving waarmee yt-dlp de pagina's leest; zonder ontbreken sommige kwaliteiten. DownloadCraft haalt de officiële versie op en controleert die voor gebruik.
+	a proxy with a password isn't supported yet	een proxy met wachtwoord wordt nog niet ondersteund
+	host:port, or empty for none	host:poort, of leeg voor geen
 	none	geen
+	not known yet	nog niet bekend
 	one per line	één per regel
+	port {port}	poort {port}
 	starts over when resumed	begint opnieuw bij hervatten
+	the proxy's host isn't a name or an address	de host van de proxy is geen naam of adres
+	the proxy's port is a number from 1 to 65535	de poort van de proxy is een getal van 1 tot 65535
+	write the proxy as host:port	schrijf de proxy als host:poort
+	{connecting} connecting · {known} known	{connecting} verbinden · {known} bekend
 	{done} of {total}	{done} van {total}
+	{down} received · {up} sent	{down} ontvangen · {up} verzonden
+	{have} of {size}	{have} van {size}
 	{name}: {picked} of {n} files · {size}	{name}: {picked} van {n} bestanden · {size}
+	{n} (up to {max})	{n} (tot {max})
 	{n} connections	{n} verbindingen
 	{n} downloads	{n} downloads
 	{n} downloads running	{n} downloads bezig
 	{n} in the list · {connections} connections each	{n} in de lijst · elk {connections} verbindingen
 	{n} links	{n} links
+	{n} × {size}	{n} × {size}
+	{picked} of {n} files picked	{picked} van {n} bestanden gekozen
 	{quality}  ·  needs FFmpeg	{quality}  ·  heeft FFmpeg nodig
+	{seeds} have it all · {peers} downloading	{seeds} hebben alles · {peers} downloaden
+	{time} (sharing for {sharing})	{time} (wordt al {sharing} gedeeld)
 	{time} left	nog {time}
+	µTP is easier on a busy network; through a proxy only TCP is used.	µTP ontziet een druk netwerk; via een proxy wordt alleen TCP gebruikt.
 
 # One download's state, beside the category of the same English name.
 state	Queued	In de wachtrij

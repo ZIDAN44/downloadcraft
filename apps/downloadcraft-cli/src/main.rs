@@ -16,14 +16,16 @@ const USAGE: &str = "\
 usage: downloadcraft-cli <command>
 
   get <url>… [--dir <folder>] [--connections <n>] [--subtitles <langs>]
-      [--files <list>] [--seed <ratio>]
+      [--files <list>] [--seed <ratio>] [--torrent <json>] [--details]
                                 download links into a folder (default: the current one),
                                 each on up to n connections (default 8); a playlist or
                                 channel link becomes its videos; videos with subtitles in
                                 langs (such as en,es). Magnet links and .torrent files or
                                 links download as torrents: --files picks files by number
                                 (1,3-5, as `files` lists them), --seed shares a finished
-                                torrent until it has sent ratio times its size (default 0)
+                                torrent until it has sent ratio times its size (default 0);
+                                --torrent sets prefs.torrent ({\"port\": 51413,
+                                \"downKib\": 500, ...}); --details prints peers and trackers as it goes
   files <torrent>               the files inside a torrent or magnet link, numbered
   tools [get]                   where yt-dlp and FFmpeg stand; `get` fetches what's missing
   commands                      every engine command, as JSON
@@ -47,6 +49,8 @@ fn get(args: &[String]) -> Result<(), String> {
     let mut subtitles = None;
     let mut files = Vec::new();
     let mut seed = 0.0;
+    let mut torrent = None;
+    let mut details = false;
     let mut it = args.iter();
     while let Some(a) = it.next() {
         if a == "--dir" {
@@ -55,6 +59,11 @@ fn get(args: &[String]) -> Result<(), String> {
             subtitles = Some(it.next().ok_or("--subtitles needs languages, such as en,es")?.clone());
         } else if a == "--files" {
             files = numbers(it.next().ok_or("--files needs numbers, such as 1,3-5")?)?;
+        } else if a == "--torrent" {
+            let json = it.next().ok_or("--torrent needs settings as JSON")?;
+            torrent = Some(serde_json::from_str::<Value>(json).map_err(|e| format!("--torrent: {e}"))?);
+        } else if a == "--details" {
+            details = true;
         } else if a == "--seed" {
             seed = it.next().and_then(|n| n.parse::<f64>().ok()).filter(|r| r.is_finite() && *r >= 0.0).ok_or("--seed needs a ratio, such as 1")?;
         } else if a == "--connections" {
@@ -93,6 +102,9 @@ fn get(args: &[String]) -> Result<(), String> {
         s.run("prefs.subtitles", &json!({"languages": l})).map_err(|e| e.to_string())?;
     }
     s.run("prefs.seedRatio", &json!({"ratio": seed})).map_err(|e| e.to_string())?;
+    if let Some(t) = &torrent {
+        s.run("prefs.torrent", t).map_err(|e| e.to_string())?;
+    }
     for u in &urls {
         let mut params = json!({"url": u});
         if !files.is_empty() {
@@ -116,6 +128,11 @@ fn get(args: &[String]) -> Result<(), String> {
         }
         let Ok(ev) = rx.recv() else { break };
         let id = ev.id();
+        if let Event::Details { live, .. } = &ev
+            && details
+        {
+            say(&details_line(live, downloadcraft_net::torrent::status()));
+        }
         let progress = matches!(ev, Event::Progress { .. } | Event::Uploaded { seeding: true, .. });
         s.apply(ev);
         if let Some(d) = s.get(id) {
@@ -134,6 +151,34 @@ fn get(args: &[String]) -> Result<(), String> {
     }
     let failed = s.downloads.iter().filter(|d| d.state == State::Failed).count();
     if failed > 0 { Err(format!("{failed} download(s) failed")) } else { Ok(()) }
+}
+
+/// One line about a running torrent: peers, the swarm as each tracker says, the DHT.
+fn details_line(l: &downloadcraft_engine::model::torrent::TorrentLive, engine: Option<downloadcraft_engine::model::torrent::EngineStatus>) -> String {
+    use downloadcraft_engine::model::torrent::TrackerStatus;
+    let trackers: Vec<String> = l
+        .trackers
+        .iter()
+        .map(|t| match &t.status {
+            TrackerStatus::Working => format!("{} {}/{}/{}", t.url, t.seeds.unwrap_or(0), t.leechers.unwrap_or(0), t.completed.unwrap_or(0)),
+            TrackerStatus::Failing(why) => format!("{} failing ({why})", t.url),
+            TrackerStatus::Waiting => format!("{} waiting", t.url),
+            TrackerStatus::Unsupported => format!("{} not asked", t.url),
+        })
+        .collect();
+    let top = l.peers.first().map(|p| format!("{} {} {} {}", p.address, p.connection, p.client, format::speed(p.down_speed))).unwrap_or_default();
+    let dht = engine.as_ref().and_then(|e| e.dht_nodes).map_or("off".to_string(), |n| n.to_string());
+    let port = engine.as_ref().and_then(|e| e.port).map_or("-".to_string(), |p| p.to_string());
+    format!(
+        "[details] {} of {} · {} connected, {} connecting, {} known · wasted {} · DHT {dht} · port {port} · busiest {top} · trackers: {}",
+        format::bytes(l.have),
+        format::bytes(l.size),
+        l.connected,
+        l.connecting,
+        l.known,
+        l.wasted.map_or_else(|| "-".into(), format::bytes),
+        trackers.join("; ")
+    )
 }
 
 /// `1,3-5` as file numbers counted from 1, into indexes counted from 0.

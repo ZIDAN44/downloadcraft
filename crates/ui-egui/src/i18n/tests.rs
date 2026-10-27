@@ -48,6 +48,16 @@ const THROUGH_VARIABLES: &[&str] = &[
     "Higher qualities come as separate video and sound, which FFmpeg joins into one file.",
     "Get FFmpeg",
     "Try again",
+    // The details pane's tabs.
+    "General",
+    "Trackers",
+    "Peers",
+    "Files",
+    // A torrent proxy that can't be used (`torrent::proxy_url`).
+    "a proxy with a password isn't supported yet",
+    "write the proxy as host:port",
+    "the proxy's port is a number from 1 to 65535",
+    "the proxy's host isn't a name or an address",
 ];
 
 /// Every interface string: literals in the UI code (`tl!`, `tf!` and the helpers that translate
@@ -55,7 +65,7 @@ const THROUGH_VARIABLES: &[&str] = &[
 pub(crate) fn interface_strings() -> BTreeSet<String> {
     let sources = ui_sources();
     // (prefix, which string literals after it on its line are interface text)
-    let prefixes: [(&str, &[usize]); 11] = [
+    let prefixes: [(&str, &[usize]); 13] = [
         ("tl!(", &[0]),
         ("tf!(", &[0]),
         ("button(ui, t, Kind::", &[0]),
@@ -65,6 +75,9 @@ pub(crate) fn interface_strings() -> BTreeSet<String> {
         ("text_field(ui, ", &[0]),
         ("header(ui, t, ", &[0, 1]),
         ("setting(ui, t, ", &[0, 1]),
+        // The details pane: a label beside its value, and a table's id then its column heads.
+        ("pair(ui, t, ", &[0]),
+        ("table(ui, t, ", &[1, 2, 3, 4, 5, 6, 7]),
         ("Icon::Remove, ", &[0]),
         // Labels in tables drawn in a loop: `(Icon::Pause, "Pause", Some("download.pause"))`.
         ("Icon::", &[0]),
@@ -193,8 +206,14 @@ fn a_tour_in_the_pseudo_language_only_draws_known_strings() {
     let known = interface_strings();
     pseudo::set(true);
     let ctx = egui::Context::default();
-    let mut app = crate::DownloadApp::new(crate::tests::sample(), Box::new(crate::NoServices));
+    let mut session = crate::tests::sample();
+    crate::tests::add_torrent(&mut session);
+    let mut app = crate::DownloadApp::new(session, Box::new(crate::NoServices));
     for _ in 0..2 {
+        crate::tests::frame(&mut app, &ctx, vec![]);
+    }
+    for tab in [crate::details::Tab::General, crate::details::Tab::Trackers, crate::details::Tab::Peers, crate::details::Tab::Files] {
+        app.details.tab = tab;
         crate::tests::frame(&mut app, &ctx, vec![]);
     }
     for f in ["active", "paused", "completed", "failed", "all"] {

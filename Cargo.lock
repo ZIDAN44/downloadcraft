@@ -1254,6 +1254,7 @@ version = "0.4.0"
 dependencies = [
  "anyhow",
  "downloadcraft-model",
+ "flate2",
  "fs4",
  "librqbit",
  "log",

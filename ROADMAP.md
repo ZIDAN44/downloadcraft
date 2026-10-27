@@ -15,8 +15,8 @@ the next build, so no two different builds share a version.
 | | |
 |---|---|
 | Crates | 4 libraries, 2 apps and xtask |
-| Commands | 21 (`downloadcraft-cli commands`) |
-| Tests | 116: unit tests, a local HTTP server for downloads on one or many connections and for the updater, and headless frames of the window |
+| Commands | 23 (`downloadcraft-cli commands`) |
+| Tests | 128: unit tests, a local HTTP server for downloads on one or many connections and for the updater, and headless frames of the window |
 | Platforms | Windows, macOS, Linux (and FreeBSD packages) |
 
 ## Milestones
@@ -32,12 +32,13 @@ the next build, so no two different builds share a version.
    file; playlists, channels and subtitles from video pages, with FFmpeg on Linux and Deno for
    YouTube; the window in eight languages; fuzz testing and a Nix flake.
 4. **v0.4 — Torrents** ✅ Magnet links and `.torrent` files, by link or from this computer (BEP 3,
-   9, 10), with peers from trackers and the DHT (BEP 5); choosing files inside a torrent; seeding
-   to a ratio. Built on librqbit (Apache-2.0): no libtorrent-rasterbar bindings, no GPL clients'
-   code.
+   9, 10), with peers from trackers, the DHT (BEP 5) and peer exchange; choosing files inside a
+   torrent, before and while it downloads; seeding to a ratio; a details pane (general, trackers,
+   peers, files); the port, µTP, UPnP, peer and speed limits, a SOCKS5 proxy and an IP filter.
+   Built on librqbit (Apache-2.0): no libtorrent-rasterbar bindings, no GPL clients' code.
 5. **v0.5 — More places** FTP and FTPS; sign-in for HTTP, kept in the system keychain; cookies
    handed over from the browser extension; scheduled start and stop; "shut down when done"; web
-   seeds for torrents (BEP 19); speed limits per download and overall.
+   seeds for torrents (BEP 19); speed limits per download, and for files and video pages.
 6. **v0.6 — Sites** MEGA file and folder links through MEGA's published API, decrypted on your
    computer so the key never leaves it. Never around DRM, paywalls or sign-in walls.
 7. **v0.7 — Everywhere** A browser extension (Chrome, Firefox, Edge) that hands links and downloads
@@ -128,3 +129,25 @@ the next build, so no two different builds share a version.
   - Tested with Debian 13.7's netinst torrent (793 MB in 43 s, its SHA-256 as Debian publishes it;
     paused at 666 MB and resumed) and the Blender Foundation's Sintel (CC BY) by magnet link, whole
     and in part. 116 tests.
+- **2026-10-27** — **v0.4**: what a torrent client needs around the transfer.
+  - A details pane under the list for the selected torrent. General: time active, received and
+    sent (in all and this run), share ratio, speeds and limits, time left, connections, the swarm
+    as the trackers count it, wasted bytes once it's finished, pieces, the info hash and the
+    folder. Trackers: the DHT, peer exchange and local peers, then each tracker with whether it
+    answers and its counts. Peers: address, TCP or µTP, the program, speeds and bytes each way.
+    Files: each file's progress, with ticks to change what's picked while it runs (a file added to
+    a finished torrent sends it back to the queue for that file) and a filter.
+  - The swarm's counts come from DownloadCraft asking the trackers itself (a scrape: BEP 48 over
+    HTTP, BEP 15 over UDP), since librqbit doesn't say what they answered. Nothing is asked while
+    a proxy is set.
+  - Settings › Torrents: the port for incoming connections (or a new one each start, or Random),
+    TCP or TCP and µTP, UPnP (off unless ticked), peers per torrent, download and upload limits
+    over all torrents, a SOCKS5 proxy for peers and web trackers, and an IP filter (`.dat` or
+    `.p2p`, gzipped or not). Limits change at once; the rest once no torrent is running.
+  - The status bar shows the DHT's nodes and the port; its tooltip says whether UPnP, a proxy or a
+    filter is in use.
+  - `prefs.torrent` and `download.pickFiles`; `downloadcraft-cli get --torrent <json> --details`.
+    A `torrent` fuzz target for the scrape answers, IP filters and proxies.
+  - Checked with Debian's netinst torrent: a 3000 KiB/s limit held it at 3.1 MB/s; on port 51517
+    over TCP and µTP, a 50-peer limit, and a one-range `.dat` filter, it connected to 45 peers,
+    and Debian's tracker counted 1013 seeds, 11 downloading and 58 finished. 128 tests.

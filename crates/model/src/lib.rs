@@ -11,6 +11,7 @@ pub mod job;
 pub mod names;
 pub mod probe;
 pub mod source;
+pub mod torrent;
 
 use serde::{Deserialize, Serialize};
 
@@ -104,9 +105,18 @@ pub struct Download {
     /// A torrent or magnet link: the files picked from it.
     #[serde(default)]
     pub torrent: Option<TorrentChoice>,
-    /// A torrent's bytes sent to others while it seeds, this run.
+    /// A torrent's bytes sent to others by this run.
     #[serde(skip)]
     pub uploaded: u64,
+    /// A torrent's bytes sent to others over every run (its share ratio is this over its size).
+    #[serde(default)]
+    pub sent: u64,
+    /// `sent` when this run started (not saved).
+    #[serde(skip)]
+    pub sent_before: u64,
+    /// What a running torrent last reported: peers, trackers, files (not saved).
+    #[serde(skip)]
+    pub live: Option<Box<torrent::TorrentLive>>,
     /// A finished torrent still being shared with others (not saved: seeding stops on closing).
     #[serde(skip)]
     pub seeding: bool,
@@ -117,6 +127,9 @@ pub struct Download {
 pub struct TorrentChoice {
     #[serde(default)]
     pub files: Vec<usize>,
+    /// The torrent's files, once it has reported them, so they can be picked while it's paused.
+    #[serde(default)]
+    pub list: Vec<probe::TorrentFile>,
 }
 
 /// The quality chosen for a video download.
@@ -198,6 +211,9 @@ pub struct Prefs {
     /// while DownloadCraft is open.
     #[serde(default = "default_seed_ratio")]
     pub seed_ratio: f32,
+    /// Ports, limits, proxy and IP filter for torrents.
+    #[serde(default)]
+    pub torrent: torrent::TorrentPrefs,
 }
 
 fn default_seed_ratio() -> f32 {
@@ -235,6 +251,7 @@ impl Default for Prefs {
             subtitles: String::new(),
             language: default_language(),
             seed_ratio: default_seed_ratio(),
+            torrent: torrent::TorrentPrefs::default(),
         }
     }
 }

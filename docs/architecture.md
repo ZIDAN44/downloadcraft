@@ -77,8 +77,12 @@ never depends on the network layer: the apps connect the two.
 ## Torrents (`crates/net/src/torrent.rs`, `torrent/storage.rs`)
 
 - One librqbit session serves every torrent, on a Tokio runtime of its own (two threads) started
-  with the first torrent. The DHT keeps its nodes in `<data>/torrents/dht.json`; incoming
-  connections listen on a port the system picks, with no UPnP.
+  with the first torrent from the torrent settings (`torrent/engine.rs`, given by
+  `Job::Configure` when the list loads and whenever `prefs.torrent` changes). Speed limits change
+  at once. A change to the port, protocol, UPnP, peer limit, proxy or IP filter starts a new
+  session for the next torrent once none is running; torrents still going keep theirs. The DHT
+  keeps its nodes in `<data>/torrents/dht.json`; an IP filter is written there as
+  `ipfilter.p2p` (`.dat` lines converted) for librqbit to read.
 - A transfer runs on its own thread, like an HTTP one. It asks librqbit for the torrent's details
   ("list only": for a magnet link, from peers, for up to 10 minutes; a `.torrent` link is fetched
   over HTTP(S), at most 16 MiB), checks every path in it with `names::unsafe_part`, and adds it with
@@ -91,6 +95,16 @@ never depends on the network layer: the apps connect the two.
   that belong to files left out stay in memory (at most 512 MiB), enough to check and share the
   pieces they're in; after a restart those few pieces are fetched again. BEP 47 padding files are
   never stored.
+- **Details.** Once a second the transfer sends `Event::Details` (`torrent/live.rs`): counts and
+  speeds, up to 200 peers (each one's speed worked out from its bytes since the last look), the
+  trackers and each file's progress. The first one carries the file list, which the engine keeps
+  in the download, so files can be picked while it's paused. `Job::PickFiles` reaches the running
+  transfer over a channel: the storage writes out what it kept aside for files newly picked, and
+  librqbit is told the new choice.
+- **Scrape** (`torrent/scrape.rs`): a thread per torrent asks each tracker (at most 30) about the
+  swarm, 3 s after the start and then every 15 minutes, over HTTP with a 64 KiB answer at most or
+  over UDP, 12 s each. The answers are read in `model::torrent` (a bencode reader capped at 32
+  levels and 100 000 items). With a proxy set, nothing is asked.
 - Progress is `Event::Progress` twice a second. When it's all there, `Finished` is sent, and the
   thread keeps the torrent shared until it has sent `seed_ratio` times its size or is stopped,
   reporting `Event::Uploaded`. A finished torrent keeps its run number while it seeds, so only its

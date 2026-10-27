@@ -74,8 +74,13 @@ Download only videos you have the right to. DRM-protected videos aren't supporte
   folder is never replaced; a resume checks what's on disk and fetches only what's missing.
 - **Sharing back.** A finished torrent is shared while DownloadCraft is open until it has sent its
   own size (0 to 10 times, in Settings).
-- Peers are found through trackers and the DHT, with
-  [librqbit](https://github.com/ikatson/rqbit). DownloadCraft opens no ports on your router.
+- **Details under the list**: how it's going, the trackers and how many share it, the peers
+  you're connected to, and each file's progress, where you can pick files while it runs.
+- **Your connection, your way**: the port (or a random one), TCP or TCP and µTP, speed limits,
+  peers per torrent, a SOCKS5 proxy and an IP filter (`.dat` or `.p2p`). UPnP is off unless you
+  turn it on, so DownloadCraft opens no ports on your router by itself.
+- Peers are found through trackers, the DHT and peer exchange, with
+  [librqbit](https://github.com/ikatson/rqbit).
 
 Download and share only what you have the right to.
 

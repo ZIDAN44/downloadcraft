@@ -11,7 +11,13 @@ remove it and record it in the [Progress log](../ROADMAP.md#progress-log).
      yet. For the same reason a magnet link asks peers for its details again on every start.
    - Finished torrents stop sharing when DownloadCraft closes and don't start again on its next
      start.
-2. **Speed limits**, per download and overall (librqbit has them for torrents).
+   - Per-file priorities (librqbit downloads a file or doesn't), per-torrent speed limits, and a
+     limit on connections over all torrents.
+   - A SOCKS5 proxy with a password (it needs the system keychain, coming in v0.5), and the DHT
+     and UDP trackers through a proxy (librqbit sends those directly).
+   - Each peer's progress and country, and a tracker's next announce: librqbit doesn't report
+     them.
+2. **Speed limits** for files and video pages.
 3. **More video pages.**
    - FFmpeg on macOS: yt-dlp's project publishes no build for it, so for now Homebrew's is
      suggested.

@@ -6,21 +6,27 @@
 	1 download	1 Download
 	1 download running	1 Download läuft
 	1 link	1 Link
+	A .dat or .p2p file, or empty for none	Eine .dat- oder .p2p-Datei, leer für keine
 	About	Über
 	Add a link (Ctrl+N), or paste one anywhere (Ctrl+V)	Link hinzufügen (Strg+N) oder überall einfügen (Strg+V)
 	Add download	Download hinzufügen
 	Add link	Link hinzufügen
 	Add {n} downloads	{n} Downloads hinzufügen
 	Added {n} downloads	{n} Downloads hinzugefügt
+	Address	Adresse
 	All downloads	Alle Downloads
 	Also delete the file (it goes to the Recycle Bin)	Auch die Datei löschen (sie kommt in den Papierkorb)
 	Also delete the file (it goes to the Trash)	Auch die Datei löschen (sie kommt in den Papierkorb)
+	Answering	Antwortet
 	Appearance	Darstellung
+	Ask the router to forward the port (UPnP)	Den Router bitten, den Port weiterzuleiten (UPnP)
 	Audio only	Nur Ton
 	Best	Beste
 	Best available	Beste verfügbare
 	Browse	Durchsuchen
+	Can't be asked about the swarm	Kann nicht nach dem Schwarm gefragt werden
 	Cancel	Abbrechen
+	Changed settings apply once no torrent is running.	Geänderte Einstellungen gelten, sobald kein Torrent läuft.
 	Changes apply when you save.	Änderungen gelten nach dem Speichern.
 	Checking the link…	Link wird geprüft…
 	Choose a folder	Ordner wählen
@@ -28,10 +34,18 @@
 	Clear completed	Fertige entfernen
 	Close (Esc)	Schließen (Esc)
 	Completed	Fertig
+	Connect to peers over	Mit Peers verbinden über
 	Connecting…	Verbindung wird hergestellt…
+	Connection	Verbindung
+	Connections	Verbindungen
 	Connections per download	Verbindungen pro Download
+	Copied	Kopiert
+	Copy	Kopieren
 	Copy link	Link kopieren
 	Ctrl+Enter adds	Strg+Eingabe fügt hinzu
+	DHT (peers found without a tracker)	DHT (Peers ohne Tracker finden)
+	DHT off	DHT aus
+	DHT: {n} nodes	DHT: {n} Knoten
 	Dark	Dunkel
 	Deleted	Gelöscht
 	Deleted or moved  ·  Download again fetches it once more	Gelöscht oder verschoben  ·  Erneut herunterladen holt die Datei noch einmal
@@ -40,9 +54,13 @@
 	Direct link · {size}	Direkter Link · {size}
 	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Direkte Links und Videoseiten werden schon geladen · Torrents, Magnet-Links und MEGA folgen
 	Download again	Erneut herunterladen
+	Download and upload over all torrents, in KiB/s. 0: no limit.	Download und Upload über alle Torrents, in KiB/s. 0: keine Grenze.
 	Download folder	Download-Ordner
+	Download limit	Download-Grenze
+	Download speed	Download-Tempo
 	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	DownloadCraft hält sich selbst aktuell. Ist eine neue Version bereit, kannst du über eine Leiste oben neu starten, um sie zu installieren.
 	DownloadCraft {version} is ready.	DownloadCraft {version} ist bereit.
+	Downloaded	Geladen
 	Downloading	Wird geladen
 	Downloading DownloadCraft {version}	DownloadCraft {version} wird geladen
 	Downloading DownloadCraft {version}: {percent}%	DownloadCraft {version} wird geladen: {percent} %
@@ -52,8 +70,12 @@
 	FTP	FTP
 	FTP downloads arrive in v0.5	FTP-Downloads kommen mit v0.5
 	Failed	Fehlgeschlagen
+	Files	Dateien
+	Filter files	Dateien filtern
+	Finished	Fertig
 	Follows your computer's language unless you pick one.	Folgt der Sprache deines Computers, wenn du keine wählst.
 	Free and open source, under the MIT or Apache-2.0 licence.	Frei und quelloffen, unter der MIT- oder Apache-2.0-Lizenz.
+	General	Allgemein
 	Get Deno	Deno holen
 	Get FFmpeg	FFmpeg holen
 	Get yt-dlp	yt-dlp holen
@@ -61,6 +83,8 @@
 	Getting the torrent's details…	Torrent-Angaben werden geholt…
 	Higher qualities come as separate video and sound, which FFmpeg joins into one file.	Höhere Qualitäten kommen als getrenntes Bild und getrennter Ton, die FFmpeg zu einer Datei zusammenfügt.
 	Higher qualities need FFmpeg to join video and sound. Install it with brew install ffmpeg (macOS) or sudo apt install ffmpeg (Linux).	Höhere Qualitäten brauchen FFmpeg, um Bild und Ton zusammenzufügen. Installiere es mit brew install ffmpeg (macOS) oder sudo apt install ffmpeg (Linux).
+	IP filter	IP-Filter
+	Info hash	Info-Hash
 	It comes off the list.	Er wird aus der Liste entfernt.
 	Language	Sprache
 	Languages to save with videos, such as en, es. Empty: none.	Sprachen, die mit Videos gespeichert werden, etwa en, de. Leer: keine.
@@ -68,19 +92,27 @@
 	Light	Hell
 	Link copied	Link kopiert
 	Links	Links
+	Local peers (on this network)	Peers im eigenen Netzwerk
 	Looking for people sharing it…	Suche nach Leuten, die es teilen…
 	MEGA	MEGA
 	MEGA links arrive in v0.6	MEGA-Links kommen mit v0.6
 	Magnet link	Magnet-Link
 	No downloads yet	Noch keine Downloads
 	No matches	Keine Treffer
+	No one connected yet · {connecting} connecting · {known} known	Noch niemand verbunden · {connecting} verbinden sich · {known} bekannt
+	Not answering: {why}	Antwortet nicht: {why}
+	Not asked yet	Noch nicht gefragt
 	Nothing downloading	Nichts wird geladen
 	Nothing here	Hier ist nichts
 	Nothing in this list has that name or link.	Nichts in dieser Liste hat diesen Namen oder Link.
+	Off	Aus
+	On	An
+	On · {n} nodes	An · {n} Knoten
 	One file with sound	Eine Datei mit Ton
 	Open	Öffnen
 	Open a torrent file…	Torrent-Datei öffnen…
 	Open folder	Ordner öffnen
+	Others reach this computer on it. 0: a new one each start.	Darüber erreichen andere diesen Computer. 0: bei jedem Start ein neuer.
 	Parts of one file fetched at the same time, when the server allows.	Teile einer Datei, die gleichzeitig geladen werden, wenn der Server es erlaubt.
 	Paste a link anywhere in this window with Ctrl+V, or add one.	Füge einen Link mit Strg+V irgendwo in dieses Fenster ein oder füge einen hinzu.
 	Paste one link per line: files, video pages such as YouTube, or torrents.	Ein Link pro Zeile: Dateien, Videoseiten wie YouTube oder Torrents.
@@ -88,12 +120,21 @@
 	Pause (Space)	Pausieren (Leertaste)
 	Pause all	Alle pausieren
 	Paused	Pausiert
+	Peer exchange (peers tell each other)	Peer-Austausch (Peers nennen einander)
+	Peers	Peers
+	Peers are reached through the proxy.	Peers werden über den Proxy erreicht.
+	Peers per torrent	Peers pro Torrent
 	Pick all	Alle wählen
 	Pick none	Keine wählen
+	Pieces	Teile
 	Playlist · 1 video	Playlist · 1 Video
 	Playlist · no videos that can be added	Playlist · keine Videos, die hinzugefügt werden können
 	Playlist · {n} videos	Playlist · {n} Videos
+	Port for incoming connections	Port für eingehende Verbindungen
+	Program	Programm
 	Queued	Wartet
+	Random	Zufällig
+	Received	Empfangen
 	Remove	Entfernen
 	Remove (Delete)	Entfernen (Entf)
 	Remove and delete	Entfernen und löschen
@@ -106,34 +147,57 @@
 	Resume	Fortsetzen
 	Resume (Space)	Fortsetzen (Leertaste)
 	Resume all	Alle fortsetzen
+	SOCKS5 proxy for peers and web trackers	SOCKS5-Proxy für Peers und Web-Tracker
 	Same as the system	Wie im System
 	Save	Speichern
 	Save to	Speichern unter
+	Saved in {folder}	Gespeichert in {folder}
 	Search downloads  (Ctrl+F)	Downloads durchsuchen  (Strg+F)
+	Sent	Gesendet
 	Settings	Einstellungen
 	Share finished torrents	Fertige Torrents teilen
+	Share ratio	Verhältnis
 	Sharing · {sent} sent	Wird geteilt · {sent} gesendet
 	Show in folder	Im Ordner zeigen
+	Source	Quelle
 	Speed	Geschwindigkeit
+	Speed limits	Tempo-Grenzen
 	Start downloading now	Download sofort starten
+	Status	Status
 	Subtitles	Untertitel
+	Swarm	Schwarm
 	System	System
 	System follows your computer.	System folgt deinem Computer.
+	TCP	TCP
+	TCP and µTP	TCP und µTP
+	The DHT and UDP trackers still connect directly; they can't go through a SOCKS5 proxy here.	Der DHT und UDP-Tracker verbinden sich weiter direkt; sie können hier nicht über einen SOCKS5-Proxy gehen.
+	The IP filter blocks {n} ranges.	Der IP-Filter sperrt {n} Bereiche.
+	The most one torrent connects to at once. 0: no limit.	Mit höchstens so vielen verbindet sich ein Torrent gleichzeitig. 0: keine Grenze.
 	The part downloaded so far is deleted.	Der bisher geladene Teil wird gelöscht.
+	The port, peers, proxy and IP filter apply once no torrent is running.	Port, Peers, Proxy und IP-Filter gelten, sobald kein Torrent läuft.
 	The rest wait in the queue.	Die übrigen warten in der Warteschlange.
+	The router is asked to forward the port (UPnP).	Der Router wird gebeten, den Port weiterzuleiten (UPnP).
 	Theme	Design
 	Theme: Dark. Click for System	Design: Dunkel. Klicken für System
 	Theme: Light. Click for Dark	Design: Hell. Klicken für Dunkel
 	Theme: System. Click for Light	Design: System. Klicken für Hell
+	These show while it's downloading or sharing.	Das erscheint, während er lädt oder geteilt wird.
+	This run	Dieser Lauf
+	Time active	Aktiv seit
+	Time left	Verbleibend
 	Torrent	Torrent
 	Torrent · {n} files · {size}	Torrent · {n} Dateien · {size}
 	Torrent · {size}	Torrent · {size}
 	Torrents	Torrents
+	Torrents: peers are found through trackers, the DHT and each other.	Torrents: Peers werden über Tracker, den DHT und untereinander gefunden.
+	Trackers	Tracker
 	Try again	Erneut versuchen
 	Until each has sent this many times its size. 0: not at all.	Bis jeder das so Vielfache seiner Größe gesendet hat. 0: gar nicht.
 	Up to 1080p	Bis 1080p
 	Up to 480p	Bis 480p
 	Up to 720p	Bis 720p
+	Upload limit	Upload-Grenze
+	Upload speed	Upload-Tempo
 	Video	Video
 	Video links use yt-dlp, a free, open-source program that finds the video in a page. DownloadCraft fetches its official build and checks it before use.	Video-Links nutzen yt-dlp, ein freies Open-Source-Programm, das das Video in einer Seite findet. DownloadCraft lädt die offizielle Version und prüft sie vor der Nutzung.
 	Video page	Videoseite
@@ -141,20 +205,38 @@
 	Video · {quality}	Video · {quality}
 	Videos	Videos
 	Waiting for a free slot	Wartet auf einen freien Platz
+	Wasted	Verworfen
+	With all of it	Mit allem
 	YouTube also needs Deno (deno.com) for every quality; install it to get them.	YouTube braucht für alle Qualitäten auch Deno (deno.com); installiere es, um sie zu bekommen.
 	YouTube also needs Deno, a free JavaScript runtime yt-dlp reads its pages with; without it some qualities are missing. DownloadCraft fetches its official build and checks it before use.	YouTube braucht auch Deno, eine freie JavaScript-Laufzeit, mit der yt-dlp die Seiten liest; ohne sie fehlen manche Qualitäten. DownloadCraft lädt die offizielle Version und prüft sie vor der Nutzung.
+	a proxy with a password isn't supported yet	ein Proxy mit Passwort wird noch nicht unterstützt
+	host:port, or empty for none	Host:Port, leer für keinen
 	none	keine
+	not known yet	noch unbekannt
 	one per line	einer pro Zeile
+	port {port}	Port {port}
 	starts over when resumed	beginnt beim Fortsetzen von vorn
+	the proxy's host isn't a name or an address	der Host des Proxys ist weder ein Name noch eine Adresse
+	the proxy's port is a number from 1 to 65535	der Port des Proxys ist eine Zahl von 1 bis 65535
+	write the proxy as host:port	schreibe den Proxy als Host:Port
+	{connecting} connecting · {known} known	{connecting} verbinden sich · {known} bekannt
 	{done} of {total}	{done} von {total}
+	{down} received · {up} sent	{down} empfangen · {up} gesendet
+	{have} of {size}	{have} von {size}
 	{name}: {picked} of {n} files · {size}	{name}: {picked} von {n} Dateien · {size}
+	{n} (up to {max})	{n} (bis zu {max})
 	{n} connections	{n} Verbindungen
 	{n} downloads	{n} Downloads
 	{n} downloads running	{n} Downloads laufen
 	{n} in the list · {connections} connections each	{n} in der Liste · je {connections} Verbindungen
 	{n} links	{n} Links
+	{n} × {size}	{n} × {size}
+	{picked} of {n} files picked	{picked} von {n} Dateien gewählt
 	{quality}  ·  needs FFmpeg	{quality}  ·  braucht FFmpeg
+	{seeds} have it all · {peers} downloading	{seeds} haben alles · {peers} laden
+	{time} (sharing for {sharing})	{time} (wird seit {sharing} geteilt)
 	{time} left	noch {time}
+	µTP is easier on a busy network; through a proxy only TCP is used.	µTP schont ein ausgelastetes Netz; über einen Proxy wird nur TCP genutzt.
 
 # One download's state, beside the category of the same English name.
 state	Queued	Wartet

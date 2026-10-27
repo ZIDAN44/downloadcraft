@@ -22,6 +22,7 @@ macro_rules! tf {
     };
 }
 
+mod details;
 mod dialogs;
 pub mod i18n;
 pub mod icons;
@@ -51,6 +52,14 @@ pub trait Services {
     }
     /// A `.torrent` file chosen by the user.
     fn pick_torrent(&self) -> Option<String> {
+        None
+    }
+    /// An IP filter file (`.dat`, `.p2p`) chosen by the user.
+    fn pick_ip_filter(&self) -> Option<String> {
+        None
+    }
+    /// Where the torrent engine stands (the DHT, the port), once a torrent has started it.
+    fn torrent_status(&self) -> Option<downloadcraft_engine::model::torrent::EngineStatus> {
         None
     }
     /// Open a file with its default app, or a folder in the file manager.
@@ -110,6 +119,8 @@ pub struct DownloadApp {
     pub update: UpdateState,
     /// What the update bar's buttons asked for, for the app to act on (`take_update_choice`).
     update_choice: Option<UpdateChoice>,
+    /// The details pane's tab and filter.
+    details: details::Pane,
     /// The version whose bar Later hid.
     update_dismissed: Option<String>,
     /// Links another launch handed over while another dialog was open (`hand_over`).
@@ -139,6 +150,7 @@ impl DownloadApp {
             update: UpdateState::None,
             update_choice: None,
             update_dismissed: None,
+            details: details::Pane::default(),
             handed: Vec::new(),
         }
     }
@@ -231,6 +243,31 @@ impl DownloadApp {
         egui::Panel::bottom("status")
             .frame(egui::Frame::new().fill(t.surface).inner_margin(Margin::symmetric(20, 6)).stroke(egui::Stroke::new(1.0, t.border)))
             .show(ui, |ui| self.status_bar(ui, &t));
+        // The selected torrent's details, under the list.
+        let selected = self.session.selection.and_then(|id| self.session.get(id)).filter(|d| d.torrent.is_some()).cloned();
+        if let Some(d) = selected {
+            let engine = self.services.torrent_status();
+            let mut act = None;
+            egui::Panel::bottom("details")
+                .resizable(true)
+                .default_size(280.0)
+                .size_range(220.0..=560.0)
+                .frame(
+                    egui::Frame::new()
+                        .fill(t.surface)
+                        .inner_margin(Margin { left: 16, right: 16, top: 8, bottom: 6 })
+                        .stroke(egui::Stroke::new(1.0, t.border)),
+                )
+                .show(ui, |ui| details::show(ui, &t, &mut self.details, &d, &self.session.prefs, engine.as_ref(), &mut act));
+            match act {
+                Some(details::Action::PickFiles(files)) => self.run("download.pickFiles", json!({"id": d.id.0, "files": files})),
+                Some(details::Action::Copy(text)) => {
+                    ctx.copy_text(text);
+                    self.session.status = tl!("Copied").into();
+                }
+                None => {}
+            }
+        }
         egui::CentralPanel::default().frame(egui::Frame::new().fill(t.surface).inner_margin(Margin { left: 8, right: 8, top: 4, bottom: 4 })).show(
             ui,
             |ui| {
@@ -262,6 +299,11 @@ impl DownloadApp {
                         self.run("prefs.theme", json!({"theme": form.theme}));
                         self.run("prefs.subtitles", json!({"languages": form.subtitles}));
                         self.run("prefs.seedRatio", json!({"ratio": form.seed_ratio}));
+                        let p = &form.torrent;
+                        self.run(
+                            "prefs.torrent",
+                            json!({"port": p.port, "protocol": p.protocol, "upnp": p.upnp, "peerLimit": p.peer_limit, "downKib": p.down_kib, "upKib": p.up_kib, "proxy": p.proxy, "ipFilter": p.ip_filter}),
+                        );
                         self.run("prefs.language", json!({"language": form.language}));
                     }
                 }),
@@ -532,6 +574,28 @@ impl DownloadApp {
             ui.label(RichText::new(&self.session.status).size(12.5).color(t.muted));
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 self.update_status(ui, t);
+                // Torrents: the DHT, and the port others reach this computer on.
+                if let Some(e) = self.services.torrent_status() {
+                    let dht = e.dht_nodes.map_or_else(|| tl!("DHT off").to_string(), |n| tf!("DHT: {n} nodes", n = n));
+                    let port = e.port.map_or_else(String::new, |p| tf!("port {port}", port = p));
+                    let mut tip = vec![tl!("Torrents: peers are found through trackers, the DHT and each other.").to_string()];
+                    if e.upnp {
+                        tip.push(tl!("The router is asked to forward the port (UPnP).").into());
+                    }
+                    if e.proxy {
+                        tip.push(tl!("Peers are reached through the proxy.").into());
+                    }
+                    if let Some(n) = e.filtered {
+                        tip.push(tf!("The IP filter blocks {n} ranges.", n = n));
+                    }
+                    if e.pending {
+                        tip.push(tl!("Changed settings apply once no torrent is running.").into());
+                    }
+                    let color = if e.dht_nodes.unwrap_or(0) > 0 { t.success } else { t.faint };
+                    let r = ui.label(RichText::new(format!("{dht}  ·  {port}")).size(12.5).color(t.muted)).on_hover_text(tip.join("\n"));
+                    ui.painter().circle_filled(egui::pos2(r.rect.left() - 8.0, r.rect.center().y), 3.5, color);
+                    ui.add_space(14.0);
+                }
                 let n = self.session.downloads.len();
                 ui.label(
                     RichText::new(tf!("{n} in the list · {connections} connections each", n = n, connections = self.session.prefs.connections))

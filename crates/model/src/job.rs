@@ -23,7 +23,23 @@ pub enum Job {
     /// computer) into `folder`: `files` picks which of its files (empty for all). `first` when
     /// nothing of it has been written yet, so a file already there is never written over. Once
     /// it's all there it's shared until it has sent `seed_ratio` times its size.
-    FetchTorrent { id: DownloadId, run: u64, url: String, folder: String, file_name: String, files: Vec<usize>, first: bool, seed_ratio: f32 },
+    /// `sent`: what it has sent in earlier runs, which counts towards the ratio.
+    FetchTorrent {
+        id: DownloadId,
+        run: u64,
+        url: String,
+        folder: String,
+        file_name: String,
+        files: Vec<usize>,
+        first: bool,
+        seed_ratio: f32,
+        #[serde(default)]
+        sent: u64,
+    },
+    /// Change the files a running torrent downloads (indexes in its list; empty for all).
+    PickFiles { id: DownloadId, files: Vec<usize> },
+    /// The torrent settings, whenever they change (and once the list is loaded).
+    Configure { torrent: crate::torrent::TorrentPrefs },
     /// Stop the transfer of `id` (whatever run it is on); the partial file stays for a resume.
     Stop { id: DownloadId },
     /// Delete the partial file of `id`, which is being removed, once its transfer has stopped;
@@ -71,6 +87,12 @@ pub enum Event {
         run: u64,
         error: String,
     },
+    /// What a running torrent is doing (its peers, trackers and files), about once a second.
+    Details {
+        id: DownloadId,
+        run: u64,
+        live: Box<crate::torrent::TorrentLive>,
+    },
     /// A finished torrent's sharing: bytes sent so far, and whether it's still going.
     Uploaded {
         id: DownloadId,
@@ -87,7 +109,8 @@ impl Event {
             | Event::Progress { id, .. }
             | Event::Finished { id, .. }
             | Event::Failed { id, .. }
-            | Event::Uploaded { id, .. } => *id,
+            | Event::Uploaded { id, .. }
+            | Event::Details { id, .. } => *id,
         }
     }
     pub fn run(&self) -> u64 {
@@ -96,7 +119,8 @@ impl Event {
             | Event::Progress { run, .. }
             | Event::Finished { run, .. }
             | Event::Failed { run, .. }
-            | Event::Uploaded { run, .. } => *run,
+            | Event::Uploaded { run, .. }
+            | Event::Details { run, .. } => *run,
         }
     }
 }

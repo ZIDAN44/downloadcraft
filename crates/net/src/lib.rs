@@ -77,6 +77,8 @@ impl Sink {
 struct Transfer {
     cancel: Arc<AtomicBool>,
     handle: JoinHandle<()>,
+    /// A torrent's new choices of files.
+    picks: Option<std::sync::mpsc::Sender<Vec<usize>>>,
 }
 
 /// Runs jobs on threads of their own.
@@ -109,7 +111,7 @@ impl Worker {
                 });
                 match spawned {
                     Ok(handle) => {
-                        self.transfers.insert(id, Transfer { cancel, handle });
+                        self.transfers.insert(id, Transfer { cancel, handle, picks: None });
                     }
                     Err(e) => self.sink.send(Event::Failed { id, run, error: format!("couldn't start: {e}") }),
                 }
@@ -127,15 +129,16 @@ impl Worker {
                 });
                 match spawned {
                     Ok(handle) => {
-                        self.transfers.insert(id, Transfer { cancel, handle });
+                        self.transfers.insert(id, Transfer { cancel, handle, picks: None });
                     }
                     Err(e) => self.sink.send(Event::Failed { id, run, error: format!("couldn't start: {e}") }),
                 }
             }
-            Job::FetchTorrent { id, run, url, folder, file_name, files, first, seed_ratio } => {
+            Job::FetchTorrent { id, run, url, folder, file_name, files, first, seed_ratio, sent } => {
                 let before = self.stop(id);
                 let cancel = Arc::new(AtomicBool::new(false));
-                let spec = torrent::TorrentFetch { id, run, url, folder: PathBuf::from(folder), file_name, files, first, seed_ratio };
+                let (tx, picks) = std::sync::mpsc::channel();
+                let spec = torrent::TorrentFetch { id, run, url, folder: PathBuf::from(folder), file_name, files, first, seed_ratio, sent, picks };
                 let (sink, flag) = (self.sink.clone(), cancel.clone());
                 let spawned = std::thread::Builder::new().name(format!("torrent-{}", id.0)).spawn(move || {
                     if let Some(h) = before {
@@ -145,11 +148,17 @@ impl Worker {
                 });
                 match spawned {
                     Ok(handle) => {
-                        self.transfers.insert(id, Transfer { cancel, handle });
+                        self.transfers.insert(id, Transfer { cancel, handle, picks: Some(tx) });
                     }
                     Err(e) => self.sink.send(Event::Failed { id, run, error: format!("couldn't start: {e}") }),
                 }
             }
+            Job::PickFiles { id, files } => {
+                if let Some(tx) = self.transfers.get(&id).and_then(|t| t.picks.as_ref()) {
+                    let _ = tx.send(files);
+                }
+            }
+            Job::Configure { torrent } => torrent::configure(torrent),
             // It stays listed until its thread is gone, so a resume waits for it.
             Job::Stop { id } => {
                 if let Some(t) = self.transfers.get(&id) {
