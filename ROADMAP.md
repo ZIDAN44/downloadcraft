@@ -103,3 +103,6 @@ the next build, so no two different builds share a version.
   Italian, Dutch, Brazilian Portuguese and Russian), following the system's language or the one
   picked in Settings. Tests check that every string drawn is in every catalog and none is stale.
   Settings wraps a long line beside its control and scrolls in a short window. 110 tests.
+  Published as `v0.3.0-test.7`.
+- **2026-10-27** — **v0.3.1**: Add link says torrents arrive in v0.4, FTP in v0.5 and MEGA in v0.6,
+  in step with the milestones; the documentation rewritten.
