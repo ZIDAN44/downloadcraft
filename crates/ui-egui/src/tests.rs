@@ -65,6 +65,24 @@ fn an_empty_list_and_the_dialogs_draw() {
         ctx.data_mut(|d| d.insert_temp(crate::dialogs::section_key(), section));
         frame(&mut app, &ctx, vec![]);
     }
+    // About, in every state of checking for updates.
+    use crate::{UpdateCheck, UpdateState};
+    let checks = [
+        UpdateCheck::Unavailable("This copy is updated by the package manager it came from, or it's a build of its own.".into()),
+        UpdateCheck::Idle,
+        UpdateCheck::Checking,
+        UpdateCheck::UpToDate,
+        UpdateCheck::Available { version: "9.9.9".into() },
+        UpdateCheck::Failed("no answer".into()),
+    ];
+    for check in checks {
+        app.update_check = check;
+        frame(&mut app, &ctx, vec![]);
+    }
+    app.update = UpdateState::Downloading { version: "9.9.9".into(), done: 3, total: 10 };
+    frame(&mut app, &ctx, vec![]);
+    app.update = UpdateState::Ready { version: "9.9.9".into() };
+    frame(&mut app, &ctx, vec![]);
 }
 
 #[test]

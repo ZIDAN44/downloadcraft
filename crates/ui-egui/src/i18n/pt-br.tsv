@@ -28,6 +28,9 @@
 	Cancel	Cancelar
 	Changed settings apply once no torrent is running.	As configurações alteradas valem quando nenhum torrent estiver em andamento.
 	Changes apply when you save.	As mudanças valem ao salvar.
+	Check again	Verificar de novo
+	Check for updates	Procurar atualizações
+	Checking for updates…	Procurando atualizações…
 	Checking the link…	Verificando o link…
 	Choose a folder	Escolha uma pasta
 	Clear	Limpar
@@ -42,6 +45,7 @@
 	Copied	Copiado
 	Copy	Copiar
 	Copy link	Copiar link
+	Couldn't check: {why}	Não foi possível verificar: {why}
 	Ctrl+Enter adds	Ctrl+Enter adiciona
 	DHT (peers found without a tracker)	DHT (pares encontrados sem tracker)
 	DHT off	DHT desligado
@@ -55,17 +59,22 @@
 	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Links diretos e páginas de vídeo já baixam · torrents, links magnet e MEGA estão a caminho
 	Download	Download
 	Download again	Baixar de novo
+	Download and install	Baixar e instalar
 	Download and upload over all torrents, in KiB/s. 0: no limit.	Download e upload de todos os torrents, em KiB/s. 0: sem limite.
 	Download folder	Pasta de downloads
 	Download limit	Limite de download
 	Download speed	Velocidade de download
 	Download this file before the others	Baixar este arquivo antes dos outros
+	DownloadCraft is up to date.	O DownloadCraft está atualizado.
 	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	O DownloadCraft se mantém atualizado sozinho. Quando uma nova versão está pronta, uma barra no alto permite reiniciar para instalá-la.
+	DownloadCraft {version} is available.	O DownloadCraft {version} está disponível.
+	DownloadCraft {version} is ready to install.	O DownloadCraft {version} está pronto para instalar.
 	DownloadCraft {version} is ready.	O DownloadCraft {version} está pronto.
 	Downloaded	Baixado
 	Downloading	Baixando
 	Downloading DownloadCraft {version}	Baixando o DownloadCraft {version}
 	Downloading DownloadCraft {version}: {percent}%	Baixando o DownloadCraft {version}: {percent}%
+	Downloading DownloadCraft {version}…	Baixando o DownloadCraft {version}…
 	Downloads	Downloads
 	Downloads at once	Downloads ao mesmo tempo
 	Downloads in this category show up here.	Os downloads desta categoria aparecem aqui.
@@ -91,6 +100,7 @@
 	IP filter	Filtro de IP
 	Info hash	Hash de informações
 	It comes off the list.	Ele sai da lista.
+	It's checked once it's here, then DownloadCraft restarts into it.	Ela é verificada ao chegar, e o DownloadCraft reinicia com ela.
 	Language	Idioma
 	Languages to save with videos, such as en, es. Empty: none.	Idiomas salvos com os vídeos, como en, pt. Vazio: nenhum.
 	Later	Depois
@@ -146,6 +156,7 @@
 	Remove download?	Remover o download?
 	Remove from the list (Delete)	Remover da lista (Delete)
 	Remove…	Remover…
+	Restart and install	Reiniciar e instalar
 	Restart now	Reiniciar agora
 	Restart now to install it, or it installs when you close DownloadCraft. Downloads pause and carry on after.	Reinicie agora para instalar, ou ela é instalada quando você fechar o DownloadCraft. Os downloads pausam e continuam depois.
 	Restart to update	Reinicie para atualizar
@@ -189,6 +200,7 @@
 	Theme: Light. Click for Dark	Tema: claro. Clique para Escuro
 	Theme: System. Click for Light	Tema: Sistema. Clique para Claro
 	These show while it's downloading or sharing.	Isto aparece enquanto ele baixa ou é compartilhado.
+	This copy is updated by the package manager it came from, or it's a build of its own.	Esta cópia é atualizada pelo gerenciador de pacotes de onde veio, ou é uma compilação própria.
 	This run	Esta sessão
 	This torrent's limits (KiB/s, 0: none)	Limites deste torrent (KiB/s, 0: nenhum)
 	Time active	Tempo ativo
@@ -204,6 +216,8 @@
 	Up to 1080p	Até 1080p
 	Up to 480p	Até 480p
 	Up to 720p	Até 720p
+	Updates	Atualizações
+	Updates are turned off for this run.	As atualizações estão desligadas nesta execução.
 	Upload	Upload
 	Upload limit	Limite de upload
 	Upload speed	Velocidade de upload

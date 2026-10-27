@@ -48,6 +48,12 @@ const THROUGH_VARIABLES: &[&str] = &[
     "Higher qualities come as separate video and sound, which FFmpeg joins into one file.",
     "Get FFmpeg",
     "Try again",
+    // Settings › About's update button.
+    "Check for updates",
+    "Check again",
+    // Why a copy doesn't update itself (`self_update::why_not`).
+    "Updates are turned off for this run.",
+    "This copy is updated by the package manager it came from, or it's a build of its own.",
     // The details pane's tabs.
     "General",
     "Trackers",

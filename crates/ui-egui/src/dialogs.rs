@@ -130,7 +130,11 @@ pub(crate) fn section_key() -> egui::Id {
 
 /// `None` while open; `Some(true)` to save, `Some(false)` cancelled. `theme` is applied as it's
 /// picked, so the dialog shows it.
-pub fn settings(ctx: &egui::Context, f: &mut SettingsForm, t: &Tokens, services: &dyn Services, version: &str) -> Option<bool> {
+/// What Settings › About shows of updates, and where its buttons' answer goes.
+pub type Updates<'a> = (&'a crate::UpdateState, &'a crate::UpdateCheck, &'a mut Option<crate::UpdateChoice>);
+
+pub fn settings(ctx: &egui::Context, f: &mut SettingsForm, t: &Tokens, services: &dyn Services, version: &str, updates: Updates) -> Option<bool> {
+    let (update, check, choice) = updates;
     let mut out = None;
     // The section last shown, for this run.
     let key = section_key();
@@ -167,6 +171,11 @@ pub fn settings(ctx: &egui::Context, f: &mut SettingsForm, t: &Tokens, services:
                         let width = ui.available_width();
                         ui.set_width(width);
                         page(ui, t, f, section, services, version, width);
+                        if section == Section::About {
+                            ui.add_space(14.0);
+                            widgets::section(ui, t, "Updates");
+                            crate::DownloadApp::update_panel(ui, t, update, check, choice);
+                        }
                     },
                 );
             });

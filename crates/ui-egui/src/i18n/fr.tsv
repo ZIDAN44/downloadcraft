@@ -28,6 +28,9 @@
 	Cancel	Annuler
 	Changed settings apply once no torrent is running.	Les réglages modifiés s’appliquent dès qu’aucun torrent ne tourne.
 	Changes apply when you save.	Les changements s’appliquent à l’enregistrement.
+	Check again	Vérifier à nouveau
+	Check for updates	Rechercher des mises à jour
+	Checking for updates…	Recherche de mises à jour…
 	Checking the link…	Vérification du lien…
 	Choose a folder	Choisissez un dossier
 	Clear	Effacer
@@ -42,6 +45,7 @@
 	Copied	Copié
 	Copy	Copier
 	Copy link	Copier le lien
+	Couldn't check: {why}	Impossible de vérifier : {why}
 	Ctrl+Enter adds	Ctrl+Entrée ajoute
 	DHT (peers found without a tracker)	DHT (pairs trouvés sans tracker)
 	DHT off	DHT désactivé
@@ -55,17 +59,22 @@
 	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Les liens directs et les pages vidéo se téléchargent déjà · torrents, liens magnet et MEGA arrivent
 	Download	Téléchargement
 	Download again	Télécharger à nouveau
+	Download and install	Télécharger et installer
 	Download and upload over all torrents, in KiB/s. 0: no limit.	Téléchargement et envoi pour tous les torrents, en Kio/s. 0 : sans limite.
 	Download folder	Dossier des téléchargements
 	Download limit	Limite de téléchargement
 	Download speed	Vitesse de téléchargement
 	Download this file before the others	Télécharger ce fichier avant les autres
+	DownloadCraft is up to date.	DownloadCraft est à jour.
 	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	DownloadCraft se tient à jour tout seul. Quand une nouvelle version est prête, une barre en haut vous permet de redémarrer pour l’installer.
+	DownloadCraft {version} is available.	DownloadCraft {version} est disponible.
+	DownloadCraft {version} is ready to install.	DownloadCraft {version} est prêt à être installé.
 	DownloadCraft {version} is ready.	DownloadCraft {version} est prêt.
 	Downloaded	Téléchargé
 	Downloading	En cours
 	Downloading DownloadCraft {version}	Téléchargement de DownloadCraft {version}
 	Downloading DownloadCraft {version}: {percent}%	Téléchargement de DownloadCraft {version} : {percent} %
+	Downloading DownloadCraft {version}…	Téléchargement de DownloadCraft {version}…
 	Downloads	Téléchargements
 	Downloads at once	Téléchargements simultanés
 	Downloads in this category show up here.	Les téléchargements de cette catégorie apparaissent ici.
@@ -91,6 +100,7 @@
 	IP filter	Filtre IP
 	Info hash	Empreinte (info hash)
 	It comes off the list.	Il est retiré de la liste.
+	It's checked once it's here, then DownloadCraft restarts into it.	Elle est vérifiée à son arrivée, puis DownloadCraft redémarre avec.
 	Language	Langue
 	Languages to save with videos, such as en, es. Empty: none.	Langues enregistrées avec les vidéos, par exemple en, fr. Vide : aucune.
 	Later	Plus tard
@@ -146,6 +156,7 @@
 	Remove download?	Retirer le téléchargement ?
 	Remove from the list (Delete)	Retirer de la liste (Suppr)
 	Remove…	Retirer…
+	Restart and install	Redémarrer et installer
 	Restart now	Redémarrer maintenant
 	Restart now to install it, or it installs when you close DownloadCraft. Downloads pause and carry on after.	Redémarrez maintenant pour l’installer, ou elle s’installe à la fermeture de DownloadCraft. Les téléchargements se suspendent et reprennent ensuite.
 	Restart to update	Redémarrez pour mettre à jour
@@ -189,6 +200,7 @@
 	Theme: Light. Click for Dark	Thème : clair. Cliquez pour Sombre
 	Theme: System. Click for Light	Thème : Système. Cliquez pour Clair
 	These show while it's downloading or sharing.	Ceci s’affiche pendant le téléchargement ou le partage.
+	This copy is updated by the package manager it came from, or it's a build of its own.	Cette copie est mise à jour par le gestionnaire de paquets d’où elle vient, ou c’est une compilation à part.
 	This run	Cette session
 	This torrent's limits (KiB/s, 0: none)	Limites de ce torrent (Kio/s, 0 : aucune)
 	Time active	Temps actif
@@ -204,6 +216,8 @@
 	Up to 1080p	Jusqu’à 1080p
 	Up to 480p	Jusqu’à 480p
 	Up to 720p	Jusqu’à 720p
+	Updates	Mises à jour
+	Updates are turned off for this run.	Les mises à jour sont désactivées pour cette session.
 	Upload	Envoi
 	Upload limit	Limite d’envoi
 	Upload speed	Vitesse d’envoi

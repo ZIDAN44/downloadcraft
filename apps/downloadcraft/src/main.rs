@@ -101,13 +101,30 @@ impl eframe::App for App {
                 self.app.hand_over(&links);
             }
         }
-        if let Some(u) = &self.updater {
-            self.app.update = u.state();
+        match &self.updater {
+            Some(u) => {
+                self.app.update = u.state();
+                self.app.update_check = u.check_state();
+            }
+            None => self.app.update_check = downloadcraft_ui_egui::UpdateCheck::Unavailable(self_update::why_not().into()),
         }
         self.app.ui(ui);
-        if self.app.take_update_choice() == Some(downloadcraft_ui_egui::UpdateChoice::RestartNow)
-            && self.updater.as_ref().is_some_and(self_update::Updater::restart_after_close)
-        {
+        use downloadcraft_ui_egui::UpdateChoice;
+        let restart = match (self.app.take_update_choice(), &self.updater) {
+            (Some(UpdateChoice::RestartNow), Some(u)) => u.restart_after_close(),
+            (Some(UpdateChoice::CheckNow), Some(u)) => {
+                u.ask(self_update::Ask::Check);
+                false
+            }
+            (Some(UpdateChoice::DownloadAndInstall), Some(u)) => {
+                u.ask(self_update::Ask::Install);
+                false
+            }
+            // Download and install was asked, and the new version is downloaded and checked.
+            (None, Some(u)) => u.install_now() && u.restart_after_close(),
+            _ => false,
+        };
+        if restart {
             ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
         }
         self.pump();

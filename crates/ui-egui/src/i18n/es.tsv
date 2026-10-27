@@ -28,6 +28,9 @@
 	Cancel	Cancelar
 	Changed settings apply once no torrent is running.	Los ajustes cambiados se aplican cuando no haya ningún torrent en marcha.
 	Changes apply when you save.	Los cambios se aplican al guardar.
+	Check again	Volver a buscar
+	Check for updates	Buscar actualizaciones
+	Checking for updates…	Buscando actualizaciones…
 	Checking the link…	Comprobando el enlace…
 	Choose a folder	Elige una carpeta
 	Clear	Vaciar
@@ -42,6 +45,7 @@
 	Copied	Copiado
 	Copy	Copiar
 	Copy link	Copiar enlace
+	Couldn't check: {why}	No se pudo buscar: {why}
 	Ctrl+Enter adds	Ctrl+Intro añade
 	DHT (peers found without a tracker)	DHT (pares encontrados sin tracker)
 	DHT off	DHT apagado
@@ -55,17 +59,22 @@
 	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Los enlaces directos y las páginas de vídeo ya se descargan · los torrents, enlaces magnet y MEGA están en camino
 	Download	Descarga
 	Download again	Descargar de nuevo
+	Download and install	Descargar e instalar
 	Download and upload over all torrents, in KiB/s. 0: no limit.	Descarga y subida de todos los torrents, en KiB/s. 0: sin límite.
 	Download folder	Carpeta de descargas
 	Download limit	Límite de descarga
 	Download speed	Velocidad de descarga
 	Download this file before the others	Descargar este archivo antes que los demás
+	DownloadCraft is up to date.	DownloadCraft está al día.
 	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	DownloadCraft se mantiene al día solo. Cuando hay una versión nueva lista, una barra arriba te deja reiniciar para instalarla.
+	DownloadCraft {version} is available.	DownloadCraft {version} está disponible.
+	DownloadCraft {version} is ready to install.	DownloadCraft {version} está listo para instalarse.
 	DownloadCraft {version} is ready.	DownloadCraft {version} está listo.
 	Downloaded	Descargado
 	Downloading	Descargando
 	Downloading DownloadCraft {version}	Descargando DownloadCraft {version}
 	Downloading DownloadCraft {version}: {percent}%	Descargando DownloadCraft {version}: {percent} %
+	Downloading DownloadCraft {version}…	Descargando DownloadCraft {version}…
 	Downloads	Descargas
 	Downloads at once	Descargas a la vez
 	Downloads in this category show up here.	Las descargas de esta categoría aparecen aquí.
@@ -91,6 +100,7 @@
 	IP filter	Filtro de IP
 	Info hash	Hash de información
 	It comes off the list.	Sale de la lista.
+	It's checked once it's here, then DownloadCraft restarts into it.	Se comprueba al llegar y luego DownloadCraft se reinicia con ella.
 	Language	Idioma
 	Languages to save with videos, such as en, es. Empty: none.	Idiomas que se guardan con los vídeos, como en, es. Vacío: ninguno.
 	Later	Más tarde
@@ -146,6 +156,7 @@
 	Remove download?	¿Quitar la descarga?
 	Remove from the list (Delete)	Quitar de la lista (Supr)
 	Remove…	Quitar…
+	Restart and install	Reiniciar e instalar
 	Restart now	Reiniciar ahora
 	Restart now to install it, or it installs when you close DownloadCraft. Downloads pause and carry on after.	Reinicia ahora para instalarla, o se instala al cerrar DownloadCraft. Las descargas se pausan y siguen después.
 	Restart to update	Reinicia para actualizar
@@ -189,6 +200,7 @@
 	Theme: Light. Click for Dark	Tema: claro. Haz clic para Oscuro
 	Theme: System. Click for Light	Tema: Sistema. Haz clic para Claro
 	These show while it's downloading or sharing.	Esto aparece mientras se descarga o se comparte.
+	This copy is updated by the package manager it came from, or it's a build of its own.	Esta copia se actualiza con el gestor de paquetes del que vino, o es una compilación propia.
 	This run	Esta sesión
 	This torrent's limits (KiB/s, 0: none)	Límites de este torrent (KiB/s, 0: ninguno)
 	Time active	Tiempo activo
@@ -204,6 +216,8 @@
 	Up to 1080p	Hasta 1080p
 	Up to 480p	Hasta 480p
 	Up to 720p	Hasta 720p
+	Updates	Actualizaciones
+	Updates are turned off for this run.	Las actualizaciones están desactivadas en esta ejecución.
 	Upload	Subida
 	Upload limit	Límite de subida
 	Upload speed	Velocidad de subida

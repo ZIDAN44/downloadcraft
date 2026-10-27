@@ -28,6 +28,9 @@
 	Cancel	Abbrechen
 	Changed settings apply once no torrent is running.	Geänderte Einstellungen gelten, sobald kein Torrent läuft.
 	Changes apply when you save.	Änderungen gelten nach dem Speichern.
+	Check again	Erneut prüfen
+	Check for updates	Nach Updates suchen
+	Checking for updates…	Suche nach Updates…
 	Checking the link…	Link wird geprüft…
 	Choose a folder	Ordner wählen
 	Clear	Leeren
@@ -42,6 +45,7 @@
 	Copied	Kopiert
 	Copy	Kopieren
 	Copy link	Link kopieren
+	Couldn't check: {why}	Prüfen fehlgeschlagen: {why}
 	Ctrl+Enter adds	Strg+Eingabe fügt hinzu
 	DHT (peers found without a tracker)	DHT (Peers ohne Tracker finden)
 	DHT off	DHT aus
@@ -55,17 +59,22 @@
 	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Direkte Links und Videoseiten werden schon geladen · Torrents, Magnet-Links und MEGA folgen
 	Download	Download
 	Download again	Erneut herunterladen
+	Download and install	Laden und installieren
 	Download and upload over all torrents, in KiB/s. 0: no limit.	Download und Upload über alle Torrents, in KiB/s. 0: keine Grenze.
 	Download folder	Download-Ordner
 	Download limit	Download-Grenze
 	Download speed	Download-Tempo
 	Download this file before the others	Diese Datei vor den anderen laden
+	DownloadCraft is up to date.	DownloadCraft ist auf dem neuesten Stand.
 	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	DownloadCraft hält sich selbst aktuell. Ist eine neue Version bereit, kannst du über eine Leiste oben neu starten, um sie zu installieren.
+	DownloadCraft {version} is available.	DownloadCraft {version} ist verfügbar.
+	DownloadCraft {version} is ready to install.	DownloadCraft {version} ist bereit zur Installation.
 	DownloadCraft {version} is ready.	DownloadCraft {version} ist bereit.
 	Downloaded	Geladen
 	Downloading	Wird geladen
 	Downloading DownloadCraft {version}	DownloadCraft {version} wird geladen
 	Downloading DownloadCraft {version}: {percent}%	DownloadCraft {version} wird geladen: {percent} %
+	Downloading DownloadCraft {version}…	DownloadCraft {version} wird geladen…
 	Downloads	Downloads
 	Downloads at once	Gleichzeitige Downloads
 	Downloads in this category show up here.	Downloads dieser Kategorie erscheinen hier.
@@ -91,6 +100,7 @@
 	IP filter	IP-Filter
 	Info hash	Info-Hash
 	It comes off the list.	Er wird aus der Liste entfernt.
+	It's checked once it's here, then DownloadCraft restarts into it.	Sobald es da ist, wird es geprüft, dann startet DownloadCraft damit neu.
 	Language	Sprache
 	Languages to save with videos, such as en, es. Empty: none.	Sprachen, die mit Videos gespeichert werden, etwa en, de. Leer: keine.
 	Later	Später
@@ -146,6 +156,7 @@
 	Remove download?	Download entfernen?
 	Remove from the list (Delete)	Aus der Liste entfernen (Entf)
 	Remove…	Entfernen…
+	Restart and install	Neu starten und installieren
 	Restart now	Jetzt neu starten
 	Restart now to install it, or it installs when you close DownloadCraft. Downloads pause and carry on after.	Starte jetzt neu, um sie zu installieren, oder sie wird beim Schließen von DownloadCraft installiert. Downloads pausieren und laufen danach weiter.
 	Restart to update	Zum Aktualisieren neu starten
@@ -189,6 +200,7 @@
 	Theme: Light. Click for Dark	Design: Hell. Klicken für Dunkel
 	Theme: System. Click for Light	Design: System. Klicken für Hell
 	These show while it's downloading or sharing.	Das erscheint, während er lädt oder geteilt wird.
+	This copy is updated by the package manager it came from, or it's a build of its own.	Diese Kopie wird über den Paketmanager aktualisiert, aus dem sie stammt, oder sie ist ein eigener Build.
 	This run	Dieser Lauf
 	This torrent's limits (KiB/s, 0: none)	Grenzen dieses Torrents (KiB/s, 0: keine)
 	Time active	Aktiv seit
@@ -204,6 +216,8 @@
 	Up to 1080p	Bis 1080p
 	Up to 480p	Bis 480p
 	Up to 720p	Bis 720p
+	Updates	Updates
+	Updates are turned off for this run.	Updates sind für diesen Lauf abgeschaltet.
 	Upload	Upload
 	Upload limit	Upload-Grenze
 	Upload speed	Upload-Tempo

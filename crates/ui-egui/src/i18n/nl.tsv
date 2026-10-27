@@ -28,6 +28,9 @@
 	Cancel	Annuleren
 	Changed settings apply once no torrent is running.	Gewijzigde instellingen gelden zodra er geen torrent loopt.
 	Changes apply when you save.	Wijzigingen gelden zodra je opslaat.
+	Check again	Opnieuw controleren
+	Check for updates	Zoeken naar updates
+	Checking for updates…	Zoeken naar updates…
 	Checking the link…	Link controleren…
 	Choose a folder	Kies een map
 	Clear	Wissen
@@ -42,6 +45,7 @@
 	Copied	Gekopieerd
 	Copy	Kopiëren
 	Copy link	Link kopiëren
+	Couldn't check: {why}	Controleren mislukt: {why}
 	Ctrl+Enter adds	Ctrl+Enter voegt toe
 	DHT (peers found without a tracker)	DHT (peers vinden zonder tracker)
 	DHT off	DHT uit
@@ -55,17 +59,22 @@
 	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Directe links en videopagina's downloaden al · torrents, magnetlinks en MEGA komen eraan
 	Download	Download
 	Download again	Opnieuw downloaden
+	Download and install	Downloaden en installeren
 	Download and upload over all torrents, in KiB/s. 0: no limit.	Download en upload over alle torrents, in KiB/s. 0: geen limiet.
 	Download folder	Downloadmap
 	Download limit	Downloadlimiet
 	Download speed	Downloadsnelheid
 	Download this file before the others	Dit bestand vóór de andere downloaden
+	DownloadCraft is up to date.	DownloadCraft is bijgewerkt.
 	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	DownloadCraft houdt zichzelf bij. Staat er een nieuwe versie klaar, dan kun je via een balk bovenaan opnieuw starten om die te installeren.
+	DownloadCraft {version} is available.	DownloadCraft {version} is beschikbaar.
+	DownloadCraft {version} is ready to install.	DownloadCraft {version} staat klaar om te installeren.
 	DownloadCraft {version} is ready.	DownloadCraft {version} staat klaar.
 	Downloaded	Gedownload
 	Downloading	Bezig
 	Downloading DownloadCraft {version}	DownloadCraft {version} downloaden
 	Downloading DownloadCraft {version}: {percent}%	DownloadCraft {version} downloaden: {percent}%
+	Downloading DownloadCraft {version}…	DownloadCraft {version} wordt gedownload…
 	Downloads	Downloads
 	Downloads at once	Downloads tegelijk
 	Downloads in this category show up here.	Downloads in deze categorie verschijnen hier.
@@ -91,6 +100,7 @@
 	IP filter	IP-filter
 	Info hash	Info-hash
 	It comes off the list.	Hij gaat van de lijst.
+	It's checked once it's here, then DownloadCraft restarts into it.	Zodra hij er is, wordt hij gecontroleerd en start DownloadCraft ermee opnieuw.
 	Language	Taal
 	Languages to save with videos, such as en, es. Empty: none.	Talen die met video's worden bewaard, zoals en, nl. Leeg: geen.
 	Later	Later
@@ -146,6 +156,7 @@
 	Remove download?	Download weghalen?
 	Remove from the list (Delete)	Van de lijst halen (Delete)
 	Remove…	Weghalen…
+	Restart and install	Opnieuw starten en installeren
 	Restart now	Nu opnieuw starten
 	Restart now to install it, or it installs when you close DownloadCraft. Downloads pause and carry on after.	Start nu opnieuw om te installeren, of de installatie gebeurt als je DownloadCraft sluit. Downloads pauzeren en gaan daarna verder.
 	Restart to update	Opnieuw starten om bij te werken
@@ -189,6 +200,7 @@
 	Theme: Light. Click for Dark	Thema: licht. Klik voor Donker
 	Theme: System. Click for Light	Thema: Systeem. Klik voor Licht
 	These show while it's downloading or sharing.	Dit verschijnt terwijl hij downloadt of gedeeld wordt.
+	This copy is updated by the package manager it came from, or it's a build of its own.	Deze kopie wordt bijgewerkt door de pakketbeheerder waar hij vandaan komt, of het is een eigen build.
 	This run	Deze sessie
 	This torrent's limits (KiB/s, 0: none)	Limieten van deze torrent (KiB/s, 0: geen)
 	Time active	Actieve tijd
@@ -204,6 +216,8 @@
 	Up to 1080p	Tot 1080p
 	Up to 480p	Tot 480p
 	Up to 720p	Tot 720p
+	Updates	Updates
+	Updates are turned off for this run.	Updates staan uit voor deze sessie.
 	Upload	Upload
 	Upload limit	Uploadlimiet
 	Upload speed	Uploadsnelheid

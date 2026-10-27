@@ -15,6 +15,10 @@
 //! 3. **Download** it into `<data>/updates`, resumably, keeping it only if its SHA-256 and size
 //!    are the release's (`downloadcraft_net::updates`).
 //! 4. **Say so**: a bar in the window with Restart now (`crates/ui-egui/src/updates.rs`).
+//!
+//! Settings › About can also ask at once ([`Ask::Check`]): the answer is only shown, nothing is
+//! downloaded, until Download and install ([`Ask::Install`]) downloads it the same way and restarts
+//! into it once it's checked.
 //! 5. **Install** as DownloadCraft closes, or at once with Restart now: a detached helper waits
 //!    for this process to end, puts the new version in place and (when restarting) opens it
 //!    (`self_update/install.rs`). Transfers that were running are queued again, so they carry on
@@ -35,7 +39,7 @@ use std::sync::{Arc, Condvar, Mutex, PoisonError};
 use std::time::Duration;
 
 use downloadcraft_net::updates::{self, Listing, Progress, Release, newer_release};
-use downloadcraft_ui_egui::UpdateState;
+use downloadcraft_ui_egui::{UpdateCheck, UpdateState};
 
 mod install;
 #[cfg(test)]
@@ -63,6 +67,15 @@ const DOWNLOADS: &str = "updates";
 /// Whether updating is on for this run.
 pub fn enabled() -> bool {
     std::env::var_os("DOWNLOADCRAFT_NO_AUTO_UPDATE").is_none_or(|v| v.is_empty() || v == "0")
+}
+
+/// Why this copy doesn't update itself (for Settings › About), when it doesn't.
+pub fn why_not() -> &'static str {
+    if !enabled() {
+        "Updates are turned off for this run."
+    } else {
+        "This copy is updated by the package manager it came from, or it's a build of its own."
+    }
 }
 
 /// Whether this is a test build, which takes test builds (pre-releases) as well as releases.
@@ -214,9 +227,37 @@ pub enum Status {
     Ready { tag: String, file: PathBuf },
 }
 
+/// What Settings › About asked for.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Ask {
+    /// Look for a newer version now (and only say so).
+    Check,
+    /// Download the newer version and restart into it once it's checked.
+    Install,
+}
+
+/// What looking by hand found.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+enum Manual {
+    #[default]
+    Idle,
+    Checking,
+    UpToDate,
+    /// A newer release: its tag.
+    Available(String),
+    Failed(String),
+}
+
 /// What the window and the updater's thread share.
 #[derive(Default)]
 struct Shared {
+    /// What Settings › About asked for, not yet taken.
+    asked: Mutex<Option<Ask>>,
+    /// What looking by hand found, and the release it found.
+    manual: Mutex<Manual>,
+    found: Mutex<Option<Release>>,
+    /// Download and install was asked: once ready, the window restarts into it.
+    install_when_ready: AtomicBool,
     status: Mutex<Status>,
     progress: Progress,
     /// The helper has been started (once per run).
@@ -298,6 +339,36 @@ impl Updater {
         }
     }
 
+    /// Ask the updater's thread for something now (Settings › About).
+    pub fn ask(&self, ask: Ask) {
+        if ask == Ask::Install {
+            self.shared.install_when_ready.store(true, Ordering::SeqCst);
+        }
+        if ask == Ask::Check {
+            *self.shared.manual.lock().unwrap_or_else(PoisonError::into_inner) = Manual::Checking;
+        }
+        *self.shared.asked.lock().unwrap_or_else(PoisonError::into_inner) = Some(ask);
+        self.shared.wake.notify_all();
+        self.wake_window();
+    }
+
+    /// What looking by hand found, for Settings › About.
+    pub fn check_state(&self) -> UpdateCheck {
+        let version = |tag: &str| tag.trim_start_matches('v').to_string();
+        match self.shared.manual.lock().unwrap_or_else(PoisonError::into_inner).clone() {
+            Manual::Idle => UpdateCheck::Idle,
+            Manual::Checking => UpdateCheck::Checking,
+            Manual::UpToDate => UpdateCheck::UpToDate,
+            Manual::Available(tag) => UpdateCheck::Available { version: version(&tag) },
+            Manual::Failed(why) => UpdateCheck::Failed(why),
+        }
+    }
+
+    /// Download and install was asked and the new version is ready: time to restart into it.
+    pub fn install_now(&self) -> bool {
+        self.shared.install_when_ready.load(Ordering::SeqCst) && matches!(self.status(), Status::Ready { .. })
+    }
+
     /// Restart now: the waiting version is installed as DownloadCraft closes and then opened.
     /// False when nothing is waiting.
     pub fn restart_after_close(&self) -> bool {
@@ -333,6 +404,18 @@ impl Updater {
         let mut etag: Option<String> = None;
         let mut failed = 0u32;
         loop {
+            let asked = self.shared.asked.lock().unwrap_or_else(PoisonError::into_inner).take();
+            match asked {
+                Some(Ask::Check) => self.check_by_hand(),
+                Some(Ask::Install) => self.install_by_hand(),
+                None => {}
+            }
+            if asked.is_some() {
+                if !self.sleep(next_wait(seed())) {
+                    return;
+                }
+                continue;
+            }
             match self.check(&mut etag) {
                 Ok(()) => failed = 0,
                 Err(e) => {
@@ -357,6 +440,10 @@ impl Updater {
             if self.shared.stop.load(Ordering::SeqCst) {
                 return false;
             }
+            // Something asked for from Settings › About: at once.
+            if self.shared.asked.lock().unwrap_or_else(PoisonError::into_inner).is_some() {
+                return true;
+            }
             let now = std::time::Instant::now();
             if now >= deadline {
                 return true;
@@ -366,6 +453,62 @@ impl Updater {
                 Err(e) => e.into_inner().0,
             };
         }
+    }
+
+    /// The newest release newer than this one, asked of GitHub afresh.
+    fn newest(&self) -> Result<Option<Release>, String> {
+        let releases = match updates::releases_since(&self.kind.suffix(), None).map_err(|e| e.to_string())? {
+            Listing::Unchanged => Vec::new(),
+            Listing::Changed(list, _) => for_channel(list, test_channel()),
+        };
+        Ok(newer_release(&current_version(), BUILD_SHA, &releases).cloned())
+    }
+
+    /// Check for updates (Settings › About): say what there is, download nothing.
+    fn check_by_hand(&self) {
+        let found = match self.newest() {
+            Ok(Some(r)) if r.download.is_empty() => {
+                Manual::Failed(format!("{} has no {} to update with", r.tag, self.kind.suffix().trim_start_matches('-')))
+            }
+            Ok(Some(r)) => {
+                let tag = r.tag.clone();
+                *self.shared.found.lock().unwrap_or_else(PoisonError::into_inner) = Some(r);
+                Manual::Available(tag)
+            }
+            Ok(None) => Manual::UpToDate,
+            Err(e) => Manual::Failed(e),
+        };
+        log::info!("updates: checked by hand: {found:?}");
+        *self.shared.manual.lock().unwrap_or_else(PoisonError::into_inner) = found;
+        self.wake_window();
+    }
+
+    /// Download and install (Settings › About): fetch what the check found (or look again), and
+    /// once it's checked the window restarts into it.
+    fn install_by_hand(&self) {
+        if matches!(self.status(), Status::Ready { .. }) {
+            self.wake_window();
+            return;
+        }
+        let found = self.shared.found.lock().unwrap_or_else(PoisonError::into_inner).clone();
+        let release = match found {
+            Some(r) => Ok(Some(r)),
+            None => self.newest(),
+        };
+        let result = match release {
+            Ok(Some(r)) => self.download(&r),
+            Ok(None) => {
+                *self.shared.manual.lock().unwrap_or_else(PoisonError::into_inner) = Manual::UpToDate;
+                Ok(())
+            }
+            Err(e) => Err(e),
+        };
+        if let Err(e) = result {
+            log::info!("updates: {e}");
+            self.shared.install_when_ready.store(false, Ordering::SeqCst);
+            *self.shared.manual.lock().unwrap_or_else(PoisonError::into_inner) = Manual::Failed(e);
+        }
+        self.wake_window();
     }
 
     /// One look at the releases, and the download of a newer one.

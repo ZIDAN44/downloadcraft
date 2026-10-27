@@ -28,6 +28,9 @@
 	Cancel	Annulla
 	Changed settings apply once no torrent is running.	Le impostazioni cambiate valgono quando nessun torrent è in corso.
 	Changes apply when you save.	Le modifiche valgono quando salvi.
+	Check again	Controlla di nuovo
+	Check for updates	Controlla aggiornamenti
+	Checking for updates…	Controllo degli aggiornamenti…
 	Checking the link…	Controllo del link…
 	Choose a folder	Scegli una cartella
 	Clear	Svuota
@@ -42,6 +45,7 @@
 	Copied	Copiato
 	Copy	Copia
 	Copy link	Copia link
+	Couldn't check: {why}	Impossibile controllare: {why}
 	Ctrl+Enter adds	Ctrl+Invio aggiunge
 	DHT (peers found without a tracker)	DHT (peer trovati senza tracker)
 	DHT off	DHT spento
@@ -55,17 +59,22 @@
 	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	I link diretti e le pagine video si scaricano già · torrent, link magnet e MEGA sono in arrivo
 	Download	Download
 	Download again	Scarica di nuovo
+	Download and install	Scarica e installa
 	Download and upload over all torrents, in KiB/s. 0: no limit.	Download e upload su tutti i torrent, in KiB/s. 0: nessun limite.
 	Download folder	Cartella dei download
 	Download limit	Limite di download
 	Download speed	Velocità di download
 	Download this file before the others	Scarica questo file prima degli altri
+	DownloadCraft is up to date.	DownloadCraft è aggiornato.
 	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	DownloadCraft si aggiorna da solo. Quando una nuova versione è pronta, una barra in alto ti permette di riavviare per installarla.
+	DownloadCraft {version} is available.	DownloadCraft {version} è disponibile.
+	DownloadCraft {version} is ready to install.	DownloadCraft {version} è pronto da installare.
 	DownloadCraft {version} is ready.	DownloadCraft {version} è pronto.
 	Downloaded	Scaricato
 	Downloading	In download
 	Downloading DownloadCraft {version}	Download di DownloadCraft {version}
 	Downloading DownloadCraft {version}: {percent}%	Download di DownloadCraft {version}: {percent}%
+	Downloading DownloadCraft {version}…	Download di DownloadCraft {version}…
 	Downloads	Download
 	Downloads at once	Download contemporanei
 	Downloads in this category show up here.	I download di questa categoria compaiono qui.
@@ -91,6 +100,7 @@
 	IP filter	Filtro IP
 	Info hash	Hash informazioni
 	It comes off the list.	Viene tolto dalla lista.
+	It's checked once it's here, then DownloadCraft restarts into it.	Viene verificato all’arrivo, poi DownloadCraft si riavvia con la nuova versione.
 	Language	Lingua
 	Languages to save with videos, such as en, es. Empty: none.	Lingue da salvare con i video, ad esempio en, it. Vuoto: nessuna.
 	Later	Più tardi
@@ -146,6 +156,7 @@
 	Remove download?	Rimuovere il download?
 	Remove from the list (Delete)	Rimuovi dalla lista (Canc)
 	Remove…	Rimuovi…
+	Restart and install	Riavvia e installa
 	Restart now	Riavvia ora
 	Restart now to install it, or it installs when you close DownloadCraft. Downloads pause and carry on after.	Riavvia ora per installarla, oppure si installa alla chiusura di DownloadCraft. I download vanno in pausa e poi riprendono.
 	Restart to update	Riavvia per aggiornare
@@ -189,6 +200,7 @@
 	Theme: Light. Click for Dark	Tema: chiaro. Clic per Scuro
 	Theme: System. Click for Light	Tema: Sistema. Clic per Chiaro
 	These show while it's downloading or sharing.	Compare mentre si scarica o si condivide.
+	This copy is updated by the package manager it came from, or it's a build of its own.	Questa copia si aggiorna con il gestore di pacchetti da cui proviene, oppure è una build a sé.
 	This run	Questa sessione
 	This torrent's limits (KiB/s, 0: none)	Limiti di questo torrent (KiB/s, 0: nessuno)
 	Time active	Tempo attivo
@@ -204,6 +216,8 @@
 	Up to 1080p	Fino a 1080p
 	Up to 480p	Fino a 480p
 	Up to 720p	Fino a 720p
+	Updates	Aggiornamenti
+	Updates are turned off for this run.	Gli aggiornamenti sono disattivati per questa esecuzione.
 	Upload	Upload
 	Upload limit	Limite di upload
 	Upload speed	Velocità di upload

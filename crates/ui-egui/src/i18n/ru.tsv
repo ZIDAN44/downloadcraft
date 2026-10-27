@@ -28,6 +28,9 @@
 	Cancel	Отмена
 	Changed settings apply once no torrent is running.	Изменённые настройки вступят в силу, когда не будет запущенных торрентов.
 	Changes apply when you save.	Изменения вступят в силу после сохранения.
+	Check again	Проверить снова
+	Check for updates	Проверить обновления
+	Checking for updates…	Проверка обновлений…
 	Checking the link…	Проверка ссылки…
 	Choose a folder	Выберите папку
 	Clear	Очистить
@@ -42,6 +45,7 @@
 	Copied	Скопировано
 	Copy	Копировать
 	Copy link	Копировать ссылку
+	Couldn't check: {why}	Не удалось проверить: {why}
 	Ctrl+Enter adds	Ctrl+Enter добавляет
 	DHT (peers found without a tracker)	DHT (пиры без трекера)
 	DHT off	DHT выключен
@@ -55,17 +59,22 @@
 	Direct links and video pages download now · torrents, magnet links and MEGA are on the way	Прямые ссылки и страницы с видео уже скачиваются · торренты, magnet-ссылки и MEGA на подходе
 	Download	Загрузка
 	Download again	Скачать снова
+	Download and install	Загрузить и установить
 	Download and upload over all torrents, in KiB/s. 0: no limit.	Загрузка и отдача по всем торрентам, в КиБ/с. 0 — без ограничения.
 	Download folder	Папка загрузок
 	Download limit	Ограничение загрузки
 	Download speed	Скорость загрузки
 	Download this file before the others	Загрузить этот файл раньше остальных
+	DownloadCraft is up to date.	DownloadCraft обновлён.
 	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	DownloadCraft обновляется сам. Когда новая версия готова, панель вверху предложит перезапустить программу, чтобы её установить.
+	DownloadCraft {version} is available.	Доступна версия DownloadCraft {version}.
+	DownloadCraft {version} is ready to install.	DownloadCraft {version} готов к установке.
 	DownloadCraft {version} is ready.	DownloadCraft {version} готов.
 	Downloaded	Загружено
 	Downloading	Загружаются
 	Downloading DownloadCraft {version}	Загрузка DownloadCraft {version}
 	Downloading DownloadCraft {version}: {percent}%	Загрузка DownloadCraft {version}: {percent}%
+	Downloading DownloadCraft {version}…	Загрузка DownloadCraft {version}…
 	Downloads	Загрузки
 	Downloads at once	Загрузок одновременно
 	Downloads in this category show up here.	Здесь появляются загрузки этой категории.
@@ -91,6 +100,7 @@
 	IP filter	IP-фильтр
 	Info hash	Инфо-хеш
 	It comes off the list.	Она уйдёт из списка.
+	It's checked once it's here, then DownloadCraft restarts into it.	После загрузки она проверяется, и DownloadCraft перезапускается с ней.
 	Language	Язык
 	Languages to save with videos, such as en, es. Empty: none.	Языки субтитров для видео, например en, ru. Пусто: без субтитров.
 	Later	Позже
@@ -146,6 +156,7 @@
 	Remove download?	Убрать загрузку?
 	Remove from the list (Delete)	Убрать из списка (Delete)
 	Remove…	Убрать…
+	Restart and install	Перезапустить и установить
 	Restart now	Перезапустить сейчас
 	Restart now to install it, or it installs when you close DownloadCraft. Downloads pause and carry on after.	Перезапустите сейчас, чтобы установить, или она установится при закрытии DownloadCraft. Загрузки приостановятся и потом продолжатся.
 	Restart to update	Перезапустите для обновления
@@ -189,6 +200,7 @@
 	Theme: Light. Click for Dark	Тема: светлая. Нажмите для тёмной
 	Theme: System. Click for Light	Тема: системная. Нажмите для светлой
 	These show while it's downloading or sharing.	Это видно, пока он загружается или раздаётся.
+	This copy is updated by the package manager it came from, or it's a build of its own.	Эта копия обновляется через менеджер пакетов, из которого она установлена, или это собственная сборка.
 	This run	За этот запуск
 	This torrent's limits (KiB/s, 0: none)	Ограничения этого торрента (КиБ/с, 0 — без ограничения)
 	Time active	Время работы
@@ -204,6 +216,8 @@
 	Up to 1080p	До 1080p
 	Up to 480p	До 480p
 	Up to 720p	До 720p
+	Updates	Обновления
+	Updates are turned off for this run.	Обновления отключены для этого запуска.
 	Upload	Отдача
 	Upload limit	Ограничение отдачи
 	Upload speed	Скорость отдачи

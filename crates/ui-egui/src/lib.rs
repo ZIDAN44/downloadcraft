@@ -41,7 +41,7 @@ use serde_json::{Value, json};
 
 use icons::Icon;
 use theme::Tokens;
-pub use updates::{UpdateChoice, UpdateState};
+pub use updates::{UpdateCheck, UpdateChoice, UpdateState};
 use widgets::Kind;
 
 /// What the platform does for the UI.
@@ -117,6 +117,8 @@ pub struct DownloadApp {
     looked: f64,
     /// Where the updater is (the app keeps it current).
     pub update: UpdateState,
+    /// What checking for updates by hand found (Settings › About; the app keeps it current).
+    pub update_check: UpdateCheck,
     /// What the update bar's buttons asked for, for the app to act on (`take_update_choice`).
     update_choice: Option<UpdateChoice>,
     /// The details pane's tab and filter.
@@ -149,6 +151,7 @@ impl DownloadApp {
             looked: f64::NEG_INFINITY,
             update: UpdateState::None,
             update_choice: None,
+            update_check: UpdateCheck::default(),
             update_dismissed: None,
             details: details::Pane::default(),
             handed: Vec::new(),
@@ -298,7 +301,15 @@ impl DownloadApp {
                         self.run("download.remove", json!({"id": form.id.0, "deleteFile": delete}));
                     }
                 }),
-                Dialog::Settings(form) => dialogs::settings(&ctx, form, &t, &*self.services, env!("CARGO_PKG_VERSION")).map(|save| {
+                Dialog::Settings(form) => dialogs::settings(
+                    &ctx,
+                    form,
+                    &t,
+                    &*self.services,
+                    env!("CARGO_PKG_VERSION"),
+                    (&self.update, &self.update_check, &mut self.update_choice),
+                )
+                .map(|save| {
                     if save {
                         self.run("prefs.folder", json!({"folder": form.folder}));
                         self.run("prefs.maxActive", json!({"count": form.max_active}));

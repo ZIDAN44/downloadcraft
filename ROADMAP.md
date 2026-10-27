@@ -191,3 +191,6 @@ the next build, so no two different builds share a version.
   enough to need no scrolling; the network settings for torrents moved to Connection. It opens on
   the section last shown. A long message in the status bar is cut short rather than running under
   the counts.
+- **2026-10-28** — **v0.4**: Check for updates in Settings › About: asks GitHub at once and says
+  what it found; Download and install downloads the newer version, checks it and restarts into
+  it. Tried end to end with a portable test copy, which updated itself to `v0.3.1-test.8`.

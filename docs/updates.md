@@ -40,6 +40,20 @@ updater recognises. `DOWNLOADCRAFT_NO_AUTO_UPDATE=1` turns updating off for one 
    start again in the new version and carry on from their partial files. A marker stops the
    version just installed from being offered again for a day.
 
+## Checking by hand
+
+Settings › About has **Check for updates**. It asks GitHub at once, without waiting for the hourly
+check, and says what it found: up to date, a newer version, or why it couldn't tell. A newer
+version only downloads when **Download and install** is chosen: it downloads and is checked in
+the same way, then DownloadCraft restarts into it (downloads that were running carry on in the
+new version). A version the hourly check already downloaded is offered as **Restart and
+install**. A copy that doesn't update itself (from a package manager, or a developer's build)
+says so instead.
+
+Tried with a test build run as a portable copy pretending to be 0.0.1: it found
+`v0.3.1-test.8`, downloaded and checked its portable zip in 16 s, and restarted as that version
+with its data folder kept.
+
 | Installed from | How the helper updates it | Administrator needed? |
 |---|---|---|
 | `.msi` | `msiexec /i … /passive` | No: it installs for this user, by default in `%LOCALAPPDATA%\Programs\DownloadCraft` |
