@@ -3,10 +3,15 @@
 The work for the next milestone and the known gaps, most important first. When an item is done,
 remove it and record it in the [Progress log](../ROADMAP.md#progress-log).
 
-1. **Torrents.** `.torrent` files and magnet links, DHT, web seeds, choosing files inside a torrent,
-   and seeding to a ratio (the [v0.4 milestone](../ROADMAP.md#milestones)). Such links are already
-   recognised, and Add link says which version brings them.
-2. **Speed limits**, per download and overall.
+1. **More from torrents.**
+   - Web seeds (BEP 19): librqbit has none, so a torrent served only from a web server (as many of
+     archive.org's are) finds no one to download from.
+   - A resume reads every file of the torrent again to check it; on a big torrent that takes a
+     while. librqbit's fast resume needs its session state kept, which DownloadCraft doesn't keep
+     yet. For the same reason a magnet link asks peers for its details again on every start.
+   - Finished torrents stop sharing when DownloadCraft closes and don't start again on its next
+     start.
+2. **Speed limits**, per download and overall (librqbit has them for torrents).
 3. **More video pages.**
    - FFmpeg on macOS: yt-dlp's project publishes no build for it, so for now Homebrew's is
      suggested.

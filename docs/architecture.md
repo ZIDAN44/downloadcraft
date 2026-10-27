@@ -13,8 +13,8 @@ never depends on the network layer: the apps connect the two.
 1. The window, the CLI or `--cmd` runs a command, such as
    `session.run("download.add", {"url": …})`.
 2. The command changes the list. The session then starts queued downloads while slots are free,
-   queueing a job for each (`Job::Fetch` for a file, `Job::FetchVideo` for a video page) with a new
-   **run number**.
+   queueing a job for each (`Job::Fetch` for a file, `Job::FetchVideo` for a video page,
+   `Job::FetchTorrent` for a torrent) with a new **run number**.
 3. The app hands `session.take_jobs()` to the `Worker`, which runs each transfer on its own thread.
 4. The thread reports `Event::Started`, then `Progress` about four times a second, then `Finished`
    or `Failed`. The app passes each to `session.apply`.
@@ -73,6 +73,31 @@ never depends on the network layer: the apps connect the two.
   FFmpeg as a zip on Windows and a `.tar.xz` on Linux; Deno with a checksum file per asset, in
   PowerShell's format on Windows. yt-dlp gets `--js-runtimes deno:<path>` for a fetched Deno,
   which YouTube's pages need.
+
+## Torrents (`crates/net/src/torrent.rs`, `torrent/storage.rs`)
+
+- One librqbit session serves every torrent, on a Tokio runtime of its own (two threads) started
+  with the first torrent. The DHT keeps its nodes in `<data>/torrents/dht.json`; incoming
+  connections listen on a port the system picks, with no UPnP.
+- A transfer runs on its own thread, like an HTTP one. It asks librqbit for the torrent's details
+  ("list only": for a magnet link, from peers, for up to 10 minutes; a `.torrent` link is fetched
+  over HTTP(S), at most 16 MiB), checks every path in it with `names::unsafe_part`, and adds it with
+  the files picked.
+- A torrent of one file is written as `folder/name`; one of several, or one inside folders, as
+  `folder/name/…`. On a first start (`first`: the download has no size yet) that name must not
+  exist; later starts let librqbit read what's there and check it piece by piece.
+- **Storage.** `PickedFactory` gives each torrent a storage of DownloadCraft's own. Picked files are
+  opened when a piece of them arrives and given their full size once the torrent starts. Bytes
+  that belong to files left out stay in memory (at most 512 MiB), enough to check and share the
+  pieces they're in; after a restart those few pieces are fetched again. BEP 47 padding files are
+  never stored.
+- Progress is `Event::Progress` twice a second. When it's all there, `Finished` is sent, and the
+  thread keeps the torrent shared until it has sent `seed_ratio` times its size or is stopped,
+  reporting `Event::Uploaded`. A finished torrent keeps its run number while it seeds, so only its
+  own reports count; removing it (or Clear completed) queues `Job::Stop`.
+- Removing an unfinished torrent that has started writing sends its files to the Recycle Bin or
+  Trash (they're written in place, so there's no `.dcpart`). One that never started leaves the
+  folder as it was.
 
 ## Start-up (`apps/downloadcraft/src/graphics.rs`, `logfile.rs`)
 

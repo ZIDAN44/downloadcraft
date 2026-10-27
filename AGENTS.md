@@ -77,7 +77,7 @@ A download manager that crashes loses hours of downloading. **This outranks feat
 | Layer | Crate | What it does |
 |---|---|---|
 | L0 | `model` | Downloads, link classification, file names, video qualities, jobs and events, sizes (pure; builds for wasm) |
-| L3 | `net` | HTTP(S) transfers on one connection or several (`http/segmented.rs`), video pages through yt-dlp (`video.rs`), the worker threads, the updater's downloads (native only) |
+| L3 | `net` | HTTP(S) transfers on one connection or several (`http/segmented.rs`), video pages through yt-dlp (`video.rs`), torrents through librqbit (`torrent.rs`), the worker threads, the updater's downloads (native only) |
 | L4 | `engine` | The sans-I/O `Session`: the list, the queue and the command registry |
 | L6 | `ui-egui` | The egui window and its translations |
 | apps | `downloadcraft`, `downloadcraft-cli` | The binaries: platform services, the store, single instance, the log, the updater |
@@ -143,5 +143,8 @@ Commit after every piece of work that builds.
   Check the other languages too (`--cmd 'prefs.language={"language":"ru"}'`): longer text is
   where layouts break.
 - CLI: `downloadcraft-cli commands`, `downloadcraft-cli run <id> '<json>'`,
-  `downloadcraft-cli get <url> [--dir <folder>] [--connections <n>] [--subtitles <langs>]`,
+  `downloadcraft-cli get <url> [--dir <folder>] [--connections <n>] [--subtitles <langs>]
+  [--files <list>] [--seed <ratio>]`, `downloadcraft-cli files <torrent>`,
   `downloadcraft-cli tools [get]`.
+- Torrents are tested only with ones that are legal to share: Linux images (Debian's netinst) and
+  openly licensed films (the Blender Foundation's Sintel), never anything copyrighted.

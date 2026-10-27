@@ -1,6 +1,6 @@
 # Roadmap
 
-**Stage:** v0.3 — steadier transfers, playlists and subtitles, eight languages (2026-10-27).
+**Stage:** v0.4 — torrents and magnet links (2026-10-27).
 
 Each milestone below is a version, named for what it adds. The [Progress log](#progress-log)
 records what changed in each, and [docs/gaps.md](docs/gaps.md) ranks the work for the next one.
@@ -15,8 +15,8 @@ the next build, so no two different builds share a version.
 | | |
 |---|---|
 | Crates | 4 libraries, 2 apps and xtask |
-| Commands | 20 (`downloadcraft-cli commands`) |
-| Tests | 110: unit tests, a local HTTP server for downloads on one or many connections and for the updater, and headless frames of the window |
+| Commands | 21 (`downloadcraft-cli commands`) |
+| Tests | 116: unit tests, a local HTTP server for downloads on one or many connections and for the updater, and headless frames of the window |
 | Platforms | Windows, macOS, Linux (and FreeBSD packages) |
 
 ## Milestones
@@ -31,12 +31,13 @@ the next build, so no two different builds share a version.
    server, a free-space check, a per-server connection limit; one window per data folder and a log
    file; playlists, channels and subtitles from video pages, with FFmpeg on Linux and Deno for
    YouTube; the window in eight languages; fuzz testing and a Nix flake.
-4. **v0.4 — Torrents** `.torrent` files and magnet links (BEP 3, 9, 10), DHT (BEP 5), web seeds
-   (BEP 19), choosing files inside a torrent, and seeding to a ratio, built on permissive crates
-   only (no libtorrent-rasterbar bindings, no GPL clients' code). Speed limits per download and
-   overall.
+4. **v0.4 — Torrents** ✅ Magnet links and `.torrent` files, by link or from this computer (BEP 3,
+   9, 10), with peers from trackers and the DHT (BEP 5); choosing files inside a torrent; seeding
+   to a ratio. Built on librqbit (Apache-2.0): no libtorrent-rasterbar bindings, no GPL clients'
+   code.
 5. **v0.5 — More places** FTP and FTPS; sign-in for HTTP, kept in the system keychain; cookies
-   handed over from the browser extension; scheduled start and stop; "shut down when done".
+   handed over from the browser extension; scheduled start and stop; "shut down when done"; web
+   seeds for torrents (BEP 19); speed limits per download and overall.
 6. **v0.6 — Sites** MEGA file and folder links through MEGA's published API, decrypted on your
    computer so the key never leaves it. Never around DRM, paywalls or sign-in walls.
 7. **v0.7 — Everywhere** A browser extension (Chrome, Firefox, Edge) that hands links and downloads
@@ -106,3 +107,24 @@ the next build, so no two different builds share a version.
   Published as `v0.3.0-test.7`.
 - **2026-10-27** — **v0.3.1**: Add link says torrents arrive in v0.4, FTP in v0.5 and MEGA in v0.6,
   in step with the milestones; the documentation rewritten.
+- **2026-10-27** — **v0.4**: torrents.
+  - Magnet links, `.torrent` links and `.torrent` files on this computer (opened with the app,
+    dropped on the window, or picked with Add link's Open a torrent file) download through
+    librqbit 9 (Apache-2.0), on rustls. Peers come from trackers and the DHT, whose nodes are kept
+    in the data folder; nothing opens a port on the router.
+  - Add link shows a torrent's name, size and files, all ticked, to pick from. Only the files
+    picked appear in the folder: DownloadCraft's own storage keeps the bits of shared pieces that
+    belong to files left out in memory (librqbit wrote them into those files, and on NTFS a 2 KB
+    pick beside a 129 MB film took 126 MB of disk).
+  - Every path inside a torrent is checked before anything is written; one this computer can't
+    use as it is (`C:` or `a:b` on Windows) refuses the torrent. A first start never writes over a
+    file already in the folder; a resume checks what's on disk piece by piece and fetches the
+    rest.
+  - A finished torrent is shared while DownloadCraft is open until it has sent its size (Settings,
+    Share finished torrents: 0 to 10 times). The list says how much it has sent.
+  - A spaced link (a magnet link's name as copied from a page) is sent with `%20`s instead of being
+    refused; folders count as there for Show in folder and Deleted.
+  - `downloadcraft-cli files <torrent>` lists a torrent's files; `get --files 1,3-5 --seed <ratio>`.
+  - Tested with Debian 13.7's netinst torrent (793 MB in 43 s, its SHA-256 as Debian publishes it;
+    paused at 666 MB and resumed) and the Blender Foundation's Sintel (CC BY) by magnet link, whole
+    and in part. 116 tests.

@@ -6,7 +6,7 @@
 
 <p align="center">
   Paste a link and watch it download on several connections at once. Pause it, close the app, and
-  pick up tomorrow where it stopped. Files and video pages work today; torrents, magnet links, MEGA
+  pick up tomorrow where it stopped. Files, video pages, torrents and magnet links work today; MEGA
   and FTP are on the <a href="ROADMAP.md">roadmap</a>. No ads, no bundled offers, no telemetry:
   DownloadCraft talks only to the servers you point it at.
 </p>
@@ -63,6 +63,21 @@
   only if it matches the published checksum.
 
 Download only videos you have the right to. DRM-protected videos aren't supported.
+
+### Torrents
+
+- **Magnet links and `.torrent` files**: paste the link, open the file with DownloadCraft, drop it
+  on the window, or pick it with **Open a torrent file** in Add link.
+- **Pick the files you want.** Add link lists the files inside, all ticked; untick the ones you
+  don't want, and only the rest appear in the folder.
+- **Nothing written over.** Every path in the torrent is checked first. A file already in the
+  folder is never replaced; a resume checks what's on disk and fetches only what's missing.
+- **Sharing back.** A finished torrent is shared while DownloadCraft is open until it has sent its
+  own size (0 to 10 times, in Settings).
+- Peers are found through trackers and the DHT, with
+  [librqbit](https://github.com/ikatson/rqbit). DownloadCraft opens no ports on your router.
+
+Download and share only what you have the right to.
 
 ### The window
 
@@ -123,7 +138,8 @@ downloadcraft-cli get https://example.com/file.zip --dir ./downloads --connectio
 ```
 
 `--subtitles en,es` adds subtitles to videos, and `downloadcraft-cli tools get` fetches yt-dlp,
-FFmpeg and Deno.
+FFmpeg and Deno. `downloadcraft-cli files <torrent>` lists the files in a torrent or magnet link,
+and `get <torrent> --files 1,3-5` downloads only those.
 
 ## Building from source
 
