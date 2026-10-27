@@ -55,6 +55,16 @@ depends on the network layer: the apps wire the two together.
 - Where every part is goes to `name.dcpart.parts` once a second and on stopping, so Resume carries
   on each part. The record is checked to cover the file exactly once before it is trusted.
 
+## Start-up (`apps/downloadcraft/src/{graphics,logfile}.rs`)
+
+From MailCraft. `downloadcraft.log` in the data folder, new each run (the last kept as
+`downloadcraft.old.log`), at most 4 MiB: DownloadCraft's lines from Info up, other crates'
+warnings. On Windows the window is drawn with DirectX 12 alone, on a real GPU first and Windows'
+software renderer (WARP) on a PC without one (`WGPU_FORCE_FALLBACK_ADAPTER=1` forces it); the
+device asks for what the adapter has; after the first frames a GPU error is logged, not fatal. A
+window that can't open shows a message box with the reason and the log's path, and frees the
+single-instance socket first.
+
 ## One window per data folder (`apps/downloadcraft/src/single_instance.rs`)
 
 From MailCraft (and PdfCraft before it). The first launch listens on a Unix domain socket in a

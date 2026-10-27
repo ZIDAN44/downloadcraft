@@ -76,3 +76,6 @@ next version: the version is raised and the Progress log gains its entry before 
 - **2026-10-27** — **v0.3**: one window per data folder, from MailCraft: starting DownloadCraft
   again, with or without links, brings the running window forward and its Add box takes the links,
   instead of a second window writing the same list.
+- **2026-10-27** — **v0.3**: from MailCraft, `downloadcraft.log` in the data folder (`--log` echoes
+  it) and the graphics set-up: DirectX 12 on Windows with the software renderer on a PC without a
+  GPU, device limits from the adapter, and a message box saying why when the window can't open.

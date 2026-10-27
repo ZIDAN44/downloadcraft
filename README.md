@@ -60,7 +60,8 @@
 - **Right-click** a download: Resume, Pause, Open, Open folder, Copy link, Remove. Double-click a
   finished one to open it.
 - **The list is kept** between runs (`downloads.json` in the app's data folder); a damaged file is
-  set aside, never fatal.
+  set aside, never fatal. `downloadcraft.log` beside it says what each run did (retries, parts
+  handed back, the graphics adapter); `--log` shows it in the terminal too.
 - **Light, dark or the system's theme**, from the switch beside the search or Settings.
 - **Search** the list by name or link (Ctrl+F), and hover a row for Pause, Resume, Open folder and
   Remove.

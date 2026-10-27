@@ -6,6 +6,8 @@
 // No console window behind the app on Windows (release builds).
 #![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
+mod graphics;
+mod logfile;
 mod platform;
 mod self_update;
 mod single_instance;
@@ -29,6 +31,7 @@ usage: downloadcraft [links…] [options]
                        ui.add={\"links\": \"…\"} open those dialogs
   --light | --dark     force light or dark mode
   --data <folder>      keep the download list here instead of the user's data folder
+  --log                also write the log (downloadcraft.log in the data folder) to the terminal
   --version            print the version
   --help               this text
 ";
@@ -42,6 +45,10 @@ struct App {
     updater: Option<self_update::Updater>,
     /// Answering later launches on the same data folder (`single_instance.rs`).
     instance: Option<single_instance::Server>,
+    /// Frames drawn, and the window's GPU device until its errors are only logged
+    /// (`graphics::log_errors`).
+    frames: u32,
+    gpu: Option<eframe::wgpu::Device>,
 }
 
 fn now() -> u64 {
@@ -82,6 +89,12 @@ impl eframe::App for App {
         }
     }
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        self.frames = self.frames.saturating_add(1);
+        if self.frames >= graphics::STARTUP_FRAMES
+            && let Some(device) = self.gpu.take()
+        {
+            graphics::log_errors(&device);
+        }
         if let Some(links) = self.instance.as_ref().and_then(single_instance::Server::take) {
             single_instance::show(ui.ctx(), native_wayland());
             if !links.is_empty() {
@@ -139,10 +152,12 @@ struct Args {
     cmds: Vec<(String, serde_json::Value)>,
     dark: Option<bool>,
     data: Option<PathBuf>,
+    /// `--log`: log lines to the terminal too.
+    log: bool,
 }
 
 fn parse_args() -> Result<Option<Args>, String> {
-    let mut a = Args { links: Vec::new(), cmds: Vec::new(), dark: None, data: None };
+    let mut a = Args { links: Vec::new(), cmds: Vec::new(), dark: None, data: None, log: false };
     let mut it = std::env::args().skip(1);
     while let Some(arg) = it.next() {
         match arg.as_str() {
@@ -156,6 +171,7 @@ fn parse_args() -> Result<Option<Args>, String> {
             }
             "--light" => a.dark = Some(false),
             "--dark" => a.dark = Some(true),
+            "--log" => a.log = true,
             "--data" => a.data = Some(PathBuf::from(it.next().ok_or("--data needs a folder")?)),
             "--cmd" => {
                 let c = it.next().ok_or("--cmd needs a command")?;
@@ -184,19 +200,22 @@ fn main() -> eframe::Result {
     // leaves before reading or writing anything there (`single_instance.rs`).
     let instance = match store.as_ref().map(|s| single_instance::claim(s.dir(), &args.links)) {
         Some(single_instance::Claim::Shown) => {
-            println!(
-                "{}",
-                if args.links.is_empty() {
-                    "DownloadCraft is already running: its window is brought forward"
-                } else {
-                    "DownloadCraft is already running: the links open in its Add box"
-                }
-            );
+            say(if args.links.is_empty() {
+                "DownloadCraft is already running: its window is brought forward"
+            } else {
+                "DownloadCraft is already running: the links open in its Add box"
+            });
             return Ok(());
         }
         Some(single_instance::Claim::Primary(server)) => Some(server),
         _ => None,
     };
+    // Diagnostics go to `downloadcraft.log` in the data folder (after the claim above, so a
+    // second launch leaves the running one's log alone).
+    let log_path = logfile::start(store.as_ref().map(store::Store::dir), cfg!(debug_assertions) || args.log);
+    if let Some(path) = &log_path {
+        log::info!("DownloadCraft {} started; log at {}", env!("CARGO_PKG_VERSION"), path.display());
+    }
     let mut session = Session::new();
     if let Some(s) = &store {
         match s.load() {
@@ -217,7 +236,7 @@ fn main() -> eframe::Result {
     }
     session.now = now();
 
-    let options = eframe::NativeOptions {
+    let mut options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("DownloadCraft")
             .with_app_id("ai.storyteller.downloadcraft")
@@ -226,6 +245,60 @@ fn main() -> eframe::Result {
             .with_icon(Arc::new(app_icon())),
         ..Default::default()
     };
+    graphics::configure(&mut options);
+    // A window that can't open says why, rather than the app leaving without a word (or staying in
+    // the background); a panic on the way is caught for that too.
+    let socket = instance.as_ref().map(single_instance::Server::socket);
+    let ran = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run(options, args, store, session, instance)));
+    let failed = match ran {
+        Ok(Ok(())) => return Ok(()),
+        Ok(Err(e)) => e.to_string(),
+        Err(p) => p
+            .downcast_ref::<&str>()
+            .map(|s| (*s).to_string())
+            .or_else(|| p.downcast_ref::<String>().cloned())
+            .unwrap_or_else(|| "it stopped unexpectedly".into()),
+    };
+    log::error!("the window couldn't open: {failed}");
+    // No window: a launch while the box is up must open its own, not be told this one runs.
+    if let Some(p) = &socket {
+        single_instance::close_at(p);
+    }
+    say(&format!("the window couldn't open: {failed}"));
+    rfd::MessageDialog::new()
+        .set_level(rfd::MessageLevel::Error)
+        .set_title("DownloadCraft")
+        .set_description(cant_open(&failed, log_path.as_deref()))
+        .set_buttons(rfd::MessageButtons::Ok)
+        .show();
+    std::process::exit(1)
+}
+
+/// Tell the terminal, as `eprintln!` would without its panic on a closed one.
+fn say(what: &str) {
+    let _ = std::io::Write::write_fmt(&mut std::io::stderr(), format_args!("downloadcraft: {what}\n"));
+}
+
+/// What the message box says when the window can't open; `log` is the log file, when there is one.
+fn cant_open(why: &str, log: Option<&std::path::Path>) -> String {
+    let help = if cfg!(windows) {
+        "Updating it may help, or starting DownloadCraft with the environment variable WGPU_FORCE_FALLBACK_ADAPTER=1, which draws it with \
+         Windows' software renderer."
+    } else {
+        "Updating it may help."
+    };
+    let details = log.map(|p| format!("\n\nThe details are in {}.", p.display())).unwrap_or_default();
+    format!("DownloadCraft's window couldn't open:\n{why}\n\nThis is usually the graphics driver. {help}{details}")
+}
+
+/// Open the window and run the app until it closes.
+fn run(
+    options: eframe::NativeOptions,
+    args: Args,
+    store: Option<store::Store>,
+    session: Session,
+    instance: Option<single_instance::Server>,
+) -> eframe::Result {
     eframe::run_native(
         "DownloadCraft",
         options,
@@ -259,7 +332,8 @@ fn main() -> eframe::Result {
                 let ctx = cc.egui_ctx.clone();
                 u.set_waker(Arc::new(move || ctx.request_repaint()));
             }
-            Ok(Box::new(App { app, worker, events: rx, store, last_save: Instant::now(), updater, instance }))
+            let gpu = cc.wgpu_render_state.as_ref().map(|rs| rs.device.clone());
+            Ok(Box::new(App { app, worker, events: rx, store, last_save: Instant::now(), updater, instance, frames: 0, gpu }))
         }),
     )
 }

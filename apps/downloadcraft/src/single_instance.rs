@@ -99,11 +99,23 @@ impl Server {
 
     /// Stop answering as DownloadCraft closes: the socket goes (a portable copy leaves no trace).
     pub fn close(&self) {
-        let _ = std::fs::remove_file(&self.path);
-        let _ = std::fs::remove_file(self.path.with_extension("lock"));
-        let _ = std::fs::remove_file(self.path.with_extension("key"));
+        close_at(&self.path);
+    }
+
+    /// What [`close_at`] needs, for when the window that owns this server never opened.
+    pub fn socket(&self) -> PathBuf {
+        self.path.clone()
     }
 }
+
+/// Remove the socket at `path` and its key and lock: later launches find no one and open a window.
+pub fn close_at(path: &Path) {
+    let _ = std::fs::remove_file(path);
+    let _ = std::fs::remove_file(path.with_extension("lock"));
+    let _ = std::fs::remove_file(path.with_extension("key"));
+}
+
+impl Server {}
 
 /// Bring the window forward: out of the taskbar, in front. A Wayland window can't put itself in
 /// front (winit ignores focus there), so it asks for the user's attention instead.
