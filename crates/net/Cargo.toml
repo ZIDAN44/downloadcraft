@@ -1,0 +1,16 @@
+[package]
+name = "downloadcraft-net"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "DownloadCraft network layer: HTTP(S) transfers with resume, and the worker threads that run the engine's jobs (native only)"
+
+[lints]
+workspace = true
+
+[dependencies]
+downloadcraft-model = { workspace = true }
+ureq = { workspace = true }
+log = { workspace = true }
+thiserror = { workspace = true }
