@@ -118,7 +118,32 @@ fn sleep(d: Duration, cancel: &AtomicBool) -> bool {
 }
 
 fn disk(path: &Path, e: std::io::Error) -> NetError {
-    NetError::Disk(format!("{}: {e}", path.display()))
+    match e.kind() {
+        std::io::ErrorKind::StorageFull | std::io::ErrorKind::QuotaExceeded => {
+            NetError::Disk(format!("the disk is full ({}); free some space, then Resume carries on", path.display()))
+        }
+        _ => NetError::Disk(format!("{}: {e}", path.display())),
+    }
+}
+
+/// Fails when the disk holding `folder` hasn't `need` bytes free. A disk that can't say how much
+/// it has is let through: a full disk still fails clearly when writing ([`disk`]).
+fn room_for(folder: &Path, need: u64) -> Result<(), NetError> {
+    match fs4::available_space(folder) {
+        Ok(free) => check_room(need, free),
+        Err(e) => {
+            log::debug!("free space of {} unknown: {e}", folder.display());
+            Ok(())
+        }
+    }
+}
+
+pub(crate) fn check_room(need: u64, free: u64) -> Result<(), NetError> {
+    if need <= free {
+        return Ok(());
+    }
+    let size = downloadcraft_model::format::bytes;
+    Err(NetError::Disk(format!("not enough room on the disk: {} needed, {} free", size(need), size(free))))
 }
 
 fn part_of(folder: &Path, name: &str) -> PathBuf {
@@ -219,6 +244,9 @@ fn transfer(agent: &ureq::Agent, f: &mut Fetch, cancel: &AtomicBool, sink: &Sink
         }
         name = free_name(&f.folder, &name);
         part = part_of(&f.folder, &name);
+    }
+    if let Some(t) = total {
+        room_for(&f.folder, t.saturating_sub(offset))?;
     }
     sink.send(Event::Started { id: f.id, run: f.run, total, resumable, file_name: name.clone(), done: offset });
     // Another try carries on with this name and its partial file.

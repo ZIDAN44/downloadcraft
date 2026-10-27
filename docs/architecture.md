@@ -28,6 +28,8 @@ depends on the network layer: the apps wire the two together.
   means the partial file is already whole.
 - On the first start only, the server's `Content-Disposition` name replaces the one from the link,
   and a taken name becomes `name (1).ext`.
+- Before writing, the bytes still to come are checked against the disk's free space (`fs4`); a
+  disk that fills anyway (no size given) fails with "the disk is full", keeping the partial file.
 - The whole file is renamed into place; a short file (connection closed early) stays partial.
 - A read that waits 30 s for a byte drops the connection (`timeout_per_read`). A dropped or
   stalled connection, a timeout, 408, 429 or 5xx is tried again from the partial file after 2 s,

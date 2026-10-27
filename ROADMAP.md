@@ -68,3 +68,6 @@ next version: the version is raised and the Progress log gains its entry before 
   connection, a timeout or a busy server (408, 429, 5xx) is tried again by itself from where the
   file got to, waiting 2 s, then twice as long each time up to 30 s; five tries without a byte in
   between fail the download, a missing or forbidden file fails at once.
+- **2026-10-27** — **v0.3**: a download whose size is known checks the disk's free space before it
+  writes anything ("not enough room on the disk: 135 MB needed, 21.0 MB free"), and a disk that
+  fills while writing says so and keeps the partial file for Resume.

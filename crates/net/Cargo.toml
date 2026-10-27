@@ -20,5 +20,7 @@ ring = "0.17"
 trash = "5"
 # Unpacking FFmpeg's Windows build for video downloads (MIT): reading only, pure-Rust deflate.
 zip = { version = "9", default-features = false, features = ["deflate-flate2-zlib-rs"] }
+# Free space on the disk a download goes to (MIT OR Apache-2.0).
+fs4 = { version = "1", default-features = false }
 log = { workspace = true }
 thiserror = { workspace = true }

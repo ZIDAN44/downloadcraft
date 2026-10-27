@@ -28,6 +28,8 @@ pub(crate) struct Serve {
     pub(crate) stall_after: Option<usize>,
     /// The first answer is this status (later ones are the file).
     pub(crate) first_status: Option<u16>,
+    /// Claim this size in `Content-Length`, sending nothing.
+    pub(crate) claim_len: Option<u64>,
 }
 
 /// Serve `s` until the test ends, each connection on a thread of its own; the `Range` header of
@@ -79,7 +81,11 @@ fn answer(s: &Serve, mut stream: std::net::TcpStream, log: &Mutex<Vec<Option<Str
         _ => (200, 0, len),
     };
     let part = if status == 200 || status == 206 { &s.body[start..end] } else { &[][..] };
-    let mut head = format!("HTTP/1.1 {status} X\r\nContent-Length: {}\r\nConnection: close\r\n", part.len());
+    let (part, length) = match s.claim_len {
+        Some(n) => (&[][..], n),
+        None => (part, part.len() as u64),
+    };
+    let mut head = format!("HTTP/1.1 {status} X\r\nContent-Length: {length}\r\nConnection: close\r\n");
     if s.ranges {
         head.push_str("Accept-Ranges: bytes\r\n");
     }
@@ -231,6 +237,24 @@ fn http_errors_are_explained() {
     let ev = run(&url, &dir, "data.bin", true);
     assert!(matches!(last(&ev), Event::Failed { error, .. } if error.contains("404")), "{ev:?}");
     let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn a_file_bigger_than_the_free_space_fails_before_writing() {
+    let (url, seen) = serve(Serve { body: body(10), claim_len: Some(1 << 60), ..Default::default() });
+    let dir = temp_dir("no-room");
+    let ev = run(&url, &dir, "huge.bin", true);
+    assert!(matches!(&ev[..], [Event::Failed { error, .. }] if error.contains("not enough room") && error.contains("1153 PB")), "{ev:?}");
+    assert_eq!(seen.lock().unwrap().len(), 1, "not tried again");
+    assert!(!dir.join("huge.bin.dcpart").exists());
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+#[test]
+fn room_is_checked_against_what_is_still_to_come() {
+    assert!(crate::http::check_room(100, 100).is_ok());
+    let e = crate::http::check_room(3 << 30, 1 << 30).unwrap_err().to_string();
+    assert!(e.contains("3.22 GB needed") && e.contains("1.07 GB free"), "{e}");
 }
 
 #[test]
