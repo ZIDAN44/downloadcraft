@@ -93,6 +93,102 @@ fn link_row(ui: &mut Ui, t: &Tokens, link: &str, check: &Result<source::SourceKi
     ui.painter().galley(rect.min + vec2(48.0, 25.0), c, color);
 }
 
+/// The font links are written in: monospace, so long ones read character by character.
+const LINK_FONT: f32 = 13.0;
+/// Room inside the box around the text.
+const LINK_PAD: f32 = 8.0;
+/// The numbered strip on the left.
+const GUTTER: f32 = 46.0;
+
+/// Where a line of the links box stands: nothing, a link that downloads now, one that's coming
+/// in a later version, or not a link.
+fn line_color(line: &str, t: &Tokens) -> Option<egui::Color32> {
+    let line = line.trim();
+    if line.is_empty() {
+        return None;
+    }
+    Some(match source::classify(line) {
+        Ok(k) if k.not_yet().is_none() => t.success,
+        Ok(_) => t.warning,
+        Err(_) => t.danger,
+    })
+}
+
+/// The links box: one link per line, never wrapped (a long one scrolls sideways), each line
+/// numbered with a dot saying whether it can be added; a count and Clear above it.
+fn links_box(ui: &mut Ui, t: &Tokens, links: &mut String) {
+    let count = links.lines().filter(|l| !l.trim().is_empty()).count();
+    ui.horizontal(|ui| {
+        widgets::field_label(ui, t, "Links");
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            if count > 0 && ui.add(egui::Button::new(RichText::new("Clear").size(12.5).color(t.accent)).frame(false)).clicked() {
+                links.clear();
+            }
+            let text = match count {
+                0 => "one per line".to_string(),
+                1 => "1 link".to_string(),
+                n => format!("{n} links"),
+            };
+            ui.label(RichText::new(text).size(12.5).color(t.faint));
+        });
+    });
+    let font = egui::FontId::monospace(LINK_FONT);
+    let row = ui.fonts_mut(|fonts| fonts.row_height(&font));
+    let rows = links.lines().count().max(1);
+    // Four lines tall at first, growing to seven; past that it scrolls.
+    let visible = rows.clamp(4, 7) as f32;
+    let height = visible * row + 2.0 * LINK_PAD;
+    let id = egui::Id::unique("add-links");
+    let focused = ui.memory(|m| m.has_focus(id));
+    let frame = egui::Frame::new()
+        .fill(t.card)
+        .corner_radius(8)
+        .stroke(egui::Stroke::new(if focused { 1.5 } else { 1.0 }, if focused { t.accent } else { t.border }));
+    frame.show(ui, |ui| {
+        ui.set_width(ui.available_width());
+        egui::ScrollArea::vertical().id_salt("links-v").max_height(height).min_scrolled_height(height).show(ui, |ui| {
+            ui.horizontal_top(|ui| {
+                ui.spacing_mut().item_spacing.x = 0.0;
+                // The gutter: a number and a dot per line.
+                let lines: Vec<&str> = if links.is_empty() { vec![""] } else { links.split('\n').collect() };
+                let (gutter, _) =
+                    ui.allocate_exact_size(vec2(GUTTER, (lines.len().max(visible as usize)) as f32 * row + 2.0 * LINK_PAD), Sense::hover());
+                let p = ui.painter();
+                p.vline(gutter.right() - 0.5, gutter.y_range(), egui::Stroke::new(1.0, t.border));
+                for (i, line) in lines.iter().enumerate() {
+                    let y = gutter.top() + LINK_PAD + row * (i as f32 + 0.5);
+                    if let Some(c) = line_color(line, t) {
+                        p.circle_filled(egui::pos2(gutter.left() + 11.0, y), 3.5, c);
+                    }
+                    let number = (i + 1).to_string();
+                    p.text(egui::pos2(gutter.right() - 9.0, y), egui::Align2::RIGHT_CENTER, number, egui::FontId::monospace(11.5), t.faint);
+                }
+                // The text: laid out without wrapping, so each link stays on its own line.
+                let text_color = t.text;
+                let mut layouter = |ui: &Ui, buf: &dyn egui::TextBuffer, _wrap: f32| {
+                    let job = egui::text::LayoutJob::simple(buf.as_str().to_string(), egui::FontId::monospace(LINK_FONT), text_color, f32::INFINITY);
+                    ui.fonts_mut(|f| f.layout_job(job))
+                };
+                egui::ScrollArea::horizontal().id_salt("links-h").show(ui, |ui| {
+                    let edit = ui.add(
+                        egui::TextEdit::multiline(links)
+                            .id(id)
+                            .frame(egui::Frame::new())
+                            .desired_rows(visible as usize)
+                            .desired_width(f32::INFINITY)
+                            .margin(egui::Margin { left: 12, right: LINK_PAD as i8, top: LINK_PAD as i8, bottom: LINK_PAD as i8 })
+                            .layouter(&mut layouter)
+                            .hint_text(RichText::new("https://example.com/file.zip").font(egui::FontId::monospace(LINK_FONT)).color(t.faint)),
+                    );
+                    if ui.memory(|m| m.focused().is_none()) {
+                        edit.request_focus();
+                    }
+                });
+            });
+        });
+    });
+}
+
 /// `None` while open; `Some(None)` cancelled; `Some(Some(params))` for `download.add(Many)`.
 pub fn add(ctx: &egui::Context, f: &mut AddForm, t: &Tokens, services: &dyn Services) -> Option<Option<Value>> {
     let mut out = None;
@@ -102,17 +198,7 @@ pub fn add(ctx: &egui::Context, f: &mut AddForm, t: &Tokens, services: &dyn Serv
         if header(ui, t, "Add link", "Paste one link per line. Direct links download now.") {
             out = Some(None);
         }
-        widgets::field_label(ui, t, "Links");
-        let edit = ui.add(
-            egui::TextEdit::multiline(&mut f.links)
-                .desired_rows(3)
-                .desired_width(f32::INFINITY)
-                .margin(egui::Margin::symmetric(10, 8))
-                .hint_text("https://example.com/file.zip"),
-        );
-        if ui.memory(|m| m.focused().is_none()) {
-            edit.request_focus();
-        }
+        links_box(ui, t, &mut f.links);
         let links = f.links();
         let checks: Vec<Result<source::SourceKind, &str>> = links.iter().map(|l| source::classify(l)).collect();
         let ok = checks.iter().filter(|c| matches!(c, Ok(k) if k.not_yet().is_none())).count();
