@@ -189,3 +189,19 @@ fn the_window_sees_where_the_update_is() {
     assert!(!idle.shared.started.load(Ordering::SeqCst) && idle.shared.stop.load(Ordering::SeqCst));
     let _ = std::fs::remove_dir_all(&dir);
 }
+
+/// A folder chosen in the setup wizard is found through the one the MSI records.
+#[test]
+fn the_msi_folder_comes_from_the_registry_too() {
+    let out = "\r\nHKEY_CURRENT_USER\\Software\\Learning Machines LLC\\DownloadCraft\r\n    InstallDir    REG_SZ    D:\\Apps\\DC\\\r\n\r\n";
+    assert_eq!(parse_reg_value(out, "InstallDir").as_deref(), Some(r"D:\Apps\DC"));
+    assert_eq!(parse_reg_value("    Other    REG_SZ    x", "InstallDir"), None);
+    if cfg!(windows) {
+        let dir = scratch("chosen");
+        let exe = dir.join("downloadcraft.exe");
+        let recorded = dir.clone();
+        let env = move |k: &str| (k == INSTALL_DIR).then(|| recorded.clone());
+        assert_eq!(detect_at(&exe, &env), Some(Kind::Msi(exe.clone())));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

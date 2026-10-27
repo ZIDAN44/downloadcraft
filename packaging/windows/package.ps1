@@ -12,7 +12,9 @@
   warning when no signing secrets are set).
 
   Needs: Rust (MSVC toolchain + the target), the Windows SDK (rc.exe, signtool.exe),
-  and WiX v5: dotnet tool install --global wix --version 5.0.2
+  and WiX v5 with its UI and Util extensions:
+    dotnet tool install --global wix --version 5.0.2
+    wix extension add -g WixToolset.UI.wixext/5.0.2 WixToolset.Util.wixext/5.0.2
 
 .EXAMPLE
   pwsh packaging/windows/package.ps1 -Arch x64
@@ -92,12 +94,62 @@ Copy-Item (Join-Path $Bin 'downloadcraft.exe'), (Join-Path $Bin 'downloadcraft-c
 & (Join-Path $PSScriptRoot 'sign.ps1') (Join-Path $Stage 'downloadcraft.exe') (Join-Path $Stage 'downloadcraft-cli.exe')
 
 # ---- MSI ---------------------------------------------------------------------------------------
+# The setup wizard's art, drawn here (System.Drawing) from DownloadCraft's icon, as craft-launcher
+# does: the banner over the inner pages (493x58) and the Welcome and Finish pages' picture
+# (493x312, the text sits on the right 329 px of it).
+function New-InstallerArt([string] $BannerOut, [string] $DialogOut) {
+  Add-Type -AssemblyName System.Drawing
+  $top = [System.Drawing.ColorTranslator]::FromHtml('#3a8aee')
+  $bottom = [System.Drawing.ColorTranslator]::FromHtml('#1758b4')
+  $icon = [System.Drawing.Image]::FromFile((Join-Path $Root 'assets\app-icon\hicolor\256x256\apps\ai.storyteller.downloadcraft.png'))
+  try {
+    foreach ($spec in @(@($BannerOut, 493, 58), @($DialogOut, 493, 312))) {
+      $bmp = New-Object System.Drawing.Bitmap $spec[1], $spec[2], ([System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
+      $g = [System.Drawing.Graphics]::FromImage($bmp)
+      try {
+        $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+        $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
+        $g.Clear([System.Drawing.Color]::White)
+        if ($spec[2] -eq 58) {
+          $g.DrawImage($icon, 433, 9, 40, 40)
+        } else {
+          $panel = New-Object System.Drawing.Rectangle 0, 0, 164, 312
+          $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush $panel, $top, $bottom, 90
+          $g.FillRectangle($brush, $panel)
+          $brush.Dispose()
+          $g.DrawImage($icon, 42, 70, 80, 80)
+          $font = New-Object System.Drawing.Font 'Segoe UI', 13, ([System.Drawing.FontStyle]::Bold), ([System.Drawing.GraphicsUnit]::Pixel)
+          $format = New-Object System.Drawing.StringFormat
+          $format.Alignment = [System.Drawing.StringAlignment]::Center
+          $g.DrawString('DownloadCraft', $font, [System.Drawing.Brushes]::White, (New-Object System.Drawing.RectangleF 0, 166, 164, 24), $format)
+          $font.Dispose()
+        }
+        $bmp.Save($spec[0], [System.Drawing.Imaging.ImageFormat]::Bmp)
+      } finally {
+        $g.Dispose()
+        $bmp.Dispose()
+      }
+    }
+  } finally {
+    $icon.Dispose()
+  }
+}
+$Banner = Join-Path $Stage 'installer-banner.bmp'
+$Dialog = Join-Path $Stage 'installer-dialog.bmp'
+New-InstallerArt $Banner $Dialog
+
 $Msi = Join-Path $Dist "downloadcraft-$Version-windows-$Arch.msi"
 Invoke-Native 'wix build' {
   wix build (Join-Path $PSScriptRoot 'downloadcraft.wxs') -arch $Arch `
-    -d "Version=$MsiVersion" -d "BinDir=$Stage" -d "IconPath=$(Join-Path $Root 'assets\app-icon\downloadcraft.ico')" `
+    -ext WixToolset.UI.wixext -ext WixToolset.Util.wixext `
+    -culture en-US -loc (Join-Path $PSScriptRoot 'downloadcraft.en-us.wxl') `
+    -d "Version=$MsiVersion" -d "DisplayVersion=$Version" -d "BinDir=$Stage" -d "IconPath=$(Join-Path $Root 'assets\app-icon\downloadcraft.ico')" `
+    -d "BannerBmp=$Banner" -d "DialogBmp=$Dialog" `
     -o $Msi
 }
+# The wizard's art isn't shipped beside the exe.
+Remove-Item -Force $Banner, $Dialog
 # wix writes its debug symbols (.wixpdb) next to the MSI; keep them out of the release assets.
 Remove-Item -Force -ErrorAction SilentlyContinue ([IO.Path]::ChangeExtension($Msi, '.wixpdb'))
 & (Join-Path $PSScriptRoot 'sign.ps1') $Msi

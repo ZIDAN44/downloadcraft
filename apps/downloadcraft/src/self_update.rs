@@ -99,7 +99,37 @@ impl Kind {
 pub fn detect() -> Option<Kind> {
     let exe = std::env::current_exe().ok()?;
     let exe = plain(exe.canonicalize().unwrap_or(exe));
-    detect_at(&exe, &|k| std::env::var_os(k).map(PathBuf::from))
+    let recorded = recorded_install_dir();
+    detect_at(&exe, &|k| if k == INSTALL_DIR { recorded.clone() } else { std::env::var_os(k).map(PathBuf::from) })
+}
+
+/// The name [`detect_at`] asks for the folder the MSI recorded.
+const INSTALL_DIR: &str = "<msi install dir>";
+
+/// The folder the MSI recorded as where it installed DownloadCraft (the user may have chosen
+/// another than the default): `HKCU\Software\Learning Machines LLC\DownloadCraft`, `InstallDir`.
+fn recorded_install_dir() -> Option<PathBuf> {
+    if !cfg!(windows) {
+        return None;
+    }
+    let mut cmd = std::process::Command::new("reg.exe");
+    cmd.args(["query", r"HKCU\Software\Learning Machines LLC\DownloadCraft", "/v", "InstallDir"]);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000);
+    }
+    let out = cmd.output().ok().filter(|o| o.status.success())?;
+    parse_reg_value(&String::from_utf8_lossy(&out.stdout), "InstallDir").map(PathBuf::from)
+}
+
+/// The value of `name` in `reg query` output (`    InstallDir    REG_SZ    C:\…\DownloadCraft\`).
+fn parse_reg_value(out: &str, name: &str) -> Option<String> {
+    out.lines().find_map(|l| {
+        let rest = l.trim_start().strip_prefix(name)?;
+        let value = rest.trim_start().strip_prefix("REG_SZ")?.trim();
+        (!value.is_empty()).then(|| value.trim_end_matches('\\').to_string())
+    })
 }
 
 /// A path without Windows' `\\?\` prefix, which `canonicalize` adds and PowerShell's archive
@@ -122,10 +152,14 @@ fn detect_at(exe: &Path, env: &dyn Fn(&str) -> Option<PathBuf>) -> Option<Kind> 
         if dir.join(crate::store::PORTABLE_MARKER).is_file() {
             return Some(Kind::Portable(exe.to_path_buf()));
         }
-        // The MSI installs for this user into %LOCALAPPDATA%\Programs\DownloadCraft
-        // (packaging/windows/downloadcraft.wxs).
-        let same = |a: &Path, b: &Path| a.to_string_lossy().eq_ignore_ascii_case(&b.to_string_lossy());
-        let installed = env("LOCALAPPDATA").is_some_and(|p| same(dir, &p.join("Programs").join("DownloadCraft")));
+        // The MSI installs for this user, into the folder it records (packaging/windows/downloadcraft.wxs),
+        // by default %LOCALAPPDATA%\Programs\DownloadCraft.
+        let same = |a: &Path, b: &Path| {
+            let (a, b) = (a.to_string_lossy(), b.to_string_lossy());
+            a.trim_end_matches('\\').eq_ignore_ascii_case(b.trim_end_matches('\\'))
+        };
+        let installed = env(INSTALL_DIR).is_some_and(|p| same(dir, &p))
+            || env("LOCALAPPDATA").is_some_and(|p| same(dir, &p.join("Programs").join("DownloadCraft")));
         return installed.then(|| Kind::Msi(exe.to_path_buf()));
     }
     if cfg!(target_os = "macos") {

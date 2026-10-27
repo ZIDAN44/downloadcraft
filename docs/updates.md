@@ -31,7 +31,7 @@ change themselves, and `DOWNLOADCRAFT_NO_AUTO_UPDATE=1` turns it off for a run.
 
 | Installed from | The helper | Administrator? |
 |---|---|---|
-| `.msi` | `msiexec /i … /passive` | No: it installs for this user, in `%LOCALAPPDATA%\Programs\DownloadCraft` |
+| `.msi` | `msiexec /i … /passive` | No: it installs for this user, by default in `%LOCALAPPDATA%\Programs\DownloadCraft` |
 | portable `.zip` | unzipped over the app's folder; `DownloadCraftData` stays | No |
 | `.dmg` | `DownloadCraft.app` copied out in place of this one | No, where this user may write (`/Applications` on an admin account, or `~/Applications`) |
 | `.AppImage` | the new file renamed over this one | No, where this user may write |
@@ -43,6 +43,14 @@ To try it against the newest test build, run a test build with
 `DOWNLOADCRAFT_UPDATE_FIRST_CHECK=5` (seconds before the first check).
 
 ## Windows: per user, no administrator
+
+The installer follows craft-launcher's (storytold/craft-launcher): a setup wizard with a folder
+page (default `%LOCALAPPDATA%\Programs\DownloadCraft`, or another the user picks) and a "Create a
+desktop shortcut" box, and a Finish page that offers to launch it. The folder and the shortcut
+choice are recorded under `HKCU\Software\Learning Machines LLC\DownloadCraft`; updates (run with
+`/passive`, no wizard) land in the same folder, and the updater reads `InstallDir` there to know
+this copy came from the MSI. `windows-arm64.yml` checks all of it on every push, as for the
+launcher.
 
 MailCraft's MSI installs into Program Files for everyone on the PC, so every update makes Windows
 ask for an administrator. DownloadCraft's MSI installs for the user running it instead, the way VS

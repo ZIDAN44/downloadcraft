@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Overrides for the setup wizard's WixUI strings, so its pages name the version being installed
+  ([DownloadCraftVersion] is the full version, pre-release tag included, set in downloadcraft.wxs)
+  and say what DownloadCraft is. As craft-launcher's installer does.
+-->
+<WixLocalization Culture="en-US" xmlns="http://wixtoolset.org/schemas/v4/wxl">
+  <String Id="WelcomeDlgTitle" Value="{\WixUI_Font_Bigger}Welcome to [ProductName] [DownloadCraftVersion]" />
+  <String Id="WelcomeDlgDescription" Value="DownloadCraft is a download manager: paste a link, pause it, and carry on later from where it stopped.&#13;&#10;&#13;&#10;It installs for you only, so no administrator rights are needed. Click Next to continue." />
+  <String Id="InstallDirDlgTitle" Value="{\WixUI_Font_Title}Choose where to install" />
+  <String Id="InstallDirDlgDescription" Value="Click Next to install to the default folder, or click Change to pick another." />
+  <String Id="DownloadCraftInstallDirNote" Value="DownloadCraft installs for you only, without administrator rights, so pick a folder you can write to (not Program Files). Updates install into the same folder." />
+  <String Id="DownloadCraftDesktopShortcut" Value="Create a desktop shortcut" />
+  <String Id="VerifyReadyDlgInstallTitle" Value="{\WixUI_Font_Title}Ready to install [ProductName] [DownloadCraftVersion]" />
+  <String Id="ExitDialogTitle" Value="{\WixUI_Font_Bigger}Completed the [ProductName] [DownloadCraftVersion] Setup Wizard" />
+</WixLocalization>
