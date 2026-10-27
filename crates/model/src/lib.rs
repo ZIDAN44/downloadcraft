@@ -130,6 +130,14 @@ pub struct TorrentChoice {
     /// The torrent's files, once it has reported them, so they can be picked while it's paused.
     #[serde(default)]
     pub list: Vec<probe::TorrentFile>,
+    /// Files to download first (indexes); the rest of those picked follow once these are done.
+    #[serde(default)]
+    pub first: Vec<usize>,
+    /// This torrent's own speed limits, in KiB/s; 0 for none (the overall ones still apply).
+    #[serde(default)]
+    pub down_kib: u32,
+    #[serde(default)]
+    pub up_kib: u32,
 }
 
 /// The quality chosen for a video download.

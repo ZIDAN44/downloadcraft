@@ -41,6 +41,10 @@ pub struct Pane {
 pub enum Action {
     /// Download only these files of the torrent (indexes in its list).
     PickFiles(Vec<usize>),
+    /// Download this file before the others (`true`), or with them.
+    First(usize, bool),
+    /// This torrent's own speed limits, down and up, in KiB/s.
+    Limits(u32, u32),
     Copy(String),
 }
 
@@ -134,6 +138,18 @@ fn general(ui: &mut Ui, t: &Tokens, d: &Download, live: Option<&TorrentLive>, pr
             }
         });
         ui.add_space(6.0);
+        if let Some(choice) = &d.torrent {
+            let (mut down, mut up) = (choice.down_kib, choice.up_kib);
+            ui.horizontal_wrapped(|ui| {
+                ui.label(RichText::new(tl!("This torrent's limits (KiB/s, 0: none)")).size(12.5).color(t.muted));
+                let a = ui.add(egui::DragValue::new(&mut down).range(0..=4_000_000).speed(16).prefix("↓ "));
+                let b = ui.add(egui::DragValue::new(&mut up).range(0..=4_000_000).speed(16).prefix("↑ "));
+                if a.changed() || b.changed() {
+                    *act = Some(Action::Limits(down, up));
+                }
+                ui.label(RichText::new(tl!("from its next start")).size(12.0).color(t.faint));
+            });
+        }
         ui.horizontal_wrapped(|ui| {
             ui.label(RichText::new(tl!("Info hash")).size(12.0).color(t.muted));
             if ui.add(egui::Button::new(RichText::new(&l.info_hash).monospace().size(11.5)).frame(false)).on_hover_text(tl!("Copy")).clicked() {
@@ -181,6 +197,20 @@ fn trackers(ui: &mut Ui, t: &Tokens, live: Option<&TorrentLive>, engine: Option<
             cell(ui, "");
             cell(ui, "");
             cell(ui, "");
+            ui.end_row();
+        }
+        for x in &l.web_seeds {
+            ui.add(egui::Label::new(RichText::new(tf!("Web seed: {url}", url = x.url)).size(12.5)).truncate()).on_hover_text(&x.url);
+            let (text, color) = match &x.status {
+                TrackerStatus::Waiting => (tl!("Not asked yet").to_string(), t.muted),
+                TrackerStatus::Working => (tl!("Answering").to_string(), t.success),
+                TrackerStatus::Failing(why) => (tf!("Not answering: {why}", why = why), t.danger),
+                TrackerStatus::Unsupported => (tl!("Can't be asked about the swarm").to_string(), t.faint),
+            };
+            ui.add(egui::Label::new(RichText::new(text).size(12.5).color(color)).truncate());
+            cell(ui, "");
+            cell(ui, "");
+            cell(ui, x.completed.map_or_else(String::new, |n| tf!("{n} files", n = n)));
             ui.end_row();
         }
         for x in &l.trackers {
@@ -254,6 +284,12 @@ fn files(ui: &mut Ui, t: &Tokens, pane: &mut Pane, d: &Download, live: Option<&T
                     if !next.is_empty() {
                         *act = Some(Action::PickFiles(next));
                     }
+                }
+                let first = choice.first.contains(&f.index);
+                let star =
+                    egui::Button::new(RichText::new(tl!("First")).size(11.5).color(if first { t.accent } else { t.faint })).frame(first).small();
+                if ui.add_enabled(on, star).on_hover_text(tl!("Download this file before the others")).clicked() {
+                    *act = Some(Action::First(f.index, !first));
                 }
                 let done = live.and_then(|l| l.file_done.get(f.index)).copied();
                 let fraction = done.map(|x| if f.size == 0 { 1.0 } else { (x as f64 / f.size as f64) as f32 });

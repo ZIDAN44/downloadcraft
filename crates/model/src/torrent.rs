@@ -37,6 +37,15 @@ pub struct TorrentLive {
     pub peers: Vec<Peer>,
     /// The torrent's trackers, as last asked.
     pub trackers: Vec<Tracker>,
+    /// Its web seeds (BEP 19): web servers that have its files, and how fetching from them went.
+    #[serde(default)]
+    pub web_seeds: Vec<Tracker>,
+    /// Files are being fetched from a web seed before peers are asked.
+    #[serde(default)]
+    pub from_web: bool,
+    /// The files to download first are done, and the rest are being fetched.
+    #[serde(default)]
+    pub first_done: bool,
     /// Bytes on disk of each file, by its index in the torrent's list.
     pub file_done: Vec<u64>,
     /// The torrent's files: in the first report of a run only (the engine keeps them).
@@ -380,6 +389,56 @@ fn udp_check(answer: &[u8], action: u32, transaction: u32) -> Result<(), String>
         return Err("the tracker answered something else".into());
     }
     Ok(())
+}
+
+// ---------------------------------------------------------------------------------------------
+// Web seeds (BEP 19).
+
+/// The most web seeds taken from one torrent.
+pub const MAX_WEB_SEEDS: usize = 8;
+
+/// The web seeds a `.torrent` file names (`url-list`, one address or a list): http and https
+/// only, each once, at most [`MAX_WEB_SEEDS`].
+pub fn url_list(torrent: &[u8]) -> Vec<String> {
+    let Some(v) = bdecode(torrent) else { return Vec::new() };
+    let items: Vec<&Bencode> = match v.get(b"url-list") {
+        Some(Bencode::List(l)) => l.iter().collect(),
+        Some(b @ Bencode::Bytes(_)) => vec![b],
+        _ => Vec::new(),
+    };
+    let mut out: Vec<String> = Vec::new();
+    for b in items.into_iter().filter_map(Bencode::bytes) {
+        let Ok(url) = std::str::from_utf8(b) else { continue };
+        let url = url.trim();
+        let web = url.starts_with("https://") || url.starts_with("http://");
+        if web && url.len() <= 2048 && !url.chars().any(char::is_whitespace) && !out.iter().any(|u| u == url) {
+            out.push(url.to_string());
+        }
+        if out.len() >= MAX_WEB_SEEDS {
+            break;
+        }
+    }
+    out
+}
+
+/// Where a web seed serves one file (BEP 19): a torrent of one file at the address itself, or at
+/// the address plus its name when the address ends in `/`; a torrent of several files under
+/// `address/name/path`. Each part is percent-encoded.
+pub fn web_seed_url(base: &str, name: &str, path: &[&str], single: bool) -> String {
+    let enc = |part: &str| -> String {
+        part.bytes()
+            .map(|b| if b.is_ascii_alphanumeric() || matches!(b, b'-' | b'.' | b'_' | b'~') { (b as char).to_string() } else { format!("%{b:02X}") })
+            .collect()
+    };
+    if single {
+        return if base.ends_with('/') { format!("{base}{}", enc(name)) } else { base.to_string() };
+    }
+    let mut url = base.trim_end_matches('/').to_string();
+    for part in std::iter::once(name).chain(path.iter().copied()) {
+        url.push('/');
+        url.push_str(&enc(part));
+    }
+    url
 }
 
 /// The 20 bytes of a hex info hash.

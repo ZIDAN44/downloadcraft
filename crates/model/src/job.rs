@@ -35,9 +35,26 @@ pub enum Job {
         seed_ratio: f32,
         #[serde(default)]
         sent: u64,
+        /// Files to download first (`TorrentChoice::first`).
+        #[serde(default)]
+        priority: Vec<usize>,
+        /// This torrent's speed limits in KiB/s (0: none), and the connections a web seed's file
+        /// may be fetched on.
+        #[serde(default)]
+        down_kib: u32,
+        #[serde(default)]
+        up_kib: u32,
+        #[serde(default)]
+        connections: u8,
     },
-    /// Change the files a running torrent downloads (indexes in its list; empty for all).
-    PickFiles { id: DownloadId, files: Vec<usize> },
+    /// Change the files a running torrent downloads (indexes in its list; empty for all), and
+    /// those it downloads first.
+    PickFiles {
+        id: DownloadId,
+        files: Vec<usize>,
+        #[serde(default)]
+        priority: Vec<usize>,
+    },
     /// The torrent settings, whenever they change (and once the list is loaded).
     Configure { torrent: crate::torrent::TorrentPrefs },
     /// Stop the transfer of `id` (whatever run it is on); the partial file stays for a resume.

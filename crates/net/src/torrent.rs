@@ -9,6 +9,11 @@
 //! times its size. A file already in the folder is never written over on a first start; on later
 //! starts librqbit checks what's on disk piece by piece and fetches only what's missing.
 //!
+//! What librqbit doesn't do is done around it: web seeds are fetched first with DownloadCraft's own
+//! HTTP downloader (`torrent/web.rs`); files to download first are picked alone, and the rest once
+//! they're done; a torrent's own speed limits are given as it's added (so a change applies from its
+//! next start).
+//!
 //! A torrent's files are written in place under their own names (there's no `.dcpart`): a
 //! torrent of one file becomes `folder/name`, one of several `folder/name/…`. Only the files
 //! picked appear (`torrent/storage.rs`), and the choice can change while it runs.
@@ -21,6 +26,7 @@ use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
 use downloadcraft_model::probe::{MAX_TORRENT_FILES, Probe, TorrentFile};
+use downloadcraft_model::torrent::TorrentLive;
 use downloadcraft_model::{DownloadId, Event, names, source};
 use librqbit::storage::StorageFactoryExt;
 use librqbit::{AddTorrent, AddTorrentOptions, AddTorrentResponse, ListOnlyResponse};
@@ -31,6 +37,7 @@ mod engine;
 mod live;
 mod scrape;
 mod storage;
+mod web;
 
 pub use engine::{configure, set_dir, status};
 
@@ -46,8 +53,15 @@ pub struct TorrentFetch {
     pub seed_ratio: f32,
     /// Bytes sent in earlier runs, counted towards `seed_ratio`.
     pub sent: u64,
-    /// New choices of files (`Job::PickFiles`).
-    pub picks: Receiver<Vec<usize>>,
+    /// Files to download first.
+    pub priority: Vec<usize>,
+    /// This torrent's speed limits in KiB/s (0: none).
+    pub down_kib: u32,
+    pub up_kib: u32,
+    /// The connections one file from a web seed may be fetched on.
+    pub connections: u8,
+    /// New choices of files, and of those to download first (`Job::PickFiles`).
+    pub picks: Receiver<(Vec<usize>, Vec<usize>)>,
 }
 
 /// The largest `.torrent` file read (they're rarely over a few megabytes).
@@ -58,6 +72,9 @@ const DETAILS_TIMEOUT: Duration = Duration::from_secs(10 * 60);
 const PROBE_TIMEOUT: Duration = Duration::from_secs(90);
 /// How often progress is reported, and the details every other time.
 const TICK: Duration = Duration::from_millis(500);
+/// How long a torrent whose files all came from web seeds waits for a peer to check the pieces it
+/// shares with files left out, before its files are taken as they came.
+const WEB_TRUST_AFTER: Duration = Duration::from_secs(20);
 
 /// Look at a torrent before it's added: its name and files (blocking; a magnet link waits for a
 /// peer to send its details, up to [`PROBE_TIMEOUT`]).
@@ -209,9 +226,10 @@ fn transfer(spec: &TorrentFetch, cancel: &AtomicBool, sink: &Sink) -> Result<(),
     // The name in the folder: the torrent's folder, or its one file.
     let top = if own { name.clone() } else { files.first().map(|f| f.path.clone()).unwrap_or(name.clone()) };
     let out = if own { spec.folder.join(&top) } else { spec.folder.clone() };
-    // Indexes into the torrent's own list (padding included), as librqbit counts them.
-    let mut only = picked(&files, &spec.files);
-    let every = only.len() == files.len();
+    // Indexes into the torrent's own list (padding included), as librqbit counts them: every file
+    // picked, and of them those to download first.
+    let mut wanted = picked(&files, &spec.files);
+    let mut first: Vec<usize> = spec.priority.iter().copied().filter(|i| wanted.contains(i)).collect();
     if spec.first {
         // Never written over: an earlier file of the same name stays as it is.
         let taken = if own { out.exists() } else { out.join(&top).exists() };
@@ -219,19 +237,60 @@ fn transfer(spec: &TorrentFetch, cancel: &AtomicBool, sink: &Sink) -> Result<(),
             return Err(NetError::Disk(format!("\u{201c}{top}\u{201d} is already in the folder; move it, or save the torrent somewhere else")));
         }
     }
-    let mut total = size_of(&files, &only);
+    let mut total = size_of(&files, &wanted);
     if spec.first {
         crate::http::room_for(&spec.folder, total)?;
     }
-
     let e = engine::engine()?;
+    let hash = found.info_hash.as_string();
+    sink.send(Event::Started { id, run, total: Some(total), resumable: true, file_name: top.clone(), done: 0 });
+
+    // Web seeds first, when the torrent names any (and no proxy is set).
+    let seeds = if e.proxied() { Vec::new() } else { downloadcraft_model::torrent::url_list(&found.torrent_bytes) };
+    let mut web = web::Outcome { seeds: Vec::new(), all: false, wrote: false };
+    if !seeds.is_empty() {
+        let order: Vec<&TorrentFile> = files
+            .iter()
+            .filter(|f| first.contains(&f.index))
+            .chain(files.iter().filter(|f| wanted.contains(&f.index) && !first.contains(&f.index)))
+            .collect();
+        let plan = web::Plan { seeds, name: &name, single: !own, out: &out, files: order };
+        let mut told = false;
+        let mut report = |done: u64, speed: u64, seeds: &[downloadcraft_model::torrent::Tracker]| {
+            sink.send(Event::Progress { id, run, done: done.min(total), speed, segments: Vec::new() });
+            let live = TorrentLive {
+                info_hash: hash.clone(),
+                size: total,
+                have: done.min(total),
+                down_speed: speed,
+                web_seeds: seeds.to_vec(),
+                from_web: true,
+                files: if std::mem::replace(&mut told, true) { Vec::new() } else { files.clone() },
+                ..TorrentLive::default()
+            };
+            sink.send(Event::Details { id, run, live: Box::new(live) });
+        };
+        match web::fetch(spec, &plan, cancel, &mut report) {
+            Some(outcome) => web = outcome,
+            None => return Ok(()),
+        }
+    }
+
+    // The files to download first, alone; the rest of those picked once they're done.
+    let staged = |first: &[usize], wanted: &[usize]| !first.is_empty() && first.len() < wanted.len();
+    let mut in_stage_one = staged(&first, &wanted) && !web.all;
+    let mut only = if in_stage_one { first.clone() } else { wanted.clone() };
+    let every = only.len() == files.len();
     let store = Arc::new(Mutex::new(None));
     let factory = storage::PickedFactory { out: out.clone(), picked: (!every).then(|| only.clone()), handle: store.clone() };
+    let kib = |k: u32| std::num::NonZeroU32::new(k.saturating_mul(1024));
     let opts = AddTorrentOptions {
         output_folder: Some(out.to_string_lossy().into_owned()),
         only_files: (!every).then(|| only.clone()),
-        overwrite: !spec.first,
+        // What the web seeds wrote is checked, piece by piece, like a resume.
+        overwrite: !spec.first || web.wrote,
         storage_factory: Some(factory.boxed()),
+        ratelimits: librqbit::limits::LimitsConfig { download_bps: kib(spec.down_kib), upload_bps: kib(spec.up_kib) },
         ..AddTorrentOptions::default()
     };
     let session = e.session.clone();
@@ -243,25 +302,42 @@ fn transfer(spec: &TorrentFetch, cancel: &AtomicBool, sink: &Sink) -> Result<(),
         Ok(AddTorrentResponse::ListOnly(_)) => return Err(NetError::Http("the torrent didn't start".into())),
         Err(why) => return Err(NetError::Http(plain_error(&format!("{why:#}")))),
     };
-    let hash = handle.info_hash();
+    let info_hash = handle.info_hash();
     let forget = || {
         let session = e.session.clone();
-        if let Err(why) = e.rt.block_on(async move { session.delete(hash.into(), false).await }) {
-            log::warn!("couldn't let go of torrent {}: {why:#}", hash.as_string());
+        if let Err(why) = e.rt.block_on(async move { session.delete(info_hash.into(), false).await }) {
+            log::warn!("couldn't let go of torrent {}: {why:#}", info_hash.as_string());
+        }
+    };
+    // Change the files librqbit fetches (and those the storage keeps).
+    let set_files = |now: &[usize]| {
+        let all = now.len() == files.len();
+        if let Some(s) = store.lock().unwrap_or_else(PoisonError::into_inner).as_ref()
+            && let Err(why) = s.pick((!all).then_some(now))
+        {
+            log::warn!("couldn't write the files newly picked: {why:#}");
+        }
+        let set: HashSet<usize> = now.iter().copied().collect();
+        let session = e.session.clone();
+        let h = handle.clone();
+        if let Err(why) = e.rt.block_on(async move { session.update_only_files(&h, &set).await }) {
+            log::warn!("couldn't change the files picked: {why:#}");
         }
     };
     let stop = Arc::new(AtomicBool::new(false));
     let _stop = StopOnDrop(stop.clone());
     let urls = handle.shared().trackers.iter().map(|u| u.to_string()).collect();
-    let trackers = scrape::start(urls, hash.0, e.proxied(), stop);
+    let trackers = scrape::start(urls, info_hash.0, e.proxied(), stop);
     let mut watch = live::Watch::new(e.peer_limit());
-    let first = handle.stats();
-    sink.send(Event::Started { id, run, total: Some(total), resumable: true, file_name: top, done: first.progress_bytes.min(total) });
+    watch.web = web.seeds.clone();
 
     // Downloading, then sharing, while DownloadCraft is open, until it has sent `seed_ratio`
     // times its size (counting earlier runs).
     let mut finished = false;
     let mut last_sent = u64::MAX;
+    // When the web seeds brought every file but pieces shared with files left out can't be
+    // checked (no peer has them), the files are taken as they came, like any web download.
+    let mut idle_since: Option<(Instant, u64)> = None;
     for tick in 0u64.. {
         if cancel.load(Ordering::Relaxed) {
             forget();
@@ -270,25 +346,18 @@ fn transfer(spec: &TorrentFetch, cancel: &AtomicBool, sink: &Sink) -> Result<(),
             }
             return Ok(());
         }
-        while let Ok(wanted) = spec.picks.try_recv() {
-            let now = picked(&files, &wanted);
-            if now == only {
-                continue;
+        while let Ok((files_now, first_now)) = spec.picks.try_recv() {
+            wanted = picked(&files, &files_now);
+            first = first_now.into_iter().filter(|i| wanted.contains(i)).collect();
+            total = size_of(&files, &wanted);
+            let progress = handle.stats().file_progress;
+            let done_first = first.iter().all(|i| files.iter().any(|f| f.index == *i && progress.get(*i).is_some_and(|d| *d >= f.size)));
+            in_stage_one = staged(&first, &wanted) && !done_first;
+            let now = if in_stage_one { first.clone() } else { wanted.clone() };
+            if now != only {
+                set_files(&now);
+                only = now;
             }
-            let all = now.len() == files.len();
-            if let Some(s) = store.lock().unwrap_or_else(PoisonError::into_inner).as_ref()
-                && let Err(why) = s.pick((!all).then_some(now.as_slice()))
-            {
-                log::warn!("couldn't write the files newly picked: {why:#}");
-            }
-            let set: HashSet<usize> = now.iter().copied().collect();
-            let session = e.session.clone();
-            let h = handle.clone();
-            if let Err(why) = e.rt.block_on(async move { session.update_only_files(&h, &set).await }) {
-                log::warn!("couldn't change the files picked: {why:#}");
-            }
-            only = now;
-            total = size_of(&files, &only);
         }
         let st = handle.stats();
         if let Some(why) = st.error {
@@ -296,17 +365,36 @@ fn transfer(spec: &TorrentFetch, cancel: &AtomicBool, sink: &Sink) -> Result<(),
             return Err(disk_or_net(&why));
         }
         if tick % 2 == 0 {
+            watch.first_done = !first.is_empty() && !in_stage_one;
             sink.send(Event::Details { id, run, live: Box::new(watch.look(&handle, &files, total, &trackers)) });
         }
+        if in_stage_one && st.finished {
+            // The files to download first are done: on to the rest.
+            log::info!("torrent {}: the files to download first are done; on to the rest", id.0);
+            in_stage_one = false;
+            set_files(&wanted);
+            only = wanted.clone();
+            std::thread::sleep(TICK);
+            continue;
+        }
         if !finished {
-            if st.finished {
+            let have: u64 =
+                files.iter().filter(|f| wanted.contains(&f.index)).map(|f| st.file_progress.get(f.index).copied().unwrap_or(0).min(f.size)).sum();
+            let stuck = web.all && st.live.as_ref().is_some_and(|l| l.snapshot.peer_stats.live == 0) && {
+                let since = idle_since.get_or_insert((Instant::now(), st.progress_bytes));
+                if since.1 != st.progress_bytes {
+                    *since = (Instant::now(), st.progress_bytes);
+                }
+                since.0.elapsed() > WEB_TRUST_AFTER
+            };
+            if (st.finished && !in_stage_one) || stuck {
                 // librqbit counts whole pieces, which can run into files left out.
                 sink.send(Event::Finished { id, run, done: total });
                 finished = true;
                 watch.seeding();
             } else {
                 let speed = st.live.as_ref().map_or(0, |l| l.download_speed.as_bytes());
-                sink.send(Event::Progress { id, run, done: st.progress_bytes.min(total), speed, segments: Vec::new() });
+                sink.send(Event::Progress { id, run, done: have.min(total), speed, segments: Vec::new() });
             }
         }
         if finished {

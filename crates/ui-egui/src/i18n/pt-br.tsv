@@ -58,6 +58,7 @@
 	Download folder	Pasta de downloads
 	Download limit	Limite de download
 	Download speed	Velocidade de download
+	Download this file before the others	Baixar este arquivo antes dos outros
 	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	O DownloadCraft se mantém atualizado sozinho. Quando uma nova versão está pronta, uma barra no alto permite reiniciar para instalá-la.
 	DownloadCraft {version} is ready.	O DownloadCraft {version} está pronto.
 	Downloaded	Baixado
@@ -73,6 +74,7 @@
 	Files	Arquivos
 	Filter files	Filtrar arquivos
 	Finished	Concluídos
+	First	Primeiro
 	Follows your computer's language unless you pick one.	Segue o idioma do computador, a menos que você escolha outro.
 	Free and open source, under the MIT or Apache-2.0 licence.	Livre e de código aberto, sob a licença MIT ou Apache-2.0.
 	General	Geral
@@ -183,6 +185,7 @@
 	Theme: System. Click for Light	Tema: Sistema. Clique para Claro
 	These show while it's downloading or sharing.	Isto aparece enquanto ele baixa ou é compartilhado.
 	This run	Esta sessão
+	This torrent's limits (KiB/s, 0: none)	Limites deste torrent (KiB/s, 0: nenhum)
 	Time active	Tempo ativo
 	Time left	Tempo restante
 	Torrent	Torrent
@@ -206,10 +209,13 @@
 	Videos	Vídeos
 	Waiting for a free slot	Esperando uma vaga livre
 	Wasted	Desperdiçado
+	Web seed: {url}	Semente web: {url}
 	With all of it	Com tudo
 	YouTube also needs Deno (deno.com) for every quality; install it to get them.	O YouTube também precisa do Deno (deno.com) para todas as qualidades; instale para tê-las.
 	YouTube also needs Deno, a free JavaScript runtime yt-dlp reads its pages with; without it some qualities are missing. DownloadCraft fetches its official build and checks it before use.	O YouTube também precisa do Deno, um ambiente JavaScript livre com o qual o yt-dlp lê as páginas; sem ele faltam algumas qualidades. O DownloadCraft baixa a versão oficial e a verifica antes de usar.
 	a proxy with a password isn't supported yet	um proxy com senha ainda não é suportado
+	from a web seed	de uma semente web
+	from its next start	a partir do próximo início
 	host:port, or empty for none	host:porta, ou vazio para nenhum
 	none	nenhum
 	not known yet	ainda não se sabe
@@ -228,6 +234,7 @@
 	{n} connections	{n} conexões
 	{n} downloads	{n} downloads
 	{n} downloads running	{n} downloads em andamento
+	{n} files	{n} arquivos
 	{n} in the list · {connections} connections each	{n} na lista · {connections} conexões cada
 	{n} links	{n} links
 	{n} × {size}	{n} × {size}

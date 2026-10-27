@@ -78,7 +78,7 @@ struct Transfer {
     cancel: Arc<AtomicBool>,
     handle: JoinHandle<()>,
     /// A torrent's new choices of files.
-    picks: Option<std::sync::mpsc::Sender<Vec<usize>>>,
+    picks: Option<std::sync::mpsc::Sender<(Vec<usize>, Vec<usize>)>>,
 }
 
 /// Runs jobs on threads of their own.
@@ -134,11 +134,26 @@ impl Worker {
                     Err(e) => self.sink.send(Event::Failed { id, run, error: format!("couldn't start: {e}") }),
                 }
             }
-            Job::FetchTorrent { id, run, url, folder, file_name, files, first, seed_ratio, sent } => {
+            Job::FetchTorrent { id, run, url, folder, file_name, files, first, seed_ratio, sent, priority, down_kib, up_kib, connections } => {
                 let before = self.stop(id);
                 let cancel = Arc::new(AtomicBool::new(false));
                 let (tx, picks) = std::sync::mpsc::channel();
-                let spec = torrent::TorrentFetch { id, run, url, folder: PathBuf::from(folder), file_name, files, first, seed_ratio, sent, picks };
+                let spec = torrent::TorrentFetch {
+                    id,
+                    run,
+                    url,
+                    folder: PathBuf::from(folder),
+                    file_name,
+                    files,
+                    first,
+                    seed_ratio,
+                    sent,
+                    priority,
+                    down_kib,
+                    up_kib,
+                    connections,
+                    picks,
+                };
                 let (sink, flag) = (self.sink.clone(), cancel.clone());
                 let spawned = std::thread::Builder::new().name(format!("torrent-{}", id.0)).spawn(move || {
                     if let Some(h) = before {
@@ -153,9 +168,9 @@ impl Worker {
                     Err(e) => self.sink.send(Event::Failed { id, run, error: format!("couldn't start: {e}") }),
                 }
             }
-            Job::PickFiles { id, files } => {
+            Job::PickFiles { id, files, priority } => {
                 if let Some(tx) = self.transfers.get(&id).and_then(|t| t.picks.as_ref()) {
-                    let _ = tx.send(files);
+                    let _ = tx.send((files, priority));
                 }
             }
             Job::Configure { torrent } => torrent::configure(torrent),

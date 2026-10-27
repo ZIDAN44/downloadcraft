@@ -69,15 +69,18 @@ Download only videos you have the right to. DRM-protected videos aren't supporte
 - **Magnet links and `.torrent` files**: paste the link, open the file with DownloadCraft, drop it
   on the window, or pick it with **Open a torrent file** in Add link.
 - **Pick the files you want.** Add link lists the files inside, all ticked; untick the ones you
-  don't want, and only the rest appear in the folder.
+  don't want, and only the rest appear in the folder. Mark files **First** to get them before the
+  others.
+- **Web seeds.** A torrent that names web servers holding its files gets them from there too, on
+  several connections, which helps when few people share it (archive.org's torrents, for one).
 - **Nothing written over.** Every path in the torrent is checked first. A file already in the
   folder is never replaced; a resume checks what's on disk and fetches only what's missing.
 - **Sharing back.** A finished torrent is shared while DownloadCraft is open until it has sent its
   own size (0 to 10 times, in Settings).
 - **Details under the list**: how it's going, the trackers and how many share it, the peers
   you're connected to, and each file's progress, where you can pick files while it runs.
-- **Your connection, your way**: the port (or a random one), TCP or TCP and µTP, speed limits,
-  peers per torrent, a SOCKS5 proxy and an IP filter (`.dat` or `.p2p`). UPnP is off unless you
+- **Your connection, your way**: the port (or a random one), TCP or TCP and µTP, speed limits
+  overall and for each torrent, peers per torrent, a SOCKS5 proxy and an IP filter (`.dat` or `.p2p`). UPnP is off unless you
   turn it on, so DownloadCraft opens no ports on your router by itself.
 - Peers are found through trackers, the DHT and peer exchange, with
   [librqbit](https://github.com/ikatson/rqbit).

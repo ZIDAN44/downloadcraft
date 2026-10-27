@@ -144,7 +144,8 @@ Commit after every piece of work that builds.
   where layouts break.
 - CLI: `downloadcraft-cli commands`, `downloadcraft-cli run <id> '<json>'`,
   `downloadcraft-cli get <url> [--dir <folder>] [--connections <n>] [--subtitles <langs>]
-  [--files <list>] [--seed <ratio>] [--torrent <json>] [--details]`,
+  [--files <list>] [--first <list>] [--limits <down>,<up>] [--seed <ratio>] [--torrent <json>]
+  [--details]`,
   `downloadcraft-cli files <torrent>`,
   `downloadcraft-cli tools [get]`.
 - Torrents are tested only with ones that are legal to share: Linux images (Debian's netinst) and

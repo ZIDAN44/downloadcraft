@@ -48,6 +48,9 @@ pub fn registry() -> Registry {
             r#"{"port"?: number, "protocol"?: "tcp"|"both", "upnp"?: bool, "peerLimit"?: number, "downKib"?: number, "upKib"?: number, "proxy"?: string, "ipFilter"?: string}"#,
         ),
         CommandSpec::new("download.pickFiles", "Pick files", "Details › Files", pick_files).params(r#"{"id"?: number, "files": [number]}"#),
+        CommandSpec::new("download.first", "Download first", "Details › Files", download_first).params(r#"{"id"?: number, "files": [number], "first": bool}"#),
+        CommandSpec::new("download.torrentLimits", "Speed limits for this torrent", "Details › General", torrent_limits)
+            .params(r#"{"id"?: number, "downKib"?: number, "upKib"?: number}"#),
         CommandSpec::new("prefs.language", "Language", "Settings › Appearance", set_language).params(r#"{"language": "auto"|"de"|"pt-br"}"#),
     ])
 }
@@ -106,7 +109,7 @@ fn new_download(
             .unwrap_or_default();
         files.sort_unstable();
         files.dedup();
-        TorrentChoice { files, list: Vec::new() }
+        TorrentChoice { files, ..TorrentChoice::default() }
     });
     // A video page downloads through yt-dlp, in the quality picked (the best there is otherwise).
     let video = (kind == SourceKind::VideoPage).then(|| {
@@ -416,17 +419,7 @@ fn set_torrent(s: &mut Session, v: &Value) -> CmdResult {
 /// file added to the choice sends it back to the queue for what's missing.
 fn pick_files(s: &mut Session, v: &Value) -> CmdResult {
     let id = target(s, v)?;
-    let mut files: Vec<usize> = v
-        .get("files")
-        .and_then(Value::as_array)
-        .ok_or_else(|| CmdError::Params("`files` (array of numbers) is required".into()))?
-        .iter()
-        .filter_map(Value::as_u64)
-        .filter_map(|i| usize::try_from(i).ok())
-        .filter(|i| *i < probe::MAX_TORRENT_FILES)
-        .collect();
-    files.sort_unstable();
-    files.dedup();
+    let files = file_list(v)?;
     if files.is_empty() {
         return Err(CmdError::Params("pick at least one file".into()));
     }
@@ -445,10 +438,75 @@ fn pick_files(s: &mut Session, v: &Value) -> CmdResult {
             d.missing = false;
         }
     } else if running {
-        s.push_job(Job::PickFiles { id, files: if all { Vec::new() } else { files } });
+        let priority = s.get(id).and_then(|d| d.torrent.as_ref()).map(|t| t.first.clone()).unwrap_or_default();
+        s.push_job(Job::PickFiles { id, files: if all { Vec::new() } else { files }, priority });
     }
     s.dirty = true;
     Ok(json!({"id": id.0}))
+}
+
+/// The files of `v`'s `files` (indexes, each once, in order).
+fn file_list(v: &Value) -> Result<Vec<usize>, CmdError> {
+    let mut files: Vec<usize> = v
+        .get("files")
+        .and_then(Value::as_array)
+        .ok_or_else(|| CmdError::Params("`files` (array of numbers) is required".into()))?
+        .iter()
+        .filter_map(Value::as_u64)
+        .filter_map(|i| usize::try_from(i).ok())
+        .filter(|i| *i < probe::MAX_TORRENT_FILES)
+        .collect();
+    files.sort_unstable();
+    files.dedup();
+    Ok(files)
+}
+
+/// Mark files of a torrent to download first (`first: true`) or with the rest (`false`). A
+/// running torrent fetches them before the others from now on.
+fn download_first(s: &mut Session, v: &Value) -> CmdResult {
+    let id = target(s, v)?;
+    let files = file_list(v)?;
+    let first = p::bool(v, "first").ok_or_else(|| CmdError::Params("`first` (true or false) is required".into()))?;
+    let Some(d) = s.get_mut(id) else { return Err(CmdError::Params(format!("no download {}", id.0))) };
+    let running = d.run != 0 && d.state == State::Downloading;
+    let Some(choice) = d.torrent.as_mut() else { return Err(CmdError::Disabled("it isn't a torrent".into())) };
+    if first {
+        choice.first.extend(files);
+        choice.first.sort_unstable();
+        choice.first.dedup();
+    } else {
+        choice.first.retain(|f| !files.contains(f));
+    }
+    let (picked, priority) = (choice.files.clone(), choice.first.clone());
+    if running {
+        s.push_job(Job::PickFiles { id, files: picked, priority: priority.clone() });
+    }
+    s.dirty = true;
+    Ok(json!({"id": id.0, "first": priority}))
+}
+
+/// This torrent's own speed limits (KiB/s, 0 for none), beside the overall ones. They apply
+/// from its next start (librqbit takes a torrent's limits as it's added).
+fn torrent_limits(s: &mut Session, v: &Value) -> CmdResult {
+    let id = target(s, v)?;
+    let kib = |k: &str| -> Result<Option<u32>, CmdError> {
+        match v.get(k) {
+            None => Ok(None),
+            Some(x) => x
+                .as_u64()
+                .map(|n| Some(u32::try_from(n).unwrap_or(u32::MAX).min(4_000_000)))
+                .ok_or_else(|| CmdError::Params(format!("`{k}` is a number"))),
+        }
+    };
+    let (down, up) = (kib("downKib")?, kib("upKib")?);
+    let Some(d) = s.get_mut(id) else { return Err(CmdError::Params(format!("no download {}", id.0))) };
+    let running = d.run != 0;
+    let Some(choice) = d.torrent.as_mut() else { return Err(CmdError::Disabled("it isn't a torrent".into())) };
+    choice.down_kib = down.unwrap_or(choice.down_kib);
+    choice.up_kib = up.unwrap_or(choice.up_kib);
+    let out = json!({"id": id.0, "downKib": choice.down_kib, "upKib": choice.up_kib, "fromNextStart": running});
+    s.dirty = true;
+    Ok(out)
 }
 
 fn set_theme(s: &mut Session, v: &Value) -> CmdResult {

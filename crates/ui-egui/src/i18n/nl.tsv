@@ -58,6 +58,7 @@
 	Download folder	Downloadmap
 	Download limit	Downloadlimiet
 	Download speed	Downloadsnelheid
+	Download this file before the others	Dit bestand vóór de andere downloaden
 	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	DownloadCraft houdt zichzelf bij. Staat er een nieuwe versie klaar, dan kun je via een balk bovenaan opnieuw starten om die te installeren.
 	DownloadCraft {version} is ready.	DownloadCraft {version} staat klaar.
 	Downloaded	Gedownload
@@ -73,6 +74,7 @@
 	Files	Bestanden
 	Filter files	Bestanden filteren
 	Finished	Voltooid
+	First	Eerst
 	Follows your computer's language unless you pick one.	Volgt de taal van je computer, tenzij je er een kiest.
 	Free and open source, under the MIT or Apache-2.0 licence.	Vrij en open source, onder de MIT- of Apache-2.0-licentie.
 	General	Algemeen
@@ -183,6 +185,7 @@
 	Theme: System. Click for Light	Thema: Systeem. Klik voor Licht
 	These show while it's downloading or sharing.	Dit verschijnt terwijl hij downloadt of gedeeld wordt.
 	This run	Deze sessie
+	This torrent's limits (KiB/s, 0: none)	Limieten van deze torrent (KiB/s, 0: geen)
 	Time active	Actieve tijd
 	Time left	Resterende tijd
 	Torrent	Torrent
@@ -206,10 +209,13 @@
 	Videos	Video's
 	Waiting for a free slot	Wacht op een vrije plek
 	Wasted	Verspild
+	Web seed: {url}	Webseed: {url}
 	With all of it	Met alles
 	YouTube also needs Deno (deno.com) for every quality; install it to get them.	YouTube heeft voor alle kwaliteiten ook Deno (deno.com) nodig; installeer het om ze te krijgen.
 	YouTube also needs Deno, a free JavaScript runtime yt-dlp reads its pages with; without it some qualities are missing. DownloadCraft fetches its official build and checks it before use.	YouTube heeft ook Deno nodig, een gratis JavaScript-omgeving waarmee yt-dlp de pagina's leest; zonder ontbreken sommige kwaliteiten. DownloadCraft haalt de officiële versie op en controleert die voor gebruik.
 	a proxy with a password isn't supported yet	een proxy met wachtwoord wordt nog niet ondersteund
+	from a web seed	van een webseed
+	from its next start	vanaf de volgende start
 	host:port, or empty for none	host:poort, of leeg voor geen
 	none	geen
 	not known yet	nog niet bekend
@@ -228,6 +234,7 @@
 	{n} connections	{n} verbindingen
 	{n} downloads	{n} downloads
 	{n} downloads running	{n} downloads bezig
+	{n} files	{n} bestanden
 	{n} in the list · {connections} connections each	{n} in de lijst · elk {connections} verbindingen
 	{n} links	{n} links
 	{n} × {size}	{n} × {size}

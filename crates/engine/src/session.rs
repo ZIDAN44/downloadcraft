@@ -192,6 +192,10 @@ impl Session {
                     first: d.total.is_none(),
                     seed_ratio,
                     sent: d.sent,
+                    priority: d.torrent.as_ref().map(|t| t.first.clone()).unwrap_or_default(),
+                    down_kib: d.torrent.as_ref().map_or(0, |t| t.down_kib),
+                    up_kib: d.torrent.as_ref().map_or(0, |t| t.up_kib),
+                    connections,
                 },
                 Some(v) => Job::FetchVideo {
                     id,

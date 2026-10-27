@@ -152,6 +152,12 @@ pub(crate) fn add_torrent(s: &mut Session) {
             tracker("udp://quiet.example:80", TrackerStatus::Waiting),
             tracker("wss://tracker.example", TrackerStatus::Unsupported),
         ],
+        web_seeds: vec![
+            tracker("https://archive.example/download/", TrackerStatus::Working),
+            tracker("https://mirror.example/", TrackerStatus::Failing("404 Not Found".into())),
+        ],
+        from_web: false,
+        first_done: false,
         file_done: vec![0, 1_514, 46_115, 0],
         files: vec![
             TorrentFile { index: 0, path: "Sintel/Sintel.de.srt".into(), size: 1_652 },
@@ -161,6 +167,8 @@ pub(crate) fn add_torrent(s: &mut Session) {
         ],
     };
     s.apply(Event::Details { id, run, live: Box::new(live) });
+    let _ = s.run("download.first", &json!({"id": id.0, "files": [2], "first": true}));
+    let _ = s.run("download.torrentLimits", &json!({"id": id.0, "downKib": 500}));
     let _ = s.run("list.select", &json!({"id": id.0}));
 }
 

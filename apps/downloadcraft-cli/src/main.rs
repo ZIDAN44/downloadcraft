@@ -16,13 +16,16 @@ const USAGE: &str = "\
 usage: downloadcraft-cli <command>
 
   get <url>… [--dir <folder>] [--connections <n>] [--subtitles <langs>]
-      [--files <list>] [--seed <ratio>] [--torrent <json>] [--details]
+      [--files <list>] [--first <list>] [--limits <down>,<up>] [--seed <ratio>]
+      [--torrent <json>] [--details]
                                 download links into a folder (default: the current one),
                                 each on up to n connections (default 8); a playlist or
                                 channel link becomes its videos; videos with subtitles in
                                 langs (such as en,es). Magnet links and .torrent files or
                                 links download as torrents: --files picks files by number
-                                (1,3-5, as `files` lists them), --seed shares a finished
+                                (1,3-5, as `files` lists them), --first downloads those
+                                before the rest, --limits caps this torrent (KiB/s),
+                                --seed shares a finished
                                 torrent until it has sent ratio times its size (default 0);
                                 --torrent sets prefs.torrent ({\"port\": 51413,
                                 \"downKib\": 500, ...}); --details prints peers and trackers as it goes
@@ -51,6 +54,8 @@ fn get(args: &[String]) -> Result<(), String> {
     let mut seed = 0.0;
     let mut torrent = None;
     let mut details = false;
+    let mut first = Vec::new();
+    let mut limits = None;
     let mut it = args.iter();
     while let Some(a) = it.next() {
         if a == "--dir" {
@@ -62,6 +67,13 @@ fn get(args: &[String]) -> Result<(), String> {
         } else if a == "--torrent" {
             let json = it.next().ok_or("--torrent needs settings as JSON")?;
             torrent = Some(serde_json::from_str::<Value>(json).map_err(|e| format!("--torrent: {e}"))?);
+        } else if a == "--first" {
+            first = numbers(it.next().ok_or("--first needs numbers, such as 1,3-5")?)?;
+        } else if a == "--limits" {
+            let l = it.next().ok_or("--limits needs down,up in KiB/s, such as 500,100")?;
+            let (d, u) = l.split_once(',').unwrap_or((l.as_str(), "0"));
+            let n = |x: &str| x.trim().parse::<u32>().map_err(|_| format!("--limits takes down,up in KiB/s, not {l}"));
+            limits = Some((n(d)?, n(u)?));
         } else if a == "--details" {
             details = true;
         } else if a == "--seed" {
@@ -106,12 +118,24 @@ fn get(args: &[String]) -> Result<(), String> {
         s.run("prefs.torrent", t).map_err(|e| e.to_string())?;
     }
     for u in &urls {
-        let mut params = json!({"url": u});
+        // Added paused, so a torrent's first files and limits are set before it starts.
+        let mut params = json!({"url": u, "paused": true});
         if !files.is_empty() {
             params["files"] = json!(files);
         }
-        if let Err(e) = s.run("download.add", &params) {
-            say(&format!("skipped {u}: {e}"));
+        match s.run("download.add", &params) {
+            Err(e) => say(&format!("skipped {u}: {e}")),
+            Ok(r) => {
+                let id = r["id"].clone();
+                let torrent = s.get(downloadcraft_engine::DownloadId(id.as_u64().unwrap_or(0))).is_some_and(|d| d.torrent.is_some());
+                if torrent && !first.is_empty() {
+                    s.run("download.first", &json!({"id": id, "files": first, "first": true})).map_err(|e| e.to_string())?;
+                }
+                if let (true, Some((d, up))) = (torrent, limits) {
+                    s.run("download.torrentLimits", &json!({"id": id, "downKib": d, "upKib": up})).map_err(|e| e.to_string())?;
+                }
+                s.run("download.resume", &json!({"id": id})).map_err(|e| e.to_string())?;
+            }
         }
     }
     if s.downloads.is_empty() {

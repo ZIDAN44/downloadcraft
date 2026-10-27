@@ -15,8 +15,8 @@ the next build, so no two different builds share a version.
 | | |
 |---|---|
 | Crates | 4 libraries, 2 apps and xtask |
-| Commands | 23 (`downloadcraft-cli commands`) |
-| Tests | 128: unit tests, a local HTTP server for downloads on one or many connections and for the updater, and headless frames of the window |
+| Commands | 25 (`downloadcraft-cli commands`) |
+| Tests | 131: unit tests, a local HTTP server for downloads on one or many connections and for the updater, and headless frames of the window |
 | Platforms | Windows, macOS, Linux (and FreeBSD packages) |
 
 ## Milestones
@@ -33,12 +33,13 @@ the next build, so no two different builds share a version.
    YouTube; the window in eight languages; fuzz testing and a Nix flake.
 4. **v0.4 — Torrents** ✅ Magnet links and `.torrent` files, by link or from this computer (BEP 3,
    9, 10), with peers from trackers, the DHT (BEP 5) and peer exchange; choosing files inside a
-   torrent, before and while it downloads; seeding to a ratio; a details pane (general, trackers,
-   peers, files); the port, µTP, UPnP, peer and speed limits, a SOCKS5 proxy and an IP filter.
+   torrent, before and while it downloads, and which to download first; web seeds (BEP 19); seeding
+   to a ratio; a details pane (general, trackers, peers, files); the port, µTP, UPnP, peer limits,
+   speed limits overall and per torrent, a SOCKS5 proxy and an IP filter.
    Built on librqbit (Apache-2.0): no libtorrent-rasterbar bindings, no GPL clients' code.
 5. **v0.5 — More places** FTP and FTPS; sign-in for HTTP, kept in the system keychain; cookies
-   handed over from the browser extension; scheduled start and stop; "shut down when done"; web
-   seeds for torrents (BEP 19); speed limits per download, and for files and video pages.
+   handed over from the browser extension; scheduled start and stop; "shut down when done"; speed
+   limits for files, video pages and web seeds.
 6. **v0.6 — Sites** MEGA file and folder links through MEGA's published API, decrypted on your
    computer so the key never leaves it. Never around DRM, paywalls or sign-in walls.
 7. **v0.7 — Everywhere** A browser extension (Chrome, Firefox, Edge) that hands links and downloads
@@ -151,3 +152,23 @@ the next build, so no two different builds share a version.
   - Checked with Debian's netinst torrent: a 3000 KiB/s limit held it at 3.1 MB/s; on port 51517
     over TCP and µTP, a 50-peer limit, and a one-range `.dat` filter, it connected to 45 peers,
     and Debian's tracker counted 1013 seeds, 11 downloading and 58 finished. 128 tests.
+- **2026-10-28** — **v0.4**: three things librqbit doesn't do, done around it, on librqbit as
+  published (a fork was tried and set aside: nothing to maintain beside DownloadCraft).
+  - Web seeds (BEP 19). A torrent that names web servers holding its files (`url-list`) has them
+    fetched first by DownloadCraft's own HTTP downloader, on several connections, from the first
+    server that has each file; librqbit then checks them piece by piece, fetches whatever is
+    missing from peers, and shares them. When every file came from the web but some pieces shared
+    with files left out can't be checked (no peer has them), the files are taken as they came
+    after 20 s. Nothing is fetched this way while a proxy is set. The Trackers tab lists the web
+    seeds and how each did; the list says "from a web seed".
+  - Download first: files marked First in the Files tab are picked alone, and the rest of those
+    picked follow once they're done (`download.first`).
+  - Speed limits for one torrent, beside the overall ones (General tab, `download.torrentLimits`);
+    librqbit takes them as a torrent is added, so a change applies from its next start.
+  - `downloadcraft-cli get --first <list> --limits <down>,<up>`.
+  - Checked with archive.org's Big Buck Bunny (Blender Foundation, CC BY): six of its files came
+    from archive.org's web seed with no peer connected, byte for byte as librqbit had checked them;
+    the whole torrent (441 MB) came the same way at up to 23 MB/s, its film matching the SHA-1
+    archive.org publishes.
+    Sintel with the film marked First and a 1500 KiB/s limit: the film came first at 1.2 to
+    1.8 MB/s, then the other ten files. 131 tests.

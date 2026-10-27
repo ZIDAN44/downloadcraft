@@ -98,6 +98,10 @@ fn detail(d: &Download) -> String {
         bits.push(size);
     }
     match d.state {
+        State::Downloading if d.live.as_ref().is_some_and(|l| l.from_web) => {
+            bits.push(format::speed(d.speed));
+            bits.push(tl!("from a web seed").into());
+        }
         State::Downloading if d.speed > 0 => {
             bits.push(format::speed(d.speed));
             if let Some(eta) = d.eta() {

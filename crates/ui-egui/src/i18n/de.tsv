@@ -58,6 +58,7 @@
 	Download folder	Download-Ordner
 	Download limit	Download-Grenze
 	Download speed	Download-Tempo
+	Download this file before the others	Diese Datei vor den anderen laden
 	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	DownloadCraft hält sich selbst aktuell. Ist eine neue Version bereit, kannst du über eine Leiste oben neu starten, um sie zu installieren.
 	DownloadCraft {version} is ready.	DownloadCraft {version} ist bereit.
 	Downloaded	Geladen
@@ -73,6 +74,7 @@
 	Files	Dateien
 	Filter files	Dateien filtern
 	Finished	Fertig
+	First	Zuerst
 	Follows your computer's language unless you pick one.	Folgt der Sprache deines Computers, wenn du keine wählst.
 	Free and open source, under the MIT or Apache-2.0 licence.	Frei und quelloffen, unter der MIT- oder Apache-2.0-Lizenz.
 	General	Allgemein
@@ -183,6 +185,7 @@
 	Theme: System. Click for Light	Design: System. Klicken für Hell
 	These show while it's downloading or sharing.	Das erscheint, während er lädt oder geteilt wird.
 	This run	Dieser Lauf
+	This torrent's limits (KiB/s, 0: none)	Grenzen dieses Torrents (KiB/s, 0: keine)
 	Time active	Aktiv seit
 	Time left	Verbleibend
 	Torrent	Torrent
@@ -206,10 +209,13 @@
 	Videos	Videos
 	Waiting for a free slot	Wartet auf einen freien Platz
 	Wasted	Verworfen
+	Web seed: {url}	Web-Seed: {url}
 	With all of it	Mit allem
 	YouTube also needs Deno (deno.com) for every quality; install it to get them.	YouTube braucht für alle Qualitäten auch Deno (deno.com); installiere es, um sie zu bekommen.
 	YouTube also needs Deno, a free JavaScript runtime yt-dlp reads its pages with; without it some qualities are missing. DownloadCraft fetches its official build and checks it before use.	YouTube braucht auch Deno, eine freie JavaScript-Laufzeit, mit der yt-dlp die Seiten liest; ohne sie fehlen manche Qualitäten. DownloadCraft lädt die offizielle Version und prüft sie vor der Nutzung.
 	a proxy with a password isn't supported yet	ein Proxy mit Passwort wird noch nicht unterstützt
+	from a web seed	von einem Web-Seed
+	from its next start	ab seinem nächsten Start
 	host:port, or empty for none	Host:Port, leer für keinen
 	none	keine
 	not known yet	noch unbekannt
@@ -228,6 +234,7 @@
 	{n} connections	{n} Verbindungen
 	{n} downloads	{n} Downloads
 	{n} downloads running	{n} Downloads laufen
+	{n} files	{n} Dateien
 	{n} in the list · {connections} connections each	{n} in der Liste · je {connections} Verbindungen
 	{n} links	{n} Links
 	{n} × {size}	{n} × {size}

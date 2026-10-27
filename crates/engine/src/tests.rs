@@ -366,10 +366,10 @@ fn a_torrents_files_can_be_picked_again_and_its_details_are_kept() {
     assert_eq!((d.sent, d.live.as_ref().map(|l| l.files.len())), (4, Some(0)), "moved, not copied");
     // Picked again while it runs: the transfer is told.
     s.run("download.pickFiles", &json!({"id": id.0, "files": [1]})).unwrap();
-    assert_eq!(s.take_jobs(), vec![Job::PickFiles { id, files: vec![1] }]);
+    assert_eq!(s.take_jobs(), vec![Job::PickFiles { id, files: vec![1], priority: vec![] }]);
     // Every file: the same as none picked.
     s.run("download.pickFiles", &json!({"id": id.0, "files": [0, 1]})).unwrap();
-    assert_eq!(s.take_jobs(), vec![Job::PickFiles { id, files: vec![] }]);
+    assert_eq!(s.take_jobs(), vec![Job::PickFiles { id, files: vec![], priority: vec![] }]);
     assert!(s.get(id).is_some_and(|d| d.torrent.as_ref().is_some_and(|t| t.files.is_empty())));
     assert!(s.run("download.pickFiles", &json!({"id": id.0, "files": []})).is_err(), "at least one");
     // The size follows what's picked.
@@ -411,4 +411,31 @@ fn torrent_settings_are_checked_and_handed_to_the_network_layer() {
     let mut again = Session::new();
     again.load(saved).unwrap();
     assert!(matches!(again.take_jobs().as_slice(), [Job::Configure { torrent }] if torrent.port == 51413));
+}
+
+#[test]
+fn a_torrents_first_files_and_own_limits_go_with_it() {
+    let mut s = session();
+    s.run("download.add", &json!({"url": "magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel", "paused": true})).unwrap();
+    let id = s.downloads.last().map(|d| d.id).unwrap();
+    let r = s.run("download.first", &json!({"id": id.0, "files": [5, 2, 5], "first": true})).unwrap();
+    assert_eq!(r["first"], json!([2, 5]));
+    s.run("download.first", &json!({"id": id.0, "files": [2], "first": false})).unwrap();
+    let r = s.run("download.torrentLimits", &json!({"id": id.0, "downKib": 1500})).unwrap();
+    assert_eq!((r["downKib"].as_u64(), r["upKib"].as_u64(), r["fromNextStart"].as_bool()), (Some(1500), Some(0), Some(false)));
+    assert!(s.run("download.torrentLimits", &json!({"id": id.0, "upKib": "fast"})).is_err());
+    s.run("download.resume", &json!({"id": id.0})).unwrap();
+    let jobs = s.take_jobs();
+    assert!(
+        matches!(jobs.as_slice(), [Job::FetchTorrent { priority, down_kib: 1500, up_kib: 0, connections: 8, .. }] if priority == &[5]),
+        "{jobs:?}"
+    );
+    // While it runs, a file moved first reaches the transfer with the files picked.
+    s.run("download.first", &json!({"id": id.0, "files": [1], "first": true})).unwrap();
+    assert_eq!(s.take_jobs(), vec![Job::PickFiles { id, files: vec![], priority: vec![1, 5] }]);
+    // Not a torrent: refused.
+    s.run("download.add", &json!({"url": "https://e.com/a.zip"})).unwrap();
+    let plain = s.downloads.last().map(|d| d.id).unwrap();
+    assert!(s.run("download.first", &json!({"id": plain.0, "files": [0], "first": true})).is_err());
+    assert!(s.run("download.torrentLimits", &json!({"id": plain.0, "downKib": 1})).is_err());
 }

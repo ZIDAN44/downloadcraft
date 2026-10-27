@@ -261,6 +261,8 @@ impl DownloadApp {
                 .show(ui, |ui| details::show(ui, &t, &mut self.details, &d, &self.session.prefs, engine.as_ref(), &mut act));
             match act {
                 Some(details::Action::PickFiles(files)) => self.run("download.pickFiles", json!({"id": d.id.0, "files": files})),
+                Some(details::Action::First(file, first)) => self.run("download.first", json!({"id": d.id.0, "files": [file], "first": first})),
+                Some(details::Action::Limits(down, up)) => self.run("download.torrentLimits", json!({"id": d.id.0, "downKib": down, "upKib": up})),
                 Some(details::Action::Copy(text)) => {
                     ctx.copy_text(text);
                     self.session.status = tl!("Copied").into();

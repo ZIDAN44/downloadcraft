@@ -22,11 +22,24 @@ pub(super) struct Watch {
     pub peer_limit: u32,
     /// The files have been sent (in the first report).
     told_files: bool,
+    /// The web seeds, as fetching from them went.
+    pub web: Vec<downloadcraft_model::torrent::Tracker>,
+    /// The files to download first are done.
+    pub first_done: bool,
 }
 
 impl Watch {
     pub fn new(peer_limit: u32) -> Self {
-        Watch { since: Instant::now(), seeding_since: None, before: HashMap::new(), last: Instant::now(), peer_limit, told_files: false }
+        Watch {
+            since: Instant::now(),
+            seeding_since: None,
+            before: HashMap::new(),
+            last: Instant::now(),
+            peer_limit,
+            told_files: false,
+            web: Vec::new(),
+            first_done: false,
+        }
     }
 
     pub fn seeding(&mut self) {
@@ -99,6 +112,9 @@ impl Watch {
             peers,
             trackers,
             file_done,
+            web_seeds: self.web.clone(),
+            from_web: false,
+            first_done: self.first_done,
             files: if std::mem::replace(&mut self.told_files, true) { Vec::new() } else { files.to_vec() },
         }
     }

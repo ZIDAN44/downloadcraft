@@ -58,6 +58,7 @@
 	Download folder	Cartella dei download
 	Download limit	Limite di download
 	Download speed	Velocità di download
+	Download this file before the others	Scarica questo file prima degli altri
 	DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it.	DownloadCraft si aggiorna da solo. Quando una nuova versione è pronta, una barra in alto ti permette di riavviare per installarla.
 	DownloadCraft {version} is ready.	DownloadCraft {version} è pronto.
 	Downloaded	Scaricato
@@ -73,6 +74,7 @@
 	Files	File
 	Filter files	Filtra i file
 	Finished	Completati
+	First	Prima
 	Follows your computer's language unless you pick one.	Segue la lingua del computer, se non ne scegli una.
 	Free and open source, under the MIT or Apache-2.0 licence.	Libero e open source, con licenza MIT o Apache-2.0.
 	General	Generale
@@ -183,6 +185,7 @@
 	Theme: System. Click for Light	Tema: Sistema. Clic per Chiaro
 	These show while it's downloading or sharing.	Compare mentre si scarica o si condivide.
 	This run	Questa sessione
+	This torrent's limits (KiB/s, 0: none)	Limiti di questo torrent (KiB/s, 0: nessuno)
 	Time active	Tempo attivo
 	Time left	Tempo rimanente
 	Torrent	Torrent
@@ -206,10 +209,13 @@
 	Videos	Video
 	Waiting for a free slot	In attesa di un posto libero
 	Wasted	Sprecato
+	Web seed: {url}	Seed web: {url}
 	With all of it	Completi
 	YouTube also needs Deno (deno.com) for every quality; install it to get them.	YouTube richiede anche Deno (deno.com) per tutte le qualità; installalo per averle.
 	YouTube also needs Deno, a free JavaScript runtime yt-dlp reads its pages with; without it some qualities are missing. DownloadCraft fetches its official build and checks it before use.	YouTube richiede anche Deno, un ambiente JavaScript libero con cui yt-dlp legge le sue pagine; senza, alcune qualità mancano. DownloadCraft scarica la versione ufficiale e la controlla prima di usarla.
 	a proxy with a password isn't supported yet	un proxy con password non è ancora supportato
+	from a web seed	da un seed web
+	from its next start	dal suo prossimo avvio
 	host:port, or empty for none	host:porta, o vuoto per nessuno
 	none	nessuna
 	not known yet	non ancora noto
@@ -228,6 +234,7 @@
 	{n} connections	{n} connessioni
 	{n} downloads	{n} download
 	{n} downloads running	{n} download in corso
+	{n} files	{n} file
 	{n} in the list · {connections} connections each	{n} nella lista · {connections} connessioni ciascuno
 	{n} links	{n} link
 	{n} × {size}	{n} × {size}

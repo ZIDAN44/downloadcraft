@@ -4,20 +4,21 @@ The work for the next milestone and the known gaps, most important first. When a
 remove it and record it in the [Progress log](../ROADMAP.md#progress-log).
 
 1. **More from torrents.**
-   - Web seeds (BEP 19): librqbit has none, so a torrent served only from a web server (as many of
-     archive.org's are) finds no one to download from.
+   - Web seeds and peers take turns rather than working at once: the web seeds go first, then
+     peers fill in. Speed limits don't apply to web seeds yet.
    - A resume reads every file of the torrent again to check it; on a big torrent that takes a
      while. librqbit's fast resume needs its session state kept, which DownloadCraft doesn't keep
      yet. For the same reason a magnet link asks peers for its details again on every start.
    - Finished torrents stop sharing when DownloadCraft closes and don't start again on its next
      start.
-   - Per-file priorities (librqbit downloads a file or doesn't), per-torrent speed limits, and a
-     limit on connections over all torrents.
+   - Priorities beyond first and the rest (librqbit downloads a file or doesn't), a torrent's own
+     speed limits changed while it runs (they apply from its next start), and a limit on
+     connections over all torrents.
    - A SOCKS5 proxy with a password (it needs the system keychain, coming in v0.5), and the DHT
      and UDP trackers through a proxy (librqbit sends those directly).
    - Each peer's progress and country, and a tracker's next announce: librqbit doesn't report
-     them.
-2. **Speed limits** for files and video pages.
+     them, and DownloadCraft uses librqbit as published rather than a changed copy.
+2. **Speed limits** for files, video pages and web seeds.
 3. **More video pages.**
    - FFmpeg on macOS: yt-dlp's project publishes no build for it, so for now Homebrew's is
      suggested.

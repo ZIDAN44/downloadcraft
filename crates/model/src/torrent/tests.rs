@@ -89,3 +89,24 @@ fn hex_hashes_read_back() {
     assert_eq!(hash_bytes("08ada5"), None);
     assert_eq!(hash_bytes(&"zz".repeat(20)), None);
 }
+
+#[test]
+fn web_seeds_are_read_from_url_list() {
+    let one = b"d8:url-list26:https://e.example/file.isoe";
+    assert_eq!(url_list(one), ["https://e.example/file.iso"]);
+    let many = b"d8:url-listl22:https://a.example/dir/21:ftp://b.example/x.iso22:https://a.example/dir/14:http://c.ex/x/ee";
+    assert_eq!(url_list(many), ["https://a.example/dir/", "http://c.ex/x/"], "web only, each once");
+    assert!(url_list(b"d4:infod4:name1:aee").is_empty());
+    assert!(url_list(b"not bencode").is_empty());
+}
+
+#[test]
+fn web_seed_addresses_follow_bep_19() {
+    // One file: the address itself, or the name added to a folder's address.
+    assert_eq!(web_seed_url("https://e.example/debian.iso", "debian.iso", &[], true), "https://e.example/debian.iso");
+    assert_eq!(web_seed_url("https://e.example/isos/", "debian 13.iso", &[], true), "https://e.example/isos/debian%2013.iso");
+    // Several files: address/name/path, slash or no slash.
+    let a = web_seed_url("https://archive.org/download/", "BigBuckBunny_124", &["Content", "big buck.avi"], false);
+    assert_eq!(a, "https://archive.org/download/BigBuckBunny_124/Content/big%20buck.avi");
+    assert_eq!(web_seed_url("https://archive.org/download", "B", &["x#y?.txt"], false), "https://archive.org/download/B/x%23y%3F.txt");
+}
