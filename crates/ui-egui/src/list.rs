@@ -67,7 +67,7 @@ fn empty(s: &Session, searching: bool, ui: &mut Ui, t: &Tokens, act: &mut Option
             }
             ui.add_space(18.0);
             ui.label(
-                egui::RichText::new(tl!("Direct links and video pages download now · torrents, magnet links and MEGA are on the way"))
+                egui::RichText::new(tl!("Files, video pages, torrents and magnet links download now · MEGA and FTP are on the way"))
                     .size(12.0)
                     .color(t.faint),
             );

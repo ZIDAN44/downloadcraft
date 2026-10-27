@@ -56,12 +56,9 @@ impl DownloadApp {
 
     pub(crate) fn update_bar(&mut self, ui: &mut Ui, t: &Tokens) {
         let UpdateState::Ready { version } = self.update.clone() else { return };
+        // The buttons are laid out first, at the right; the words take the room left, the longer
+        // line cut short with … (all of it on hover), so neither ever runs under the buttons.
         ui.horizontal(|ui| {
-            ui.label(RichText::new(tf!("DownloadCraft {version} is ready.", version = version)).strong());
-            ui.label(
-                RichText::new(tl!("Restart now to install it, or it installs when you close DownloadCraft. Downloads pause and carry on after."))
-                    .color(t.muted),
-            );
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.button(tl!("Later")).clicked() {
                     self.update_dismissed = Some(version.clone());
@@ -69,6 +66,12 @@ impl DownloadApp {
                 if ui.button(RichText::new(tl!("Restart now")).strong()).clicked() {
                     self.update_choice = Some(UpdateChoice::RestartNow);
                 }
+                ui.add_space(8.0);
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    ui.label(RichText::new(tf!("DownloadCraft {version} is ready.", version = version)).strong());
+                    let more = tl!("Restart now to install it, or it installs when you close DownloadCraft. Downloads pause and carry on after.");
+                    ui.add(egui::Label::new(RichText::new(more).color(t.muted)).truncate()).on_hover_text(more);
+                });
             });
         });
     }
