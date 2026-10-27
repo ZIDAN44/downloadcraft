@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+repository.workspace = true
 description = "DownloadCraft egui front end (categories, the download list, the Add link dialog); swappable: nothing below depends on it"
 
 [lints]

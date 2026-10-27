@@ -16,7 +16,7 @@ downloadcraft-engine = { workspace = true }
 downloadcraft-net = { workspace = true }
 downloadcraft-ui-egui = { workspace = true }
 # Without default features, so each is named: "clipboard" is copy and paste (pasting a link).
-eframe = { workspace = true, features = ["clipboard", "default_fonts", "wgpu", "accesskit", "wayland", "x11"] }
+eframe = { workspace = true, features = ["clipboard", "default_fonts", "wgpu", "accesskit", "wayland", "x11", "links"] }
 egui = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }

@@ -112,6 +112,22 @@ pub fn apply(ctx: &egui::Context, t: &Tokens) {
         s.spacing.button_padding = egui::vec2(12.0, 6.0);
         s.spacing.interact_size.y = 32.0;
         s.spacing.item_spacing = egui::vec2(8.0, 8.0);
+        // Scroll bars take a slim lane of their own beside what scrolls, never over it (egui's
+        // floating ones covered the controls at a dialog's right edge). The handle, in the text's
+        // colour, shows faintly at rest so it's clear there's more, and firms up under the pointer.
+        s.spacing.scroll = egui::style::ScrollStyle {
+            bar_width: 6.0,
+            bar_inner_margin: 8.0,
+            handle_min_length: 28.0,
+            foreground_color: true,
+            dormant_background_opacity: 0.0,
+            active_background_opacity: 0.0,
+            interact_background_opacity: 0.0,
+            dormant_handle_opacity: 0.22,
+            active_handle_opacity: 0.4,
+            interact_handle_opacity: 0.6,
+            ..egui::style::ScrollStyle::solid()
+        };
         s.text_styles.insert(egui::TextStyle::Body, egui::FontId::proportional(14.0));
         s.text_styles.insert(egui::TextStyle::Button, egui::FontId::proportional(14.0));
         s.text_styles.insert(egui::TextStyle::Small, egui::FontId::proportional(12.0));

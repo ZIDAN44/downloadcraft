@@ -42,6 +42,9 @@ impl SettingsForm {
     }
 }
 
+/// Where DownloadCraft's source lives (the workspace's `repository`).
+const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
+
 pub(super) fn frame(t: &Tokens) -> egui::Frame {
     egui::Frame::new().fill(t.surface).corner_radius(14).inner_margin(24).stroke(egui::Stroke::new(1.0, t.border))
 }
@@ -105,8 +108,8 @@ pub fn settings(ctx: &egui::Context, f: &mut SettingsForm, t: &Tokens, services:
         // stay in view.
         let room = (ctx.content_rect().height() - 220.0).max(160.0);
         egui::ScrollArea::vertical().max_height(room).show(ui, |ui| {
-            // Room on the right for the scroll bar, clear of the controls.
-            let width = width - 14.0;
+            // The width the scroll bar's lane leaves, when there is one.
+            let width = ui.available_width();
             ui.set_width(width);
             widgets::section(ui, t, "Appearance");
             setting(ui, t, "Theme", "System follows your computer.", 340.0, |ui| {
@@ -156,14 +159,26 @@ pub fn settings(ctx: &egui::Context, f: &mut SettingsForm, t: &Tokens, services:
             ui.add_space(8.0);
             ui.separator();
             widgets::section(ui, t, "About");
-            ui.label(RichText::new(format!("DownloadCraft {version}")).size(13.5));
-            ui.label(
-                RichText::new(tl!(
-                    "DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it."
-                ))
-                .size(12.0)
-                .color(t.muted),
-            );
+            // The name and version, the licence with a link to the source, and how updates come:
+            // lines of one block, set close together.
+            ui.scope(|ui| {
+                ui.spacing_mut().item_spacing.y = 4.0;
+                ui.spacing_mut().interact_size.y = 16.0;
+                ui.label(RichText::new(format!("DownloadCraft {version}")).size(13.5).strong());
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.x = 6.0;
+                    ui.label(RichText::new(tl!("Free and open source, under the MIT or Apache-2.0 licence.")).size(12.0).color(t.muted));
+                    let shown = REPOSITORY.trim_start_matches("https://");
+                    ui.hyperlink_to(RichText::new(shown).size(12.0).color(t.accent), REPOSITORY).on_hover_text(REPOSITORY);
+                });
+                ui.label(
+                    RichText::new(tl!(
+                        "DownloadCraft keeps itself up to date. When a new version is ready, a bar at the top lets you restart to install it."
+                    ))
+                    .size(12.0)
+                    .color(t.muted),
+                );
+            });
         });
         ui.add_space(14.0);
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
