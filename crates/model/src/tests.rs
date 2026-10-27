@@ -25,6 +25,23 @@ fn classifies_links() {
     assert!(classify(&format!("https://e.com/{}", "a".repeat(20_000))).is_err());
 }
 
+/// Links copied from pages keep their spaces (a magnet link's name, a file name): they're sent as
+/// `%20`, as a browser does. Found with a magnet link refused as "a link has no spaces".
+#[test]
+fn spaces_in_a_link_are_sent_encoded() {
+    use crate::source::normalize;
+    let magnet = "magnet:?xt=urn:btih:2ee672984434179aa8a7c5d2ebd0a94b38eb2960&dn=Big Buck Bunny [1080p]&tr=udp://tracker.example:6969/announce";
+    assert_eq!(classify(magnet), Ok(SourceKind::Magnet));
+    assert_eq!(normalize(magnet), magnet.replace(' ', "%20"));
+    assert_eq!(classify("https://e.com/my file.zip"), Ok(SourceKind::Http));
+    assert_eq!(normalize("  https://e.com/my file.zip "), "https://e.com/my%20file.zip");
+    assert_eq!(normalize("https://e.com/a.zip"), "https://e.com/a.zip", "nothing to change");
+    // A tab is still refused, and so is a space before the scheme's `:`.
+    for bad in ["https://e.com/a\tb", "a b://c", "not a link"] {
+        assert!(classify(bad).is_err(), "{bad:?}");
+    }
+}
+
 #[test]
 fn names_from_links() {
     assert_eq!(from_url("https://example.com/files/My%20Movie.mkv?token=1#x"), "My Movie.mkv");

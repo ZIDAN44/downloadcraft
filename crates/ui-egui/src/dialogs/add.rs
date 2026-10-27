@@ -27,7 +27,7 @@ impl AddForm {
         AddForm { links: text.trim().to_string(), folder: folder.to_string(), start: true, quality: HashMap::new() }
     }
     fn links(&self) -> Vec<String> {
-        self.links.lines().map(str::trim).filter(|l| !l.is_empty()).map(str::to_string).collect()
+        self.links.lines().map(source::normalize).filter(|l| !l.is_empty()).collect()
     }
 }
 

@@ -78,7 +78,8 @@ fn new_download(
     if s.downloads.len() >= MAX_DOWNLOADS {
         return Err(CmdError::Failed("the list is full; clear completed downloads first".into()));
     }
-    let url = url.trim();
+    let url = source::normalize(url);
+    let url = url.as_str();
     let kind = source::classify(url).map_err(|e| CmdError::Params(e.to_string()))?;
     if let Some(why) = kind.not_yet() {
         return Err(CmdError::Disabled(format!("{} links aren't supported yet: {why}", kind.label())));

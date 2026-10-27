@@ -74,7 +74,8 @@ pub const MAX_URL: usize = 16 * 1024;
 
 /// What `text` links to, or why it isn't a link DownloadCraft can take.
 pub fn classify(text: &str) -> Result<SourceKind, &'static str> {
-    let url = text.trim();
+    let url = normalize(text);
+    let url = url.as_str();
     if url.is_empty() {
         return Err("paste a link");
     }
@@ -108,6 +109,18 @@ pub fn classify(text: &str) -> Result<SourceKind, &'static str> {
         }
         "ftp" | "ftps" => Ok(SourceKind::Ftp),
         _ => Err("only http, https, ftp, magnet and MEGA links"),
+    }
+}
+
+/// A pasted link as it's sent: trimmed, and with spaces after its scheme written `%20`, as a
+/// browser sends them. Links copied from pages often keep them as typed (a magnet link's `dn=`
+/// name, a file name in a path). Other whitespace, and a space before the `:`, stay, so the link
+/// is refused.
+pub fn normalize(text: &str) -> String {
+    let url = text.trim();
+    match url.split_once(':') {
+        Some((scheme, rest)) if !scheme.contains(' ') && rest.contains(' ') => format!("{scheme}:{}", rest.replace(' ', "%20")),
+        _ => url.to_string(),
     }
 }
 
