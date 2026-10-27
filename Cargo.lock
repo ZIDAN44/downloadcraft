@@ -767,7 +767,7 @@ checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 
 [[package]]
 name = "downloadcraft"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "dirs",
  "downloadcraft-engine",
@@ -787,7 +787,7 @@ dependencies = [
 
 [[package]]
 name = "downloadcraft-cli"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "downloadcraft-engine",
  "downloadcraft-net",
@@ -797,7 +797,7 @@ dependencies = [
 
 [[package]]
 name = "downloadcraft-engine"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "downloadcraft-model",
  "log",
@@ -808,7 +808,7 @@ dependencies = [
 
 [[package]]
 name = "downloadcraft-model"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -816,7 +816,7 @@ dependencies = [
 
 [[package]]
 name = "downloadcraft-net"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "downloadcraft-model",
  "fs4",
@@ -831,7 +831,7 @@ dependencies = [
 
 [[package]]
 name = "downloadcraft-ui-egui"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "downloadcraft-engine",
  "egui",
@@ -4259,7 +4259,7 @@ checksum = "e450f9b2ed1dff33c94c12589a87338689467b9c4f5d8a5710bd09a847d2c8a7"
 
 [[package]]
 name = "xtask"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "png",
  "serde_json",

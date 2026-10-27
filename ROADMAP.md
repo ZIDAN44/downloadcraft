@@ -1,6 +1,6 @@
 # Roadmap
 
-**Stage:** v0.2 — downloads in parts, video pages, a redesigned window (2026-10-27). Each milestone
+**Stage:** v0.3 under way — steadier transfers done, torrents next (2026-10-27). Each milestone
 below is a version, named for what it adds; what changed in each is in the [Progress log](#progress-log).
 The ranked work list for the current milestone is [docs/gaps.md](docs/gaps.md).
 
@@ -28,19 +28,20 @@ next version: the version is raised and the Progress log gains its entry before 
 3. **v0.3 — Torrents, and steadier transfers** `.torrent` files and magnet links (BEP 3, 9, 10),
    DHT (BEP 5), web seeds (BEP 19), choosing files inside a torrent, seeding to a ratio, with
    permissive crates only (no libtorrent-rasterbar bindings, no GPL clients' code). Also left from
-   v0.2: per-download and global speed limits, an idle-read timeout and retries with back-off, and
-   checking free disk space before starting.
+   v0.2: per-download and global speed limits. Done so far: a stalled-connection timeout and
+   retries with back-off, the free-space check, a per-server connection cap, one window per data
+   folder, a log file, fuzz targets and a Nix flake.
 4. **v0.4 — More places** FTP and FTPS, sign-in for HTTP (kept in the system keychain), cookies
    handed over from the browser extension, scheduled start and stop, "shut down when done".
 5. **v0.5 — Sites** MEGA file and folder links through MEGA's published API (decryption on this
    computer, the key never leaves it); video playlists and subtitles (single videos landed early,
-   in v0.2). Never around DRM, paywalls or sign-in walls.
+   in v0.2; playlists, channels and subtitles in v0.3). Never around DRM, paywalls or sign-in walls.
 6. **v0.6 — Everywhere** A browser extension (Chrome, Firefox, Edge) that hands links and
    downloads to the app; the clipboard watched for links.
    (Installers and self-updating test builds landed early, in v0.1.)
-7. **v0.7 — Polish** Fourteen languages through craft-i18n, right-to-left layouts, the list
-   sortable and searchable, a details pane with the response headers, checksums (SHA-256)
-   checked after download.
+7. **v0.7 — Polish** Fourteen languages through craft-i18n (eight landed early, in v0.3),
+   right-to-left layouts, the list sortable and searchable, a details pane with the response
+   headers, checksums (SHA-256) checked after download.
 
 ## Progress log
 
