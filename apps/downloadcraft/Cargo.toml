@@ -1,0 +1,34 @@
+[package]
+name = "downloadcraft"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "DownloadCraft desktop app"
+default-run = "downloadcraft"
+
+[lints]
+workspace = true
+
+[dependencies]
+downloadcraft-engine = { workspace = true }
+downloadcraft-net = { workspace = true }
+downloadcraft-ui-egui = { workspace = true }
+# Without default features, so each is named: "clipboard" is copy and paste (pasting a link).
+eframe = { workspace = true, features = ["clipboard", "default_fonts", "wgpu", "accesskit", "wayland", "x11"] }
+egui = { workspace = true }
+serde_json = { workspace = true }
+log = { workspace = true }
+# The system's Downloads folder and where the list is kept.
+dirs = "6"
+# The folder picker.
+rfd = "0.17"
+# Open finished files and folders with the system's default app.
+open = "5"
+# Decodes the window icon (assets/app-icon).
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+[build-dependencies]
+# Icon + VERSIONINFO for downloadcraft.exe; build.rs only uses it when the target is Windows.
+winresource = "0.1"

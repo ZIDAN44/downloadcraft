@@ -1,0 +1,20 @@
+[package]
+name = "downloadcraft-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish = false
+description = "DownloadCraft on the command line: download a link, and every engine command"
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "downloadcraft-cli"
+path = "src/main.rs"
+
+[dependencies]
+downloadcraft-engine = { workspace = true }
+downloadcraft-net = { workspace = true }
+serde_json = { workspace = true }
