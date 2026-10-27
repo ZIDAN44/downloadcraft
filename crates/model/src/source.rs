@@ -17,6 +17,33 @@ pub enum SourceKind {
     Magnet,
     /// A MEGA file or folder link (`mega.nz`, `mega.io`).
     Mega,
+    /// A video site's page (YouTube, Vimeo…): a web page, not the video file, so fetching it as
+    /// it is would save the page.
+    #[serde(rename = "videopage")]
+    VideoPage,
+}
+
+/// Sites whose links are pages that play a video, not files.
+const VIDEO_SITES: &[&str] = &[
+    "youtube.com",
+    "youtu.be",
+    "youtube-nocookie.com",
+    "vimeo.com",
+    "dailymotion.com",
+    "twitch.tv",
+    "tiktok.com",
+    "instagram.com",
+    "facebook.com",
+    "fb.watch",
+    "x.com",
+    "twitter.com",
+    "reddit.com",
+    "bilibili.com",
+];
+
+/// Whether `host` is one of [`VIDEO_SITES`] or a part of one (`www.youtube.com`, `m.youtube.com`).
+fn is_video_site(host: &str) -> bool {
+    VIDEO_SITES.iter().any(|site| host == *site || host.strip_suffix(site).is_some_and(|sub| sub.ends_with('.')))
 }
 
 impl SourceKind {
@@ -27,6 +54,7 @@ impl SourceKind {
             SourceKind::Torrent => "Torrent",
             SourceKind::Magnet => "Magnet link",
             SourceKind::Mega => "MEGA",
+            SourceKind::VideoPage => "Video page",
         }
     }
     /// `None` when this version downloads it; otherwise why not yet.
@@ -36,6 +64,7 @@ impl SourceKind {
             SourceKind::Ftp => Some("FTP downloads arrive in v0.4"),
             SourceKind::Torrent | SourceKind::Magnet => Some("torrents arrive in v0.3"),
             SourceKind::Mega => Some("MEGA links arrive in v0.5"),
+            SourceKind::VideoPage => Some("video pages arrive in v0.5"),
         }
     }
 }
@@ -69,6 +98,8 @@ pub fn classify(text: &str) -> Result<SourceKind, &'static str> {
         "http" | "https" => {
             if host == "mega.nz" || host == "mega.io" || host.ends_with(".mega.nz") {
                 Ok(SourceKind::Mega)
+            } else if is_video_site(&host) {
+                Ok(SourceKind::VideoPage)
             } else if path_of(after).to_ascii_lowercase().ends_with(".torrent") {
                 Ok(SourceKind::Torrent)
             } else {

@@ -12,6 +12,12 @@ fn classifies_links() {
     assert_eq!(classify("https://mega.nz/file/abc#key"), Ok(SourceKind::Mega));
     assert_eq!(classify("https://user@MEGA.NZ:443/folder/x"), Ok(SourceKind::Mega));
     assert_eq!(classify("ftp://ftp.example.org/pub/x.tar"), Ok(SourceKind::Ftp));
+    for page in ["https://youtu.be/P6pcTK0wTYA?si=x", "https://www.youtube.com/watch?v=abc", "https://m.youtube.com/shorts/x", "https://vimeo.com/1"]
+    {
+        assert_eq!(classify(page), Ok(SourceKind::VideoPage), "{page}");
+    }
+    assert_eq!(classify("https://notyoutube.com/a.mp4"), Ok(SourceKind::Http), "only the site itself");
+    assert!(SourceKind::VideoPage.not_yet().is_some());
     assert_eq!(classify("http://[::1]:8080/x"), Ok(SourceKind::Http));
     for bad in ["", "   ", "example.com/a.zip", "file:///etc/passwd", "javascript:alert(1)", "https://", "https:///x", "magnet:", "a b://c"] {
         assert!(classify(bad).is_err(), "{bad:?}");
